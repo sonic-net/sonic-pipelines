@@ -42,7 +42,7 @@ jobs:
           for i in $images $SYNC_DOCKER_IMAGE_EXTRA
           do
             source=$i
-            if [[ "$i" == debian* ]];then
+            if [[ "$i" == debian* ]] || [[ "$i" == ubuntu* ]];then
               source=library/$i
             fi
             az acr import -n PublicMirror --source docker.io/$source --image $i --force
