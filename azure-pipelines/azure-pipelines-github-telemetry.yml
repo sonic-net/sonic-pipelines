@@ -60,6 +60,7 @@ stages:
           timeoffset = datetime.timedelta(minutes=5)
           until = (timestamp - timeoffset).replace(tzinfo=pytz.UTC)
           if 'END_TIMESTAMP' in os.environ and os.environ['END_TIMESTAMP']:
+            print('END_TIMESTAMP: {}''.format(os.environ['END_TIMESTAMP']))
             until = parser.isoparse(os.environ['END_TIMESTAMP']).replace(tzinfo=pytz.UTC)
           delta = datetime.timedelta(minutes=60)
           if 'TIMEDELTA_IN_MINUTES' in os.environ and os.environ['TIMEDELTA_IN_MINUTES']:
