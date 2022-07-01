@@ -1,0 +1,7 @@
+steps:
+- script: |
+    set -ex
+    if which init.sh;then
+      init.sh
+    fi
+  displayName: Init agent

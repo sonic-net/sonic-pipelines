@@ -1,0 +1,11 @@
+steps:
+- script: |
+    set -x
+    sudo df -h
+    sudo ls -al /
+    sudo ls -al /nfs
+    sudo ls -al /data
+    sudo getfacl /mnt /data
+    docker info
+  condition: always()
+  displayName: Debug agent issues
