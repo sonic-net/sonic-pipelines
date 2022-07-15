@@ -1,2 +1,2 @@
 variables:
-  VERSION_CONTROL_OPTIONS: 'SONIC_VERSION_CONTROL_COMPONENTS=$([ "$(System.PullRequest.TargetBranch)" != "master" ] && [ "$(Build.SourceBranchName)" != "master" ] && echo deb,py2,py3,web,git,docker)'
+  VERSION_CONTROL_OPTIONS: 'HH$(System.PullRequest.TargetBranch)HH$(Build.SourceBranchName)HH SONIC_VERSION_CONTROL_COMPONENTS=$([ "$(System.PullRequest.TargetBranch)" != "master" ] && [ "$(Build.SourceBranchName)" != "master" ] && echo deb,py2,py3,web,git,docker)'
