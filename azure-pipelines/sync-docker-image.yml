@@ -23,6 +23,9 @@ jobs:
     steps:
       - checkout: self
         clean: true
+      - script: |
+          curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+        displayName: install dependencies
       - ${{ each platform in parameters.platforms }}:
         - task: DownloadPipelineArtifact@2
           displayName: Download ${{ platform }} versions-docker file
