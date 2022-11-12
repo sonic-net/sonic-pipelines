@@ -101,7 +101,7 @@ stages:
               records = json.loads(timeline_content)['records']
               results = []
               #max_column_size = 104855000
-              max_column_size = 20*1024*1024 #20M
+              max_column_size = 40*1024*1024 #40M
               for record in records:
                   record['content'] = ""
                   record['buildId'] = build_info['id']
