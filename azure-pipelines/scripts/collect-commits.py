@@ -9,7 +9,7 @@ MAX_COMMIT_COUNT_IN_BRANCH=int(os.getenv('MAX_COMMIT_COUNT_IN_BRANCH', 200))
 TIMESTAMP = datetime.datetime.now()
 TIMESTAMPSTR = TIMESTAMP.isoformat()
 DEFAULT_MIN_COMMIT_TIMESTAMP = datetime.datetime.now() - datetime.timedelta(days=180)
-MIN_COMMIT_TIMESTAMP =parser.parse(os.getenv('MIN_COMMIT_TIMESTAMP', DEFAULT_MIN_COMMIT_TIMESTAMP.isoformat()))
+MIN_COMMIT_TIMESTAMP =parser.parse(os.getenv('MIN_COMMIT_TIMESTAMP', DEFAULT_MIN_COMMIT_TIMESTAMP.isoformat())).replace(tzinfo=None)
 
 def collect_commit(commit, tagNames):
   result = {
@@ -41,6 +41,8 @@ def collect_commits(repoPath, branches):
   for branch in branches:
     commits = list(repo.iter_commits(branch, max_count=MAX_COMMIT_COUNT_IN_BRANCH))
     for commit in commits:
+      if commit.committed_datetime.replace(tzinfo=None) < MIN_COMMIT_TIMESTAMP:
+        continue
       tagNames = tag_commits.get(commit.hexsha, [])
       format_commit = collect_commit(commit, tagNames)
       format_commit['branch'] = branch
