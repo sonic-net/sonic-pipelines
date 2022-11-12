@@ -38,7 +38,7 @@ def get_timelines(timeline_url, build_info):
     record['triggerInfo'] = build_info['triggerInfo']
     record['reason'] = build_info['reason']
     record['parameters'] = ''
-    if 'parameters' in buied_info:
+    if 'parameters' in build_info:
       record['parameters'] = build_info['parameters']
     if 'status' in build_info:
       record['status'] = build_info['status']
