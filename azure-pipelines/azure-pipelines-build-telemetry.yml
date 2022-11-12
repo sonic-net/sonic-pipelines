@@ -163,7 +163,7 @@ stages:
               upload_to_blob(build_coverages, BUILD_COVERAGES)
               split_build_logs = []
               log_size = 0
-              max_upload_size = 100 * 1024 * 1024 # 100M
+              max_upload_size = 80 * 1024 * 1024 # 80M
               for build_log in build_logs:
                   if log_size >= max_upload_size:
                       print("Split the logs to upload, log_size {}".format(log_size))
