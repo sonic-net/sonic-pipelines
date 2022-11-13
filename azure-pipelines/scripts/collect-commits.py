@@ -40,12 +40,15 @@ def collect_commits(repoPath, branches):
       tag_commits[tag.commit.hexsha] = tagNames
   for branch in branches:
     commits = list(repo.iter_commits(branch, max_count=MAX_COMMIT_COUNT_IN_BRANCH))
+    branchName = branch
+    if branchName.startswith("origin/"):
+      branchName = branch[7:]
     for commit in commits:
       if commit.committed_datetime.replace(tzinfo=None) < MIN_COMMIT_TIMESTAMP:
         continue
       tagNames = tag_commits.get(commit.hexsha, [])
       format_commit = collect_commit(commit, tagNames)
-      format_commit['branch'] = branch
+      format_commit['branch'] = branchName
       format_commit['tags'] = tagNames
       format_commit['repo_name'] = repo_name
       format_commit['repo_url'] = repo_url
