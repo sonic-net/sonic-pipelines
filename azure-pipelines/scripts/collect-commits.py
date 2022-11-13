@@ -49,7 +49,7 @@ def collect_commits(repoPath, branches):
       format_commit['tags'] = tagNames
       format_commit['repo_name'] = repo_name
       format_commit['repo_url'] = repo_url
-      results.append(collect_commit(commit, tagNames))
+      results.append(format_commit)
   return results
 
 def records_tostring(records):
