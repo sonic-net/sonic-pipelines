@@ -119,6 +119,7 @@ def collect_pullrequests(args):
       content = get_response(commits_url)
       commits_info = json.loads(content)
       pullrequest["commits"] = commits_info['value']
+      pullrequest["dump_timestamp"] = TIMESTAMPSTR
   write_logs(pullrequests,  args.collect_pullrequests)
 
 def get_arguments_old():
