@@ -2,7 +2,6 @@
 
 import datetime, time, json, os, sys, argparse
 from urllib.request import Request, urlopen
-from dateutil import parser as dateparser
 
 TIMESTAMP = datetime.datetime.now()
 TIMESTAMPSTR = TIMESTAMP.isoformat()
@@ -90,6 +89,7 @@ def collect_build_logs(args):
     write_logs(logs,  args.collect_build_logs)
 
 def get_pullrequests(args):
+  from dateutil import parser as dateparser
   start_timestamp = dateparser.parse(args.start_timestamp).replace(tzinfo=None)
   results = []
   url_prefix = args.urlprefix + "/_apis/git/repositories/" + args.repository + "/pullrequests"
