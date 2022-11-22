@@ -122,6 +122,27 @@ def collect_pullrequests(args):
       pullrequest["dump_timestamp"] = TIMESTAMPSTR
   write_logs(pullrequests,  args.collect_pullrequests)
 
+def collect_pushes(args):
+  from dateutil import parser as dateparser
+  if not args.repository:
+    raise Exception('The -r or --repository not specified')
+  start_timestamp = dateparser.parse(args.start_timestamp).replace(tzinfo=None)
+  results = []
+  url_prefix = args.urlprefix + "/_apis/git/repositories/" + args.repository + "/pushes"
+  url = url_prefix + "?api-version=7.0&searchCriteria.includeRefUpdates=true&searchCriteria.fromDate={0}&$top=2000".format(start_timestamp.isoformat())
+  content = get_response(url)
+  push_info = json.loads(content)
+  for push in push_info["value"]:
+    push_id = push['pushId']
+    push_url = url_prefix + "/" + str(push_id)
+    commit_content = get_response(push_url)
+    push["commits"] = []
+    if commit_content:
+      commit_info = json.loads(commit_content)
+      push["commits"] = commit_info["commits"]
+    results.append(push)
+  write_logs(results, args.collect_pushes)
+
 def get_arguments_old():
   argv = sys.argv[1:]
   build_url = argv[0]
@@ -145,6 +166,7 @@ if __name__ == "__main__":
   parser.add_argument("--collect-build-logs", help="Collect build logs")
   parser.add_argument("--collect-build-timelines", help="Collect build timelines")
   parser.add_argument("--collect-pullrequests", help="Collect pullrequests")
+  parser.add_argument("--collect-pushes", help="Collect pushes")
   parser.add_argument("--not-include-pullrequest-commits", help="Not include pullrequest commits, default is false", action="store_true")
   parser.add_argument("--start-timestamp", help="The start timestamp", default=DEFAULT_START_TIMESTAMP.isoformat())
   if len(argv) > 1 and argv[0].startswith('http'): #old command line
@@ -157,3 +179,5 @@ if __name__ == "__main__":
     collect_build_logs(args)
   if args.collect_pullrequests:
     collect_pullrequests(args)
+  if args.collect_pushes:
+    collect_pushes(args)
