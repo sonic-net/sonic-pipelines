@@ -137,6 +137,7 @@ def collect_pushes(args):
     push_url = url_prefix + "/" + str(push_id)
     commit_content = get_response(push_url)
     push["commits"] = []
+    push["dump_timestamp"] = TIMESTAMPSTR
     if commit_content:
       commit_info = json.loads(commit_content)
       push["commits"] = commit_info["commits"]
