@@ -2,6 +2,8 @@
 
 import datetime, time, json, os, sys, argparse
 from urllib.request import Request, urlopen
+from urllib.error import HTTPError
+from copy import deepcopy
 
 TIMESTAMP = datetime.datetime.now()
 TIMESTAMPSTR = TIMESTAMP.isoformat()
@@ -19,6 +21,10 @@ def get_response(url):
       data=response.read()
       encoding = response.info().get_content_charset()
       return data.decode(encoding)
+    except HTTPError as e:
+      if e.code == 404:
+        print("404 error:", url)
+        return None
     except Exception as e:
       print(e)
       time.sleep(10)
@@ -128,20 +134,25 @@ def collect_pushes(args):
     raise Exception('The -r or --repository not specified')
   start_timestamp = dateparser.parse(args.start_timestamp).replace(tzinfo=None)
   results = []
-  url_prefix = args.urlprefix + "/_apis/git/repositories/" + args.repository + "/pushes"
-  url = url_prefix + "?api-version=7.0&searchCriteria.includeRefUpdates=true&searchCriteria.fromDate={0}&$top=2000".format(start_timestamp.isoformat())
+  url_prefix = args.urlprefix + "/_apis/git/repositories/" + args.repository
+  url = url_prefix + "/pushes?api-version=7.0&searchCriteria.includeRefUpdates=true&searchCriteria.fromDate={0}&$top=2000".format(start_timestamp.isoformat())
   content = get_response(url)
   push_info = json.loads(content)
   for push in push_info["value"]:
     push_id = push['pushId']
-    push_url = url_prefix + "/" + str(push_id)
-    commit_content = get_response(push_url)
+    refUpdates = push['refUpdates']
     push["commits"] = []
     push["dump_timestamp"] = TIMESTAMPSTR
-    if commit_content:
-      commit_info = json.loads(commit_content)
-      push["commits"] = commit_info["commits"]
-    results.append(push)
+    for refUpdate in refUpdates:
+      tmp_push = deepcopy(push)
+      tmp_push["refUpdate"] = refUpdate
+      if refUpdate["newObjectId"] != "0000000000000000000000000000000000000000" and refUpdate["oldObjectId"] != "0000000000000000000000000000000000000000":
+        commits_url = url_prefix + "/commits?api-version=7.0&searchCriteria.itemVersion.version={0}&searchCriteria.itemVersion.versionType=commit&searchCriteria.compareVersion.version={1}&searchCriteria.compareVersion.versionType=commit".format(refUpdate["oldObjectId"], refUpdate["newObjectId"])
+        commit_content = get_response(commits_url)
+        if commit_content:
+          commit_info = json.loads(commit_content)
+          tmp_push["commits"] = commit_info["value"]
+      results.append(tmp_push)
   write_logs(results, args.collect_pushes)
 
 def get_arguments_old():
