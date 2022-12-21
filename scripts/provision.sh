@@ -27,7 +27,7 @@ if [ "$ARCH" == "armhf" ] && [ "$ARCH" != "$DEFAULT_ARCH" ]; then
   mkdir -p /etc/systemd/system/docker.service.d
   echo "[Service]" > /etc/systemd/system/docker.service.d/override.conf
   echo "ExecStart=" >> /etc/systemd/system/docker.service.d/override.conf
-  echo "ExecStart=/usr/bin/setarch linux32 -B /usr/bin/dockerd -H unix:// --storage-driver overlay2 --ipv6 --fixed-cidr-v6=2603:10a0:100:830::0/64 --experimental" >> /etc/systemd/system/docker.service.d/override.conf
+  echo "ExecStart=/usr/bin/setarch linux32 -B /usr/bin/dockerd -H unix:// --storage-driver overlay2 --data-root /data/docker --ipv6 --fixed-cidr-v6=2603:10a0:100:830::0/64 --experimental" >> /etc/systemd/system/docker.service.d/override.conf
 
   # Configure container service
   mkdir -p /etc/systemd/system/containerd.service.d
@@ -47,6 +47,11 @@ if [ "$ARCH" == "armhf" ] && [ "$ARCH" != "$DEFAULT_ARCH" ]; then
     echo "The machine=$machine is not correct, provision failed" 1>&2
     exit 1
   fi
+else
+  systemctl stop docker
+  sed -i 's/^ExecStart=.*$/& --data-root \/data\/docker/' /lib/systemd/system/docker.service
+  systemctl daemon-reload
+  systemctl start docker
 fi
 
 # Install build tools (and waiting docker ready)
