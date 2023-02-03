@@ -37,7 +37,7 @@ jobs:
         set -ex
         cd sonic-buildimage
         work_space=$(pwd)
-        body=''
+        body="#### Why I did it"$'\n'
         while read -r line
         do
           path=$(echo $line| awk '{print$2}')
@@ -61,6 +61,9 @@ jobs:
           fi
         done < <(git submodule status -- src/*)
         cd $work_space
+        body+="#### How I did it"$'\n'
+        body+="#### How to verify it"$'\n'
+        body+="#### Description for the changelog"$'\n'
         git add .
         git commit -m "[submodule] Update submodule to the latest HEAD automatically"
         git push mssonicbld HEAD:submodule-$(date +%F) -f
