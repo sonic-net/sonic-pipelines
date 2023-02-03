@@ -1,0 +1,74 @@
+pr: none
+trigger: none
+schedules:
+- cron: "1 1 * * *"
+  displayName: Daily build
+  branches:
+    include:
+      - master
+
+parameters:
+- name: branches
+  type: object
+  default:
+  - master
+
+jobs:
+- ${{ each branch in parameters.branches }}:
+  - job:
+    displayName: ${{ branch }}
+    steps:
+    - checkout: none
+    - bash: |
+        set -ex
+        rm -rf sonic-buildimage
+        git clone https://github.com/sonic-net/sonic-buildimage
+        cd sonic-buildimage
+        git config user.email sonicbld@microsoft.com
+        git config user.name mssonicbld
+        git config credential.https://github.com.username mssonicbld
+        git remote add mssonicbld https://mssonicbld:$TOKEN@github.com/mssonicbld/sonic-buildimage
+        git checkout ${{ branch }}
+        git fetch mssonicbld
+        git submodule update --init src/*
+      env:
+        TOKEN: $(token)
+    - bash: |
+        set -ex
+        cd sonic-buildimage
+        work_space=$(pwd)
+        body=''
+        while read -r line
+        do
+          path=$(echo $line| awk '{print$2}')
+
+          cd $work_space/$path
+          # 1. only keep repos in sonic-net organization
+          git remote -vv | grep 'github.com/sonic-net/' || continue
+
+          # 2. only update master branch
+          git branch -a --contains HEAD | grep 'remotes/origin/${{ branch }}' || continue
+
+          head=$(git rev-parse HEAD)
+          git checkout ${{ branch }}
+          git pull
+          commits=$(git log ${head}..HEAD --pretty=reference)
+          if [[ "$commits" != "" ]];then
+            body+="$path"$'\n'
+            body+='```'$'\n'
+            body+=$commits$'\n'
+            body+='```'$'\n'
+          fi
+        done < <(git submodule status -- src/*)
+        cd $work_space
+        git add .
+        git commit -m "[submodule] Update submodule to the latest HEAD automatically"
+        git push mssonicbld HEAD:submodule-$(date +%F) -f
+
+        echo $TOKEN | gh auth login --with-token
+        result=$(gh pr create -R sonic-net/sonic-buildimage -H mssonicbld:submodule-$(date +%F) -B ${{ branch }} -t "[submodule] Update submodule to the latest HEAD automatically" -b "$body" 2>&1)
+        new_pr_rul=$(echo $result | grep github.com)
+        gh pr edit $new_pr_rul --add-label "automerge"
+      env:
+        TOKEN: $(token)
+
