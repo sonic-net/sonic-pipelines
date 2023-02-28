@@ -44,9 +44,6 @@ stages:
 
           QUEUE_NAME="builds"
           CONTAINER="build"
-          [ "$AZURE_STORAGE_QUEUE_NAME" ] && QUEUE_NAME=$AZURE_STORAGE_QUEUE_NAME
-          [ "$AZURE_STORAGE_CONTAINER" ] && CONTAINER=$AZURE_STORAGE_CONTAINER
-          echo "QUEUE_NAME=$QUEUE_NAME AZURE_STORAGE_CONTAINER=$AZURE_STORAGE_CONTAINER"
           if os.getenv('AZURE_STORAGE_QUEUE_NAME'):
             QUEUE_NAME = os.getenv('AZURE_STORAGE_QUEUE_NAME')
           if os.getenv('AZURE_STORAGE_CONTAINER'):
@@ -59,6 +56,7 @@ stages:
           BUILD_COVERAGES = 'buildcoverages'
           MESSAGE_PER_PAGE = 10
           MAX_PAGE_COUNT = 30
+          HEADERS = {"Authorization": "Bearer " + "$(System.AccessToken)"}
           blob_service_client = BlobServiceClient.from_connection_string(AZURE_STORAGE_CONNECTION_STRING)
 
           # Upload a list of lines to blob
@@ -80,7 +78,8 @@ stages:
               for i in range(0, 3):
                   try:
                     print(url)
-                    response = request.urlopen(url)
+                    req = request.Request(url, headers=HEADERS)
+                    response = request.urlopen(req)
                     data=response.read()
                     encoding = response.info().get_content_charset('utf-8')
                     return data.decode(encoding)
@@ -155,6 +154,9 @@ stages:
                   content = json.dumps(build, separators=(',', ':'))
                   build_messages.append(content)
                   build_url = build['resource']['url']
+                  if 'dev.azure.com' not in build_url:
+                    print("Skipped the the url {}".format(build_url))
+                    continue
                   build_content = get_response(build_url)
                   if not build_content:
                       print("Skipped the message for no build content, the message: {}".format(msg_content))
