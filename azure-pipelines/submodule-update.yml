@@ -45,6 +45,7 @@ jobs:
         while read -r line
         do
           path=$(echo $line| awk '{print$2}')
+          # if some modules break PR build. Add them to ignore_pathes
           for ignore_path in $(ignore_pathes)
           do
             if [[ "$ignore_path" == "$path" ]] && continue 2
@@ -67,6 +68,8 @@ jobs:
           fi
         done < <(git submodule status -- src/*)
         cd $work_space
+        # if no nothing changed, exit
+        git status | grep "nothing to commit, working tree clean" && exit 0
         body+="#### How I did it"$'\n'
         body+="#### How to verify it"$'\n'
         body+="#### Description for the changelog"$'\n'
