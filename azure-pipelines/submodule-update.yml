@@ -48,7 +48,7 @@ jobs:
           # if some modules break PR build. Add them to ignore_pathes
           for ignore_path in $(ignore_pathes)
           do
-            if [[ "$ignore_path" == "$path" ]] && continue 2
+            [[ "$ignore_path" == "$path" ]] && continue 2
           done
           cd $work_space/$path
           # 1. only keep repos in sonic-net organization
