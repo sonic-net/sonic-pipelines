@@ -34,8 +34,9 @@ jobs:
         echo $TOKEN | gh auth login --with-token
       env:
         TOKEN: $(token)
+      displayName: Setup env
     - bash: |
-        set -ex
+        set -e
         cd sonic-buildimage
         work_space=$(pwd)
         body="#### Why I did it"$'\n'
@@ -67,3 +68,4 @@ jobs:
         git commit -m "[submodule] Update submodule to the latest HEAD automatically"
         git push mssonicbld HEAD:submodule-$(date +%F) -f
         gh pr create -R sonic-net/sonic-buildimage -H mssonicbld:submodule-$(date +%F) -B ${{ branch }} -t "[submodule] Update submodule to the latest HEAD automatically" -l "automerge" -b "$body" 2>&1
+      displayName: Update submodules
