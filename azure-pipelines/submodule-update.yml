@@ -21,7 +21,7 @@ jobs:
     - checkout: none
     - bash: |
         set -ex
-        rm -rf sonic-buildimage
+        sudo rm -rf sonic-buildimage
         git clone https://github.com/sonic-net/sonic-buildimage
         cd sonic-buildimage
         git config user.email sonicbld@microsoft.com
@@ -66,6 +66,6 @@ jobs:
         body+="#### Description for the changelog"$'\n'
         git add .
         git commit -m "[submodule] Update submodule to the latest HEAD automatically"
-        git push mssonicbld HEAD:submodule-$(date +%F) -f
-        gh pr create -R sonic-net/sonic-buildimage -H mssonicbld:submodule-$(date +%F) -B ${{ branch }} -t "[submodule] Update submodule to the latest HEAD automatically" -l "automerge" -b "$body" 2>&1
+        git push mssonicbld HEAD:submodule-${{ branch }}-$(date +%F) -f
+        gh pr create -R sonic-net/sonic-buildimage -H mssonicbld:submodule-${{ branch }}-$(date +%F) -B ${{ branch }} -t "[submodule] Update submodule to the latest HEAD automatically" -l "automerge" -b "$body" 2>&1
       displayName: Update submodules
