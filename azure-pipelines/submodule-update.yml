@@ -31,6 +31,7 @@ jobs:
         git checkout ${{ branch }}
         git fetch mssonicbld
         git submodule update --init src/*
+        echo $TOKEN | gh auth login --with-token
       env:
         TOKEN: $(token)
     - bash: |
@@ -41,11 +42,9 @@ jobs:
         while read -r line
         do
           path=$(echo $line| awk '{print$2}')
-
           cd $work_space/$path
           # 1. only keep repos in sonic-net organization
           git remote -vv | grep 'github.com/sonic-net/' || continue
-
           # 2. only update master branch
           git branch -a --contains HEAD | grep 'remotes/origin/${{ branch }}' || continue
 
@@ -67,11 +66,4 @@ jobs:
         git add .
         git commit -m "[submodule] Update submodule to the latest HEAD automatically"
         git push mssonicbld HEAD:submodule-$(date +%F) -f
-
-        echo $TOKEN | gh auth login --with-token
-        result=$(gh pr create -R sonic-net/sonic-buildimage -H mssonicbld:submodule-$(date +%F) -B ${{ branch }} -t "[submodule] Update submodule to the latest HEAD automatically" -b "$body" 2>&1)
-        new_pr_rul=$(echo $result | grep github.com)
-        gh pr edit $new_pr_rul --add-label "automerge"
-      env:
-        TOKEN: $(token)
-
+        gh pr create -R sonic-net/sonic-buildimage -H mssonicbld:submodule-$(date +%F) -B ${{ branch }} -t "[submodule] Update submodule to the latest HEAD automatically" -l "automerge" -b "$body" 2>&1
