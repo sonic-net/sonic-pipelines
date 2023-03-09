@@ -64,7 +64,13 @@ def get_build_logs(timelines):
     if record['log']:
       log_url = record['log']['url']
       log = get_response(log_url)
-      record['content'] = log[:max_column_size]
+      content = log[:max_column_size]
+      lines = []
+      for line in content.split('\n'):
+         if '&sp=' in line and '&sig=' in line:
+           continue
+         lines.append(line)
+      record['content'] = '\n'.join(lines)
     results.append(record)
   return results
 
