@@ -1,0 +1,81 @@
+pr: none
+trigger: none
+schedules:
+- cron: "19 1 * * *"
+  displayName: Daily build
+  branches:
+    include:
+      - master
+
+parameters:
+- name: branches
+  type: object
+  default:
+  - master
+  - 202211
+  - 202205
+
+jobs:
+- ${{ each branch in parameters.branches }}:
+  - job:
+    displayName: ${{ branch }}
+    steps:
+    - checkout: none
+    - bash: |
+        set -ex
+        sudo rm -rf sonic-buildimage
+        git clone https://github.com/sonic-net/sonic-buildimage
+        cd sonic-buildimage
+        git config user.email $(user_email)
+        git config user.name $(user_name)
+        git config credential.https://github.com.username $(user_name)
+        git remote add mssonicbld https://mssonicbld:$TOKEN@github.com/mssonicbld/sonic-buildimage
+        git checkout ${{ branch }}
+        git fetch mssonicbld
+        git submodule update --init src/*
+        echo $TOKEN | gh auth login --with-token
+      env:
+        TOKEN: $(token)
+      displayName: Setup env
+    - bash: |
+        set -e
+        cd sonic-buildimage
+        work_space=$(pwd)
+        body="#### Why I did it"$'\n'
+        while read -r line
+        do
+          path=$(echo $line| awk '{print$2}')
+          # if some modules break PR build. Add them to ignore_pathes
+          for ignore_path in $(ignore_pathes)
+          do
+            [[ "$ignore_path" == "$path" ]] && continue 2
+          done
+          cd $work_space/$path
+          # 1. only keep repos in sonic-net organization
+          git remote -vv | grep 'github.com/sonic-net/' || continue
+          # 2. only update the same branch with sonic-buildimage
+          git branch -a --contains HEAD | grep 'remotes/origin/${{ branch }}' || continue
+
+          head=$(git rev-parse HEAD)
+          git checkout ${{ branch }}
+          git pull
+          commits=$(git log ${head}..HEAD --pretty=reference)
+          if [[ "$commits" != "" ]];then
+            body+="$path"$'\n'
+            body+='```'$'\n'
+            body+=$commits$'\n'
+            body+='```'$'\n'
+          fi
+        done < <(git submodule status -- src/*)
+        cd $work_space
+        # if no nothing changed, exit
+        git status | grep "nothing to commit, working tree clean" && exit 0
+        body+="#### How I did it"$'\n'
+        body+="#### How to verify it"$'\n'
+        body+="#### Description for the changelog"$'\n'
+        git add .
+        git commit -m "[submodule] Update submodule to the latest HEAD automatically"
+        git push mssonicbld HEAD:submodule-${{ branch }}-$(date +%F) -f
+        label="$(label)"
+        gh pr create -R sonic-net/sonic-buildimage -H mssonicbld:submodule-${{ branch }}-$(date +%F) -B ${{ branch }} -t "[submodule] Update submodule to the latest HEAD automatically" -l "Submodule Update :arrow_double_up:$label" -b "$body" 2>&1
+      displayName: Update submodules
