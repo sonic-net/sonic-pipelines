@@ -59,7 +59,7 @@ jobs:
           head=$(git rev-parse HEAD)
           git checkout ${{ branch }}
           git pull
-          commits=$(git log ${head}..HEAD --pretty=reference)
+          commits=$(git log ${head}..HEAD --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)[%an]%Creset')
           if [[ "$commits" != "" ]];then
             body+="$path"$'\n'
             body+='```'$'\n'
