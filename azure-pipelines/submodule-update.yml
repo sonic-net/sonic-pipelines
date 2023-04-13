@@ -70,14 +70,13 @@ jobs:
             body+="#### How to verify it"$'\n'
             body+="#### Description for the changelog"$'\n'
             cd $work_space
-            # if no nothing changed, exit
-            git status | grep "nothing to commit, working tree clean" && continue
-            git add .
-            git commit -m "[submodule] Update submodule $module_name to the latest HEAD automatically"
+
+            git add $path
+            git commit -m "[submodule] Update submodule $module_name to the latest HEAD automatically" || continue
             git push mssonicbld HEAD:submodule-${{ branch }}-$module_name -f
             label=""
             echo $(automerge_branches) | grep ${{ branch }} && label=",automerge"
-            result=$(gh pr create -R sonic-net/sonic-buildimage -H mssonicbld:submodule-${{ branch }} -B ${{ branch }} -t "[submodule][${{ branch }}] Update submodule to the latest HEAD automatically" -l "Submodule Update :arrow_double_up:$label" -b "$body" 2>&1 || true)
+            result=$(gh pr create -R sonic-net/sonic-buildimage -H mssonicbld:submodule-${{ branch }}-$module_name -B ${{ branch }} -t "[submodule][${{ branch }}] Update submodule $module_name to the latest HEAD automatically" -l "Submodule Update :arrow_double_up:$label" -b "$body" 2>&1 || true)
             if echo $result | grep "already exists:"; then
               pr_url=$(echo $result | awk -F"already exists:" '{print$2}')
               gh pr edit $pr_url -b "$body"
