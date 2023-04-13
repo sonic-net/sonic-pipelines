@@ -41,10 +41,10 @@ jobs:
         set -e
         cd sonic-buildimage
         work_space=$(pwd)
-        body="#### Why I did it"$'\n'
         while read -r line
         do
           path=$(echo $line| awk '{print$2}')
+          module_name=$(echo $path | sed 's#src/##')
           # if some modules break PR build. Add them to ignore_pathes
           for ignore_path in $(ignore_pathes)
           do
@@ -61,29 +61,30 @@ jobs:
           git pull
           commits=$(git log ${head}..HEAD --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)[%an]%Creset')
           if [[ "$commits" != "" ]];then
+            body="#### Why I did it"$'\n'
             body+="$path"$'\n'
             body+='```'$'\n'
             body+=$commits$'\n'
             body+='```'$'\n'
+            body+="#### How I did it"$'\n'
+            body+="#### How to verify it"$'\n'
+            body+="#### Description for the changelog"$'\n'
+            cd $work_space
+
+            git add $path
+            git commit -m "[submodule] Update submodule $module_name to the latest HEAD automatically" || continue
+            git push mssonicbld HEAD:submodule-${{ branch }}-$module_name -f
+            label=""
+            echo $(automerge_branches) | grep ${{ branch }} && label=",automerge"
+            result=$(gh pr create -R sonic-net/sonic-buildimage -H mssonicbld:submodule-${{ branch }}-$module_name -B ${{ branch }} -t "[submodule][${{ branch }}] Update submodule $module_name to the latest HEAD automatically" -l "Submodule Update :arrow_double_up:$label" -b "$body" 2>&1 || true)
+            if echo $result | grep "already exists:"; then
+              pr_url=$(echo $result | awk -F"already exists:" '{print$2}')
+              gh pr edit $pr_url -b "$body"
+            else
+              echo $result
+              echo $result | grep "https://github.com/sonic-net/sonic-buildimage/pull/"
+            fi
+            git reset HEAD~ --hard
           fi
         done < <(git submodule status -- src/*)
-        cd $work_space
-        # if no nothing changed, exit
-        git status | grep "nothing to commit, working tree clean" && exit 0
-        body+="#### How I did it"$'\n'
-        body+="#### How to verify it"$'\n'
-        body+="#### Description for the changelog"$'\n'
-        git add .
-        git commit -m "[submodule] Update submodule to the latest HEAD automatically"
-        git push mssonicbld HEAD:submodule-${{ branch }} -f
-        label=""
-        echo $(automerge_branches) | grep ${{ branch }} && label=",automerge"
-        result=$(gh pr create -R sonic-net/sonic-buildimage -H mssonicbld:submodule-${{ branch }} -B ${{ branch }} -t "[submodule][${{ branch }}] Update submodule to the latest HEAD automatically" -l "Submodule Update :arrow_double_up:$label" -b "$body" 2>&1 || true)
-        if echo $result | grep "already exists:"; then
-          pr_url=$(echo $result | awk -F"already exists:" '{print$2}')
-          gh pr edit $pr_url -b "$body"
-        else
-          echo $result
-          echo $result | grep "https://github.com/sonic-net/sonic-buildimage/pull/"
-        fi
       displayName: Update submodules
