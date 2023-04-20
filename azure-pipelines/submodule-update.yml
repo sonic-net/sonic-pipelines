@@ -86,6 +86,7 @@ jobs:
               echo $result | grep "https://github.com/sonic-net/sonic-buildimage/pull/"
             fi
             git reset HEAD~ --hard
+            sleep $(INTERVAL)
           fi
         done < <(git submodule status -- src/*)
       displayName: Update submodules
