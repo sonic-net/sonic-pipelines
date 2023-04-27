@@ -78,7 +78,7 @@ stages:
                   try:
                     print(url)
                     req = request.Request(url, headers=HEADERS)
-                    response = request.urlopen(req)
+                    response = request.urlopen(req, timeount=300)
                     data=response.read()
                     encoding = response.info().get_content_charset('utf-8')
                     return data.decode(encoding)
