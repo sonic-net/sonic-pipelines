@@ -23,13 +23,11 @@ stages:
   - job: Build
     timeoutInMinutes: 120
     steps:
-    - task: UsePythonVersion@0
-      inputs:
-        versionSpec: '3.x'
-        addToPath: true
-        architecture: 'x64'
     - script: |
-        pip install azure-storage-queue azure-storage-blob
+        sudo apt-get update
+        sudo apt-get install -y python3-pip
+        sudo pip3 install azure-storage-queue azure-storage-blob
+        sudo update-alternatives --install /usr/bin/python python /usr/bin/python3 10
       displayName: Install build tools
     - task: PythonScript@0
       displayName: Publish SONiC telemetry
@@ -78,7 +76,7 @@ stages:
                   try:
                     print(url)
                     req = request.Request(url, headers=HEADERS)
-                    response = request.urlopen(req, timeount=300)
+                    response = request.urlopen(req, timeout=300)
                     data=response.read()
                     encoding = response.info().get_content_charset('utf-8')
                     return data.decode(encoding)
