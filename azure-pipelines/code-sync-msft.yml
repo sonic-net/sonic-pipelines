@@ -10,7 +10,13 @@ schedules:
   always: true
 
 pool:
-      vmImage: ubuntu-20.04
+  vmImage: ubuntu-20.04
+
+parameters:
+- name: branches
+  type: object
+  default:
+  - 202205
 
 resources:
   repositories:
@@ -25,42 +31,64 @@ steps:
     clean: true
     persistCredentials: true
   - bash: |
-      set -x
-      FAILED=""
-      git remote add target http://github.com/azure/sonic-buildimage
-      git remote update || exit 1
-      git config --global user.email "svc-acs@microsoft.com"
+      set -ex
+      git remote add head http://github.com/sonic-net/sonic-buildimage
+      git remote update
+      git config --global user.email "sonicbld@microsoft.com"
       git config --global user.name "Sonic Automation"
       git config pull.rebase false
+      echo $TOKEN | gh auth login --with-token
+    env:
+      TOKEN: $(GH_PAT)
+    displayName: configure
+  - ${{each branch in parameters.branches}}:
+    - bash: |
+        set -ex
 
-      target_branches="202205"
-      for branch in $target_branches; do
-        base_branch=${branch}
-        target_branch=${branch}
+        base_branch=${{branch}}
+        head_branch=${{branch}}
 
-        git ls-remote origin refs/heads/${base_branch} &> /dev/null || continue
-        git ls-remote target refs/heads/${base_branch} &> /dev/null || continue
+        git ls-remote --exit-code origin refs/heads/${base_branch} || { echo "Branch missing: sonic-buildimage-msft/${base_branch}"; exit 1; }
+        git ls-remote --exit-code head refs/heads/${head_branch} || { echo "Branch missing: sonic-buildimage/${base_branch}"; exit 1; }
 
-        echo "-------Start merging. branch: ${base_branch}-------"
+        git branch -D ${base_branch} || true
         git checkout -b ${base_branch} --track origin/${base_branch}
-        curr_tag="${base_branch}-`date '+%Y%m%d-%H%M'`.pre-merge"
-        post_tag="${base_branch}-`date '+%Y%m%d-%H%M'`.post-merge"
-        git tag ${curr_tag}
+        git reset HEAD --hard
+        git status | grep "^nothing to commit, working tree clean" || { echo "git reset failed. workspace not clean."; exit 1; }
+        git submodule update --init src/sonic-utilities
 
-        git pull target ${target_branch} --no-edit || { git merge --abort;FAILED="${FAILED} ${base_branch}"; continue; }
+        prehead=$(git log -n 1 --pretty=format:'%H')
 
-        head_tag=`git tag --contains HEAD`
-        tem=`echo ${head_tag} | grep ${curr_tag}`
-        if [[ ${tem} != "" ]];then
-          echo "======No change after rebasing ...======"
-          continue
-        else
-          git tag ${post_tag} || { FAILED="${FAILED} ${base_branch}"; continue; }
+        git pull head ${head_branch} --no-edit || true
+        git status
+        git submodule
+
+        if ! git status | grep "^nothing to commit, working tree clean";then
+          # code conflict
+          git reset src/sonic-utilities
+          git status | grep "You have unmerged paths" && { echo "both modified not clear."; git merge --abort; exit 1; } || true
+          git status
+          git submodule
+          GIT_EDITOR=true git merge --continue
         fi
-        git push https://$(PAT)@github.com/Azure/sonic-buildimage-msft.git HEAD:${base_branch} || { FAILED="${FAILED} ${base_branch}"; continue; }
-      done
 
-      if [[ ${FAILED} != "" ]];then
-        echo "============Failed to merge following branches: ${FAILED} ...============"
-        exit 1
-      fi
+        head=$(git log -n 1 --pretty=format:'%H')
+        if [[ $prehead == $head ]];then
+          echo "======No change after merging...======"
+          exit 0
+        fi
+        body=$(git log $prehead..HEAD --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cs) %C(bold blue)[%an]%Creset')
+        body='```<br>'$body'<br>```'
+        git push https://mssonicbld:$TOKEN@github.com/mssonicbld/sonic-buildimage-msft HEAD:codesync-${base_branch} -f
+        result=$(gh pr create -R Azure/sonic-buildimage-msft -H mssonicbld:codesync-${base_branch} -B ${base_branch} -t "[code sync] Merge code from sonic-net/sonic-buildimage:${head_branch} to ${base_branch}" -b "$body" 2>&1 || true)
+        if echo $result | grep "already exists:"; then
+          pr_url=$(echo $result | awk -F"already exists:" '{print$2}')
+          gh pr edit $pr_url -b "$body"
+        else
+          echo $result
+          pr_url=$(echo $result | grep "https://github.com/Azure/sonic-buildimage-msft/pull/")
+        fi
+        gh pr merge --rebase --admin -R Azure/sonic-buildimage-msft ${pr_url}
+      env:
+        TOKEN: $(GH_PAT)
+      displayName: ${{branch}} code merge
