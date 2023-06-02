@@ -88,7 +88,7 @@ steps:
           echo $result
           pr_url=$(echo $result | grep "https://github.com/Azure/sonic-buildimage-msft/pull/")
         fi
-        gh pr merge --rebase --admin -R Azure/sonic-buildimage-msft ${pr_url}
+        gh pr merge --merge --admin -R Azure/sonic-buildimage-msft ${pr_url}
       env:
         TOKEN: $(GH_PAT)
       displayName: ${{branch}} code merge
