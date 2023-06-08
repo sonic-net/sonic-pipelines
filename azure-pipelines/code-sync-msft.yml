@@ -102,8 +102,6 @@ steps:
         workItemType: 'task'
         title: 'code conflict: sonic-net/sonic-buildimage:${{branch}} -> Azure/sonic-buildimage-msft:${{branch}}'
         assignedTo: '$(ASSIGNEDTO)'
-        areaPath: '$(ADO_AREA)'
-        iterationPath: '$(ADO_ITERATION)'
         fieldMappings: |
           Description=$(DESCRIPTION)
         linkWorkItems: true
