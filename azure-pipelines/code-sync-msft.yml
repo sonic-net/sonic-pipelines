@@ -69,7 +69,12 @@ steps:
           git status | grep "You have unmerged paths" && { echo "both modified not clear."; git merge --abort; exit 1; } || true
           git status
           git submodule
+          description=$(git log origin/${base_branch}..HEAD --merge --pretty=format:'%h -%d %s (%cs) [%aN]')
           GIT_EDITOR=true git merge --continue
+          assign="Gen-Hwa Chiang <gechiang@microsoft.com>"
+          assign="Shilong Liu <shilongliu@microsoft.com>"
+          echo "##vso[task.setvariable variable=ASSIGNEDTO]$assign"
+          exit 1
         fi
 
         head=$(git log -n 1 --pretty=format:'%H')
@@ -92,3 +97,18 @@ steps:
       env:
         TOKEN: $(GH_PAT)
       displayName: ${{branch}} code merge
+    - task: CreateWorkItem@1
+      inputs:
+        workItemType: 'task'
+        title: 'code conflict: sonic-net/sonic-buildimage:${{branch}} -> Azure/sonic-buildimage-msft:${{branch}}'
+        assignedTo: '$(ASSIGNEDTO)'
+        areaPath: '$(ADO_AREA)'
+        iterationPath: '$(ADO_ITERATION)'
+        fieldMappings: |
+          Description=$(DESCRIPTION)
+        linkWorkItems: true
+        linkType: 'System.LinkTypes.Hierarchy-Reverse'
+        linkTarget: 'id'
+        targetId: '$(ADO_PARENT)'
+      condition: ne(variables.ASSIGNEDTO, '')
+      displayName: Create ${{branch}} workitem
