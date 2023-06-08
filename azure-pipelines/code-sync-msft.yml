@@ -9,9 +9,6 @@ schedules:
     - main
   always: true
 
-pool:
-  vmImage: ubuntu-20.04
-
 parameters:
 - name: branches
   type: object
@@ -23,43 +20,45 @@ resources:
   - repository: buildimage
     type: github
     name: Azure/sonic-buildimage-msft
-    ref: master
     endpoint: build
+
+pool:
+  vmImage: 'ubuntu-20.04'
 
 steps:
   - checkout: buildimage
     clean: true
-    persistCredentials: true
   - bash: |
       set -ex
-      git remote add head http://github.com/sonic-net/sonic-buildimage
+      git remote add head https://github.com/sonic-net/sonic-buildimage
       git remote update
       git config --global user.email "sonicbld@microsoft.com"
       git config --global user.name "Sonic Automation"
       git config pull.rebase false
       echo $TOKEN | gh auth login --with-token
     env:
-      TOKEN: $(GH_PAT)
-    displayName: configure
+      TOKEN: $(SONICBLD_GIT_PAT)
+    displayName: Configure
   - ${{each branch in parameters.branches}}:
     - bash: |
         set -ex
 
-        base_branch=${{branch}}
-        head_branch=${{branch}}
-
-        git ls-remote --exit-code origin refs/heads/${base_branch} || { echo "Branch missing: sonic-buildimage-msft/${base_branch}"; exit 1; }
-        git ls-remote --exit-code head refs/heads/${head_branch} || { echo "Branch missing: sonic-buildimage/${base_branch}"; exit 1; }
-
-        git branch -D ${base_branch} || true
-        git checkout -b ${base_branch} --track origin/${base_branch}
+        branch=${{branch}}
+        git branch -D $branch || true
+        git checkout -b $branch --track origin/$branch
         git reset HEAD --hard
-        git status | grep "^nothing to commit, working tree clean" || { echo "git reset failed. workspace not clean."; exit 1; }
+        git clean -xdff
+        echo "##vso[task.setvariable variable=ASSIGNEDTO]"
+
+        git ls-remote --exit-code origin refs/heads/$branch || exit 1
+        git ls-remote --exit-code head refs/heads/$branch || exit 2
+
+        git status | grep "^nothing to commit, working tree clean" || exit 3
         git submodule update --init src/sonic-utilities
 
         prehead=$(git log -n 1 --pretty=format:'%H')
 
-        git pull head ${head_branch} --no-edit || true
+        git pull head $branch --no-edit || true
         git status
         git submodule
 
@@ -67,42 +66,78 @@ steps:
           # code conflict
           git reset src/sonic-utilities
           if git status | grep "You have unmerged paths";then
-            description="code conflict: sonic-net/sonic-buildimage:${{branch}} -> Azure/sonic-buildimage-msft:${{branch}}<br>"
-            description+=$(git log origin/${base_branch}..HEAD --merge --pretty=format:'%h -%d %s (%cs) [%aN]')
+            CommitID=$(git log $prehead..HEAD --merge --pretty=format:'%H'  | tail -n 1)
+            description="<h1>Please merge $CommitID into sonic-utilities.msft.Do not Cherry-pick!!!</h1>"
+            description="code conflict: sonic-net/sonic-buildimage:$branch -> Azure/sonic-buildimage-msft:$branch<br>"
+            description+=$(git log $prehead..HEAD --merge --pretty=format:'%h -%d %s (%cs) [%aN]')
             assign="Gen-Hwa Chiang <gechiang@microsoft.com>"
+
+            # check if the workitem already exist
+            az boards work-item show --org https://dev.azure.com/mssonic/ --id $(ADO_PARENT) > workitem_parent
+            child_count=$(cat workitem_prent | jq '[ .relations[] | select(.attributes.name | contains("Child")) ] | length')
+            for (( i==0; i<$child_count; i++ ))
+            do
+              chiledid=$(cat workitem_prent | jq -r "[ .relations[] | select(.attributes.name | contains(\"Child\")) ] | .[$i].url" | awk -F/ '{print$NF}')
+              az boards work-item show --org https://dev.azure.com/mssonic/ --id $chiledid > $chiledid
+              title=$(cat $chiledid | jq -r '.fields."System.Title"')
+              state=$(cat $chiledid | jq -r '.fields."System.State"')
+              if [[ "$title" == "code conflict: sonic-net/sonic-buildimage:${{branch}} -> Azure/sonic-buildimage-msft:${{branch}}" ]] && [[ "$state" != "Done" ]] && [[ "$state" != "Removed" ]];then
+                echo "WorkItem already exist: $chiledid"
+                az boards work-item update --org https://dev.azure.com/mssonic/ --id $chiledid --discussion $DESCRIPTION
+                echo "WorkItem updated: $chiledid"
+                $ASSIGNEDTO=''
+                break
+              fi
+            done
+
+            git merge --abort
             echo "##vso[task.setvariable variable=ASSIGNEDTO]$assign"
             echo "##vso[task.setvariable variable=DESCRIPTION]$description"
-            exit 1
-          else
-            GIT_EDITOR=true git merge --continue
+            exit 4
           fi
         fi
+        GIT_EDITOR=true git merge --continue
 
         head=$(git log -n 1 --pretty=format:'%H')
         if [[ $prehead == $head ]];then
           echo "======No change after merging...======"
           exit 0
         fi
-        body=$(git log $prehead..HEAD --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cs) %C(bold blue)[%an]%Creset')
+        echo "======Diff logs======"
+        git log $prehead..HEAD --graph --pretty=format:'%h -%d %s (%cs) [%aN]'
+        body=$(git log $prehead..HEAD --graph --pretty=format:'%h -%d %s (%cs) [%aN]')
         body='```<br>'$body'<br>```'
-        git push https://mssonicbld:$TOKEN@github.com/mssonicbld/sonic-buildimage-msft HEAD:codesync-${base_branch} -f
-        result=$(gh pr create -R Azure/sonic-buildimage-msft -H mssonicbld:codesync-${base_branch} -B ${base_branch} -t "[code sync] Merge code from sonic-net/sonic-buildimage:${head_branch} to ${base_branch}" -b "$body" 2>&1 || true)
-        if echo $result | grep "already exists:"; then
-          pr_url=$(echo $result | awk -F"already exists:" '{print$2}')
-          gh pr edit $pr_url -b "$body"
-        else
-          echo $result
-          pr_url=$(echo $result | grep "https://github.com/Azure/sonic-buildimage-msft/pull/")
+        # push code
+        git push https://mssonicbld:$TOKEN@github.com/mssonicbld/sonic-buildimage-msft HEAD:sonicbld/$branch-merge -f
+        # create PR
+        url_=$(gh pr create -R Azure/sonic-buildimage-msft -H mssonicbld:sonicbld/$branch-merge -B $branch -t "[code sync] Merge code from sonic-net/sonic-buildimage:$branch to $branch" -b "$body" 2>&1; rc=$?)
+        url=$(echo "$url_" | grep -Eo https://github.com/Azure/sonic-utilities.msft/pull/[0-9]* )
+
+        if echo $url_ | grep "already exists:"; then
+          gh pr edit $url -b "$body"
         fi
-        gh pr merge --merge --admin -R Azure/sonic-buildimage-msft ${pr_url}
+        sleep 10
+        count=1
+        while true;do
+          (( $count < $(RETRY_COUNT) )) || { echo "PR check timeout!";exit 1; }
+          ((count++))
+          sleep 60
+          echo count: $count
+          gh pr checks $url | grep https || continue
+          gh pr checks $url | grep https | grep -v pass && continue
+          gh pr merge $url --merge --admin
+        done
       env:
-        TOKEN: $(GH_PAT)
-      displayName: ${{branch}} code merge
+        TOKEN: $(SONICBLD_GIT_PAT)
+      condition: always()
+      displayName: '${{branch}} code merge'
     - task: CreateWorkItem@1
       inputs:
         workItemType: 'task'
         title: 'code conflict: sonic-net/sonic-buildimage:${{branch}} -> Azure/sonic-buildimage-msft:${{branch}}'
         assignedTo: '$(ASSIGNEDTO)'
+        areaPath: '$(ADO_AREA)'
+        iterationPath: '$(ADO_ITERATION)'
         fieldMappings: |
           Description=$(DESCRIPTION)
         linkWorkItems: true
