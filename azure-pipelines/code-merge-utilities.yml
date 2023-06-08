@@ -74,7 +74,7 @@ steps:
             # check if the workitem already exist
             az boards work-item show --org https://dev.azure.com/mssonic/ --id $(ADO_PARENT) > workitem_parent
             child_count=$(cat $workitem_parent | jq '[ .relations[] | select(.attributes.name | contains("Child")) ] | length')
-            for (( i==0; i<$child_count; i++ ))
+            for (( i=1; i<=$child_count; i++ ))
             do
               chiledid=$(cat $workitem_parent | jq -r "[ .relations[] | select(.attributes.name | contains(\"Child\")) ] | .[$i].url" | awk -F/ '{print$NF}')
               az boards work-item show --org https://dev.azure.com/mssonic/ --id $chiledid > $chiledid
