@@ -67,7 +67,8 @@ steps:
           # code conflict
           git reset src/sonic-utilities
           if git status | grep "You have unmerged paths";then
-            description=$(git log origin/${base_branch}..HEAD --merge --pretty=format:'%h -%d %s (%cs) [%aN]')
+            description="code conflict: sonic-net/sonic-buildimage:${{branch}} -> Azure/sonic-buildimage-msft:${{branch}}<br>"
+            description+=$(git log origin/${base_branch}..HEAD --merge --pretty=format:'%h -%d %s (%cs) [%aN]')
             assign="Gen-Hwa Chiang <gechiang@microsoft.com>"
             echo "##vso[task.setvariable variable=ASSIGNEDTO]$assign"
             echo "##vso[task.setvariable variable=DESCRIPTION]$description"
