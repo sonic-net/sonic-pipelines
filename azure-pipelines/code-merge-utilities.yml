@@ -110,6 +110,7 @@ steps:
         set +e
         url=$(gh pr create -R Azure/sonic-utilities.msft -H mssonicbld:sonicbld/$branch-merge -B $branch -a "gechiang" -t "Merge code from sonic-utilities/$branch" -b "$body" 2>&1)
         [[ "$?" == "0" ]] || gh pr edit $(echo $url | grep -Eo https://github.com/Azure/sonic-utilities.msft/pull/[0-9]* ) --add-assignee gechiang -b "$body"
+        gh pr merge https://github.com/Azure/sonic-utilities.msft/pull/8 --auto --merge
       condition: always()
       displayName: '${{branch}} code merge'
     - task: CreateWorkItem@1
