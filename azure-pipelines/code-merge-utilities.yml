@@ -107,10 +107,20 @@ steps:
         # push code
         git push --set-upstream utilities-sonicbld HEAD:sonicbld/$branch-merge -f
         # craete PR
-        set +e
-        url=$(gh pr create -R Azure/sonic-utilities.msft -H mssonicbld:sonicbld/$branch-merge -B $branch -a "gechiang" -t "Merge code from sonic-utilities/$branch" -b "$body" 2>&1)
-        [[ "$?" == "0" ]] || gh pr edit $(echo $url | grep -Eo https://github.com/Azure/sonic-utilities.msft/pull/[0-9]* ) --add-assignee gechiang -b "$body"
-        gh pr merge https://github.com/Azure/sonic-utilities.msft/pull/8 --auto --merge
+        url_=$(gh pr create -R Azure/sonic-utilities.msft -H mssonicbld:sonicbld/$branch-merge -B $branch -a "gechiang" -t "Merge code from sonic-utilities/$branch" -b "$body" 2>&1; rc=$?)
+        url= $(echo $url_ | grep -Eo https://github.com/Azure/sonic-utilities.msft/pull/[0-9]* )
+        [[ "$rc" == "0" ]] || gh pr edit $url --add-assignee gechiang -b "$body"
+        sleep 10
+        count=1
+        while true;do
+          (( $count < 20 )) || { echo "PR check timeout!";exit 1; }
+          ((count++))
+          sleep 60
+          echo count: $count
+          gh pr checks $url | grep https || continue
+          gh pr checks $url | grep https | grep -v pass && continue
+          gh pr merge $url --merge
+        done
       condition: always()
       displayName: '${{branch}} code merge'
     - task: CreateWorkItem@1
