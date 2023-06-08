@@ -67,14 +67,13 @@ steps:
           # code conflict
           git reset src/sonic-utilities
           if git status | grep "You have unmerged paths";then
-            git status
-            git submodule
             description=$(git log origin/${base_branch}..HEAD --merge --pretty=format:'%h -%d %s (%cs) [%aN]')
-            GIT_EDITOR=true git merge --continue
             assign="Gen-Hwa Chiang <gechiang@microsoft.com>"
             assign="Shilong Liu <shilongliu@microsoft.com>"
             echo "##vso[task.setvariable variable=ASSIGNEDTO]$assign"
             exit 1
+          else
+            GIT_EDITOR=true git merge --continue
           fi
         fi
 
