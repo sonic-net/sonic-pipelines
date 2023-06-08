@@ -36,8 +36,10 @@ steps:
       git config --global user.name "Sonic Automation"
       git config pull.rebase false
       echo $TOKEN | gh auth login --with-token
+      echo $AZURE_DEVOPS_EXT_PAT | az devops login
     env:
       TOKEN: $(SONICBLD_GIT_PAT)
+      AZURE_DEVOPS_EXT_PAT: $(AZURE_DEVOPS_EXT_PAT)
     displayName: Configure
   - ${{each branch in parameters.branches}}:
     - bash: |
