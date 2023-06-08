@@ -126,6 +126,7 @@ steps:
         done
       env:
         TOKEN: $(SONICBLD_GIT_PAT)
+        AZURE_DEVOPS_EXT_PAT: $(AZURE_DEVOPS_EXT_PAT)
       condition: always()
       displayName: '${{branch}} code merge'
     - task: CreateWorkItem@1
