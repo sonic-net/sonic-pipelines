@@ -113,7 +113,7 @@ steps:
         sleep 10
         count=1
         while true;do
-          (( $count < 20 )) || { echo "PR check timeout!";exit 1; }
+          (( $count < $(RETRY_COUNT) )) || { echo "PR check timeout!";exit 1; }
           ((count++))
           sleep 60
           echo count: $count
