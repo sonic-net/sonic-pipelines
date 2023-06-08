@@ -108,7 +108,7 @@ steps:
         git push --set-upstream utilities-sonicbld HEAD:sonicbld/$branch-merge -f
         # craete PR
         url_=$(gh pr create -R Azure/sonic-utilities.msft -H mssonicbld:sonicbld/$branch-merge -B $branch -a "gechiang" -t "Merge code from sonic-utilities/$branch" -b "$body" 2>&1; rc=$?)
-        url= $(echo $url_ | grep -Eo https://github.com/Azure/sonic-utilities.msft/pull/[0-9]* )
+        url= $(echo "$url_" | grep -Eo https://github.com/Azure/sonic-utilities.msft/pull/[0-9]* )
         [[ "$rc" == "0" ]] || gh pr edit $url --add-assignee gechiang -b "$body"
         sleep 10
         count=1
