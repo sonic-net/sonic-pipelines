@@ -93,7 +93,7 @@ steps:
             exit 4
           fi
         fi
-        GIT_EDITOR=true git merge --continue
+        GIT_EDITOR=true git merge --continue || true
 
         head=$(git log -n 1 --pretty=format:'%H')
         if [[ $prehead == $head ]];then
