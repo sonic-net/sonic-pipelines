@@ -66,15 +66,16 @@ steps:
         if ! git status | grep "^nothing to commit, working tree clean";then
           # code conflict
           git reset src/sonic-utilities
-          git status | grep "You have unmerged paths" && { echo "both modified not clear."; git merge --abort; exit 1; } || true
-          git status
-          git submodule
-          description=$(git log origin/${base_branch}..HEAD --merge --pretty=format:'%h -%d %s (%cs) [%aN]')
-          GIT_EDITOR=true git merge --continue
-          assign="Gen-Hwa Chiang <gechiang@microsoft.com>"
-          assign="Shilong Liu <shilongliu@microsoft.com>"
-          echo "##vso[task.setvariable variable=ASSIGNEDTO]$assign"
-          exit 1
+          if git status | grep "You have unmerged paths";then
+            git status
+            git submodule
+            description=$(git log origin/${base_branch}..HEAD --merge --pretty=format:'%h -%d %s (%cs) [%aN]')
+            GIT_EDITOR=true git merge --continue
+            assign="Gen-Hwa Chiang <gechiang@microsoft.com>"
+            assign="Shilong Liu <shilongliu@microsoft.com>"
+            echo "##vso[task.setvariable variable=ASSIGNEDTO]$assign"
+            exit 1
+          fi
         fi
 
         head=$(git log -n 1 --pretty=format:'%H')
