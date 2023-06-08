@@ -76,17 +76,17 @@ steps:
 
             # check if the workitem already exist
             az boards work-item show --org https://dev.azure.com/mssonic/ --id $(ADO_PARENT) > workitem_parent
-            child_count=$(cat $workitem_parent | jq '[ .relations[] | select(.attributes.name | contains("Child")) ] | length')
-            for (( i=1; i<=$child_count; i++ ))
+            child_count=$(cat workitem_parent | jq '[ .relations[] | select(.attributes.name | contains("Child")) ] | length')
+            for (( i=0; i<$child_count; i++ ))
             do
-              chiledid=$(cat $workitem_parent | jq -r "[ .relations[] | select(.attributes.name | contains(\"Child\")) ] | .[$i].url" | awk -F/ '{print$NF}')
-              az boards work-item show --org https://dev.azure.com/mssonic/ --id $chiledid > $chiledid
-              title=$(cat $chiledid | jq -r '.fields."System.Title"')
-              state=$(cat $chiledid | jq -r '.fields."System.State"')
+              childid=$(cat workitem_parent | jq -r "[ .relations[] | select(.attributes.name | contains(\"Child\")) ] | .[$i].url" | awk -F/ '{print$NF}')
+              az boards work-item show --org https://dev.azure.com/mssonic/ --id $childid > $childid
+              title=$(cat $childid | jq -r '.fields."System.Title"')
+              state=$(cat $childid | jq -r '.fields."System.State"')
               if [[ "$title" == "code conflict: sonic-net/sonic-buildimage:${{branch}} -> Azure/sonic-buildimage-msft:${{branch}}" ]] && [[ "$state" != "Done" ]] && [[ "$state" != "Removed" ]];then
-                echo "WorkItem already exist: $chiledid"
-                az boards work-item update --org https://dev.azure.com/mssonic/ --id $chiledid --discussion $DESCRIPTION
-                echo "WorkItem updated: $chiledid"
+                echo "WorkItem already exist: $childid"
+                az boards work-item update --org https://dev.azure.com/mssonic/ --id $childid --discussion $DESCRIPTION
+                echo "WorkItem updated: $childid"
                 $ASSIGNEDTO=''
                 break
               fi
