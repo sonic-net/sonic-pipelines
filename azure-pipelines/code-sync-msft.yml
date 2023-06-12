@@ -69,7 +69,7 @@ steps:
           git reset src/sonic-utilities
           if git status | grep "You have unmerged paths";then
             CommitID=$(git log $prehead..HEAD --merge --pretty=format:'%H'  | tail -n 1)
-            description="<h1>Please merge $CommitID into sonic-utilities.msft.Do not Cherry-pick!!!</h1>"
+            description="<h1>Please merge $CommitID into sonic-buildimage-msft.Do not Cherry-pick!!!</h1>"
             description="code conflict: sonic-net/sonic-buildimage:$branch -> Azure/sonic-buildimage-msft:$branch<br>"
             description+=$(git log $prehead..HEAD --merge --pretty=format:'%h -%d %s (%cs) [%aN]')
             assign="Gen-Hwa Chiang <gechiang@microsoft.com>"
@@ -113,7 +113,7 @@ steps:
         git push https://mssonicbld:$TOKEN@github.com/mssonicbld/sonic-buildimage-msft HEAD:sonicbld/$branch-merge -f
         # create PR
         url_=$(gh pr create -R Azure/sonic-buildimage-msft -H mssonicbld:sonicbld/$branch-merge -B $branch -t "[code sync] Merge code from sonic-net/sonic-buildimage:$branch to $branch" -b "$body" 2>&1; rc=$?)
-        url=$(echo "$url_" | grep -Eo https://github.com/Azure/sonic-utilities.msft/pull/[0-9]* )
+        url=$(echo "$url_" | grep -Eo https://github.com/Azure/sonic-buildimage-msft/pull/[0-9]* )
 
         if echo $url_ | grep "already exists:"; then
           gh pr edit $url -b "$body"
@@ -126,7 +126,7 @@ steps:
           sleep 60
           echo count: $count
           gh pr checks $url | grep https || continue
-          gh pr checks $url | grep https | grep -v pass && continue
+          gh pr checks $url | grep https | grep pending || continue
           gh pr merge $url --merge --admin
         done
       env:
