@@ -127,7 +127,7 @@ steps:
           echo count: $count
           gh pr checks $url | grep https || continue
           gh pr checks $url | grep https | grep pending || continue
-          gh pr merge $url --merge --admin
+          gh pr merge $url --merge --admin && break
         done
       env:
         TOKEN: $(SONICBLD_GIT_PAT)
