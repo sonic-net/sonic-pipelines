@@ -123,8 +123,8 @@ steps:
           sleep 60
           echo count: $count
           gh pr checks $url | grep https || continue
-          gh pr checks $url | grep https | grep -v pass && continue
-          gh pr merge $url --merge --admin
+          gh pr checks $url | grep https | grep pending || continue
+          gh pr merge $url --merge --admin && break
         done
       env:
         TOKEN: $(SONICBLD_GIT_PAT)
