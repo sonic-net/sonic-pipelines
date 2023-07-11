@@ -37,6 +37,11 @@ jobs:
         set -e
         cd sonic-buildimage-msft
         work_space=$(pwd)
+        SUBMODULES="${{ parameters.submodules }}"
+        if [ -z "$SUBMODULES" ]; then
+          echo "please specify the submodules"
+          exit 1
+        fi
         while read -r line
         do
           path=$(echo $line| awk '{print$2}')
@@ -83,5 +88,5 @@ jobs:
             git reset HEAD~ --hard
             sleep $(INTERVAL)
           fi
-        done < <(git submodule status -- $(submodules))
+        done < <(git submodule status -- $SUBMODULES)
       displayName: Update submodules
