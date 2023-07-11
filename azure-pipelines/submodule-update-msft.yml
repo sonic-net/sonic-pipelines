@@ -1,0 +1,87 @@
+pr: none
+trigger: none
+
+parameters:
+- name: branches
+  type: object
+  default:
+  - 202205
+
+- name: submodules
+  type: string
+  default: 'src/sonic-utilities'
+
+jobs:
+- ${{ each branch in parameters.branches }}:
+  - job:
+    displayName: ${{ branch }}
+    steps:
+    - checkout: none
+    - bash: |
+        set -ex
+        sudo rm -rf sonic-buildimage-msft
+        git clone https://github.com/azure/sonic-buildimage-msft
+        cd sonic-buildimage-msft
+        git config user.email $(user_email)
+        git config user.name $(user_name)
+        git config credential.https://github.com.username $(user_name)
+        git remote add mssonicbld https://mssonicbld:$TOKEN@github.com/mssonicbld/sonic-buildimage-msft
+        git checkout ${{ branch }}
+        git fetch mssonicbld
+        git submodule update --init src/*
+        echo $TOKEN | gh auth login --with-token
+      env:
+        TOKEN: $(token)
+      displayName: Setup env
+    - bash: |
+        set -e
+        cd sonic-buildimage-msft
+        work_space=$(pwd)
+        while read -r line
+        do
+          path=$(echo $line| awk '{print$2}')
+          module_name=$(echo $path | sed 's#src/##')
+          # if some modules break PR build. Add them to ignore_pathes
+          for ignore_path in $(ignore_pathes)
+          do
+            [[ "$ignore_path" == "$path" ]] && continue 2
+          done
+          cd $work_space/$path
+          # 1. only keep repos in azure organization
+          git remote -vv | grep -i 'github.com/azure/' || continue
+          # 2. only update the same branch with sonic-buildimage-msft
+          git branch -a --contains HEAD | grep 'remotes/origin/${{ branch }}' || continue
+
+          head=$(git rev-parse HEAD)
+          git checkout ${{ branch }}
+          git pull
+          commits=$(git log ${head}..HEAD --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)[%an]%Creset')
+          if [[ "$commits" != "" ]];then
+            body="#### Why I did it"$'\n'
+            body+="$path"$'\n'
+            body+='```'$'\n'
+            body+=$commits$'\n'
+            body+='```'$'\n'
+            body+="#### How I did it"$'\n'
+            body+="#### How to verify it"$'\n'
+            body+="#### Description for the changelog"$'\n'
+            cd $work_space
+
+            git add $path
+            git commit -m "[submodule] Update submodule $module_name to the latest HEAD automatically" || continue
+            git push mssonicbld HEAD:submodule-${{ branch }}-$module_name -f
+            label=""
+            echo $(automerge_branches) | grep ${{ branch }} && label=",automerge"
+            result=$(gh pr create -R azure/sonic-buildimage-msft -H mssonicbld:submodule-${{ branch }}-$module_name -B ${{ branch }} -t "[submodule][${{ branch }}] Update submodule $module_name to the latest HEAD automatically" -l "Submodule Update :arrow_double_up:$label" -b "$body" 2>&1 || true)
+            if echo $result | grep "already exists:"; then
+              pr_url=$(echo $result | awk -F"already exists:" '{print$2}')
+              gh pr edit $pr_url -b "$body"
+            else
+              echo $result
+              echo $result | grep -i "https://github.com/azure/sonic-buildimage-msft/pull/"
+            fi
+            git reset HEAD~ --hard
+            sleep $(INTERVAL)
+          fi
+        done < <(git submodule status -- $(submodules))
+      displayName: Update submodules
