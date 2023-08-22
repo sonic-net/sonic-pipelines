@@ -67,6 +67,8 @@ steps:
         if ! git status | grep "^nothing to commit, working tree clean";then
           # code conflict
           git reset src/sonic-utilities
+          git reset platform/checkout/cisco-8000.ini
+          git checkout platform/checkout/cisco-8000.ini
           if git status | grep "You have unmerged paths";then
             CommitID=$(git log $prehead..HEAD --merge --pretty=format:'%H'  | tail -n 1)
             description="<h1>Please merge $CommitID into sonic-buildimage-msft.Do not Cherry-pick!!!</h1>"
