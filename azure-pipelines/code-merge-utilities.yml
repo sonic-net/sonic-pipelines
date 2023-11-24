@@ -171,4 +171,4 @@ steps:
           linkTarget: 'id'
           targetId: '$(ADO_PARENT)'
         condition: ne(variables.ASSIGNEDTO, '')
-        displayName: Create ${{re[p]}}-${{branch}} workitem
+        displayName: Create ${{repo}}-${{branch}} workitem
