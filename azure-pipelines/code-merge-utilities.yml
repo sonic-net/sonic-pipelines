@@ -65,11 +65,11 @@ steps:
       TOKEN: $(SONICBLD_GIT_PAT)
       AZURE_DEVOPS_EXT_PAT: $(AZURE_DEVOPS_EXT_PAT)
     displayName: Configure
-  ${{ each repo in parameters.repos }}:
-    ${{ if eq(repo, 'sonic-utilities.msft') }}:
-      - ${{each branch in parameters.utility_branches}}:
-    ${{ else }}:
-      - ${{each branch in parameters.swss_branches}}:
+  - ${{ each repo in parameters.repos }}:
+      ${{ if eq(repo, 'sonic-utilities.msft') }}:
+        - ${{each branch in parameters.utility_branches}}:
+      ${{ else }}:
+        - ${{each branch in parameters.swss_branches}}:
         - bash: |
             set -ex
             cd repo
