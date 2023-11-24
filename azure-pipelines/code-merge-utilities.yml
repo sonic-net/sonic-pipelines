@@ -142,13 +142,11 @@ steps:
             gh pr edit $url -b "$body"
           fi
           sleep 10
-          count=1
           for (( c=1; c<=RETRY_COUNT; c++ ));do
-
-            echo count: $count
+            echo count: $c
             sleep 60
             gh pr checks $url | grep https || continue
-            gh pr checks $url | grep https | grep pending || continue
+            gh pr checks $url | grep https | grep pending && continue || break
           done
           gh pr merge $url --merge --admin
         env:
