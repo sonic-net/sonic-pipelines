@@ -10,7 +10,7 @@ parameters:
 
 - name: submodules
   type: string
-  default: 'src/sonic-utilities'
+  default: 'src/sonic-utilities src/sonic-swss'
 
 jobs:
 - ${{ each branch in parameters.branches }}:
@@ -38,14 +38,8 @@ jobs:
         set -e
         cd sonic-buildimage-msft
         work_space=$(pwd)
-        SUBMODULES="${{ parameters.submodules }}"
-        if [ -z "$SUBMODULES" ]; then
-          echo "please specify the submodules"
-          exit 1
-        fi
-        while read -r line
+        for path in ${{ parameters.submodules }}
         do
-          path=$(echo $line| awk '{print$2}')
           module_name=$(echo $path | sed 's#src/##')
           # if some modules break PR build. Add them to ignore_pathes
           for ignore_path in $(ignore_pathes)
@@ -89,5 +83,5 @@ jobs:
             git reset HEAD~ --hard
             sleep $(INTERVAL)
           fi
-        done < <(git submodule status -- $SUBMODULES)
+        done
       displayName: Update submodules
