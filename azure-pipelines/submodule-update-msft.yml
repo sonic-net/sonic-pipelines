@@ -82,6 +82,7 @@ jobs:
             fi
             git reset HEAD~ --hard
             sleep $(INTERVAL)
+            gh pr merge $pr_url --merge --admin
           fi
         done
       displayName: Update submodules
