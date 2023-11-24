@@ -6,6 +6,7 @@ parameters:
   type: object
   default:
   - 202205
+  - 202305
 
 - name: submodules
   type: string
