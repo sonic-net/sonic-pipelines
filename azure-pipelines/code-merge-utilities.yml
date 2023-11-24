@@ -160,7 +160,7 @@ steps:
       - task: CreateWorkItem@1
         inputs:
           workItemType: 'task'
-          title: 'code conflict: sonic-net/${{ replace(repo, ".msft", "") }}:${{branch}} -> Azure/${{repo}}:${{branch}}'
+          title: "code conflict: sonic-net/${{ replace(repo, '.msft', '') }}:${{branch}} -> Azure/${{repo}}:${{branch}}"
           assignedTo: '$(ASSIGNEDTO)'
           areaPath: '$(ADO_AREA)'
           iterationPath: '$(ADO_ITERATION)'
