@@ -133,7 +133,7 @@ steps:
           body=$(git log $prehead..HEAD --graph --pretty=format:'%h -%d %s (%cs) [%aN]')
           body='```<br>'$body'<br>```'
           # push code
-          git push https://mssonicbld:$TOKEN@github.com/mssonicbld/sonic-utilities.msft HEAD:sonicbld/$branch-merge -f
+          git push https://mssonicbld:$TOKEN@github.com/mssonicbld/${{repo}} HEAD:sonicbld/$branch-merge -f
           # craete PR
           url_=$(gh pr create -R Azure/${{repo}} -H mssonicbld:sonicbld/$branch-merge -B $branch -t "[code sync] Merge code from sonic-net/${{repo}}:$branch to $branch" -b "$body" 2>&1; rc=$?)
           url=$(echo "$url_" | grep -Eo https://github.com/Azure/${{repo}}/pull/[0-9]* )
