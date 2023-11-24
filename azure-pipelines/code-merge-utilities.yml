@@ -160,18 +160,18 @@ steps:
             AZURE_DEVOPS_EXT_PAT: $(AZURE_DEVOPS_EXT_PAT)
           condition: always()
           displayName: '${{branch}} code merge'
-      - task: CreateWorkItem@1
-        inputs:
-          workItemType: 'task'
-          title: 'code conflict: sonic-net/sonic-utilities:${{branch}} -> Azure/sonic-utilities.msft:${{branch}}'
-          assignedTo: '$(ASSIGNEDTO)'
-          areaPath: '$(ADO_AREA)'
-          iterationPath: '$(ADO_ITERATION)'
-          fieldMappings: |
-            Description=$(DESCRIPTION)
-          linkWorkItems: true
-          linkType: 'System.LinkTypes.Hierarchy-Reverse'
-          linkTarget: 'id'
-          targetId: '$(ADO_PARENT)'
-        condition: ne(variables.ASSIGNEDTO, '')
-        displayName: Create ${{branch}} workitem
+    - task: CreateWorkItem@1
+      inputs:
+        workItemType: 'task'
+        title: 'code conflict: sonic-net/sonic-utilities:${{branch}} -> Azure/sonic-utilities.msft:${{branch}}'
+        assignedTo: '$(ASSIGNEDTO)'
+        areaPath: '$(ADO_AREA)'
+        iterationPath: '$(ADO_ITERATION)'
+        fieldMappings: |
+          Description=$(DESCRIPTION)
+        linkWorkItems: true
+        linkType: 'System.LinkTypes.Hierarchy-Reverse'
+        linkTarget: 'id'
+        targetId: '$(ADO_PARENT)'
+      condition: ne(variables.ASSIGNEDTO, '')
+      displayName: Create ${{branch}} workitem
