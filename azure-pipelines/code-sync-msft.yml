@@ -49,8 +49,10 @@ steps:
         branch=${{branch}}
         git branch -D $branch || true
         git checkout -b $branch --track origin/$branch
+        rm src/sonic-utilities src/sonic-swss
         git reset HEAD --hard
         git clean -xdff
+        git status
         echo "##vso[task.setvariable variable=ASSIGNEDTO]"
 
         git ls-remote --exit-code origin refs/heads/$branch || exit 1
