@@ -78,7 +78,7 @@ jobs:
               gh pr edit $pr_url -b "$body"
             else
               echo $result
-              echo $result | grep -i "https://github.com/azure/sonic-buildimage-msft/pull/"
+              pr_url=$(echo $result | grep -i "https://github.com/azure/sonic-buildimage-msft/pull/")
             fi
             git reset HEAD~ --hard
             sleep $(INTERVAL)
