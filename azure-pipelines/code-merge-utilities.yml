@@ -142,16 +142,13 @@ steps:
             gh pr edit $url -b "$body"
           fi
           sleep 10
-          count=1
-          while true;do
-            (( $count < $RETRY_COUNT )) || { echo "PR check timeout!";exit 1; }
-            ((count++))
+          for (( c=1; c<=RETRY_COUNT; c++ ));do
+            echo count: $c
             sleep 60
-            echo count: $count
             gh pr checks $url | grep https || continue
-            gh pr checks $url | grep https | grep pending || continue
-            gh pr merge $url --merge --admin && break
+            gh pr checks $url | grep https | grep pending && continue || break
           done
+          gh pr merge $url --merge --admin
         env:
           TOKEN: $(SONICBLD_GIT_PAT)
           AZURE_DEVOPS_EXT_PAT: $(AZURE_DEVOPS_EXT_PAT)
