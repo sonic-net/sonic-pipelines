@@ -64,14 +64,14 @@ steps:
 
         prehead=$(git log -n 1 --pretty=format:'%H')
 
-        git pull head $branch --no-edit || true
+        git pull head $branch --no-commit || true
         git status
         git submodule
 
         if ! git status | grep "^nothing to commit, working tree clean";then
           # code conflict
-          git reset src/sonic-utilities
-          [[ $branch == 202305 ]] && git reset src/sonic-swss
+          git add src/sonic-utilities
+          [[ $branch == 202305 ]] && git add src/sonic-swss
           git reset platform/checkout/cisco-8000.ini
           git checkout platform/checkout/cisco-8000.ini
           if git status | grep "You have unmerged paths";then
