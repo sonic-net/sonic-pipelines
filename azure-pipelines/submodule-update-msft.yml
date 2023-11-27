@@ -6,10 +6,11 @@ parameters:
   type: object
   default:
   - 202205
+  - 202305
 
 - name: submodules
   type: string
-  default: 'src/sonic-utilities'
+  default: 'src/sonic-utilities src/sonic-swss'
 
 jobs:
 - ${{ each branch in parameters.branches }}:
@@ -34,17 +35,11 @@ jobs:
         TOKEN: $(token)
       displayName: Setup env
     - bash: |
-        set -e
+        set -ex
         cd sonic-buildimage-msft
         work_space=$(pwd)
-        SUBMODULES="${{ parameters.submodules }}"
-        if [ -z "$SUBMODULES" ]; then
-          echo "please specify the submodules"
-          exit 1
-        fi
-        while read -r line
+        for path in ${{ parameters.submodules }}
         do
-          path=$(echo $line| awk '{print$2}')
           module_name=$(echo $path | sed 's#src/##')
           # if some modules break PR build. Add them to ignore_pathes
           for ignore_path in $(ignore_pathes)
@@ -83,10 +78,11 @@ jobs:
               gh pr edit $pr_url -b "$body"
             else
               echo $result
-              echo $result | grep -i "https://github.com/azure/sonic-buildimage-msft/pull/"
+              pr_url=$(echo $result | grep -i "https://github.com/azure/sonic-buildimage-msft/pull/")
             fi
             git reset HEAD~ --hard
             sleep $(INTERVAL)
+            gh pr merge $pr_url --merge --admin
           fi
-        done < <(git submodule status -- $SUBMODULES)
+        done
       displayName: Update submodules
