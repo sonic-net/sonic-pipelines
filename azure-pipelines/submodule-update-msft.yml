@@ -35,7 +35,7 @@ jobs:
         TOKEN: $(token)
       displayName: Setup env
     - bash: |
-        set -e
+        set -ex
         cd sonic-buildimage-msft
         work_space=$(pwd)
         for path in ${{ parameters.submodules }}
