@@ -1,11 +1,20 @@
 #!/bin/bash -ex
 
-precheck(){
+. .bashenv
 
+labeled(){
+    echo [ AUTO CHERRY PICK ] labeled
+    cat .bashenv
 }
 
-postcheck(){
-
+synchronize(){
+    echo [ AUTO CHERRY PICK ] synchronize
+    cat .bashenv
 }
 
-$1
+closed(){
+    echo [ AUTO CHERRY PICK ] closed
+    cat .bashenv
+}
+
+$ACTION
