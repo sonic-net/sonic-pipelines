@@ -5,34 +5,85 @@ gh --version || { curl -fsSL https://cli.github.com/packages/githubcli-archive-k
 . .bashenv
 echo $GH_TOKEN | gh auth login --with-token
 
-labeled(){
-    echo [ AUTO CHERRY PICK ] labeled: $ACTION_LABEL
-    echo $ACTION_LABEL | grep -E '^Request for [0-9]{6} Branch$' || { echo "label not match" && return 0; }
-    target_branch=$(echo $ACTION_LABEL | grep -Eo [0-9]{6})
-
-    echo ,$PR_LABELS, | grep -e ",Included in $target_branch Branch," -e ",Cherry Pick Conflict_$target_branch," -e ",Created PR to $target_branch Branch," && { return 0; }
+# $1 is a single label.
+check_conflict(){
+    target_branch=$(echo $1 | grep -Eo [0-9]{6})
     curl "$PR_PATCH_URL" -o patch -L
+    rm -rf $REPO
     git clone https://github.com/$ORG/$REPO
     cd $REPO
     git checkout -b $target_branch
     git reset HEAD --hard
     git status
-    git apply ../patch -3
-    rc=$?
+    git apply ../patch -3 || rc=$?
     cd ..
     rm -rf $REPO
-    if [[ "$rc" != 0 ]];then
-        gh pr edit $PR_URL --add-label "Cherry Pick Conflict_$target_branch"
-    fi
+    [[ "$rc" == 0 ]] || gh pr edit $PR_URL --add-label "Cherry Pick Conflict_$target_branch"
     return $rc
 }
 
+create_pr(){
+    [[ "$PR_MERGED" != "true" ]] && echo "PR not merged!" && return 0
+    target_branch=$(echo $1 | grep -Eo [0-9]{6})
+    rm -rf $REPO
+    git clone https://github.com/$ORG/$REPO
+    cd $REPO
+    git remote add mssonicbld https://github.com/mssonicbld/$REPO
+    git fetch mssonicbld
+    git checkout -b $target_branch
+    git cherry-pick $PR_COMMIT_SHA
+    git push mssonicbld HEAD:cherry/$target_branch/$PR_NUMBER
+    result=$(gh pr create -R $ORG/$REPO -H mssonicbld:cherry/$branch/${pr_id} -B $branch -t "[action] [PR:$pr_id] $title" -b '' -l "automerge" 2>&1)
+    sleep 1
+    echo $result | grep "already exists" && return 0 || true
+    new_pr_rul=$(echo $result | grep github.com)
+    gh pr comment $new_pr_rul --body "Original PR: $PR_URL"
+    sleep 1
+    gh pr edit $PR_URL --add-label "Created PR to $branch Branch"
+    sleep 1
+    gh pr comment $PR_URL --body "Cherry-pick PR to $target_branch: ${new_pr_rul}"
+}
+
+labeled(){
+    echo [ AUTO CHERRY PICK ] labeled: $ACTION_LABEL
+    if echo $ACTION_LABEL | grep -E '^Request for [0-9]{6} Branch$' || echo $ACTION_LABEL | grep -E '^Approved for [0-9]{6} Branch$'; then
+        check_conflict $ACTION_LABEL
+    fi
+
+    if echo $ACTION_LABEL | grep -E '^Approved for [0-9]{6} Branch$'; then
+        create_pr $ACTION_LABEL
+    fi
+}
+
 synchronize(){
-    echo [ AUTO CHERRY PICK ] synchronize
+    echo [ AUTO CHERRY PICK ] synchronize: $PR_LABELS
+    curl "$PR_PATCH_URL" -o patch -L
+    git clone https://github.com/$ORG/$REPO
+    cd $REPO
+    IFS=, read -a labels <<< $PR_LABELS
+    for label in "${labels[@]}"; do
+        if echo $label | grep -E '^Request for [0-9]{6} Branch$'; then
+            check_conflict $label
+        fi
+
+        if echo $label | grep -E '^Approved for [0-9]{6} Branch$'; then
+            create_pr $label
+        fi
+    done
+    cd ..
+    rm -rf $REPO
 }
 
 closed(){
-    echo [ AUTO CHERRY PICK ] closed
+    echo [ AUTO CHERRY PICK ] closed: $PR_LABELS
+    git clone https://github.com/$ORG/$REPO
+    cd $REPO
+    IFS=, read -a labels <<< $PR_LABELS
+    for label in "${labels[@]}"; do
+        if echo $label | grep -Eo 'Approved for [0-9]{6} Branch'; then
+            create_pr $label
+        fi
+    done
 }
 
 $ACTION
