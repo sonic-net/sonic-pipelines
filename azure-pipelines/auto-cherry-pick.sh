@@ -21,6 +21,9 @@ labeled(){
     rc=$?
     cd ..
     rm -rf $REPO
+    if [[ "$rc" != 0 ]];then
+        gh pr edit $PR_URL --add-label "Cherry Pick Conflict_$target_branch"
+    fi
     return $rc
 }
 
