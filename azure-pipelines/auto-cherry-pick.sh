@@ -11,14 +11,17 @@ labeled(){
     target_branch=$(echo $ACTION_LABEL | grep -Eo [0-9]{6})
 
     echo ,$PR_LABELS, | grep -e ",Included in $target_branch Branch," -e ",Cherry Pick Conflict_$target_branch," -e ",Created PR to $target_branch Branch," && { return 0; }
-    curl "$PR_PATCH_URL" -o patch
+    curl "$PR_PATCH_URL" -o patch -L
     git clone https://github.com/$ORG/$REPO
     cd $REPO
     git checkout -b $target_branch
     git reset HEAD --hard
     git status
-    git apply ../patch && return 0
-    return 1
+    git apply ../patch -3
+    rc=$?
+    cd ..
+    rm -rf $REPO
+    return $rc
 }
 
 synchronize(){
