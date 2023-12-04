@@ -12,7 +12,7 @@ check_conflict(){
     rm -rf $REPO
     git clone https://github.com/$ORG/$REPO
     cd $REPO
-    git checkout -b $target_branch
+    git checkout $target_branch
     git reset HEAD --hard
     git status
     git apply ../patch -3 || rc=$?
