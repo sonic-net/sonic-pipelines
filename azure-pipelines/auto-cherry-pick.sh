@@ -12,7 +12,7 @@ check_conflict(){
     rm -rf $REPO
     git clone https://github.com/$ORG/$REPO
     cd $REPO
-    git checkout $target_branch
+    git checkout -b $target_branch --track origin/$target_branch
     git reset HEAD --hard
     git status
     git apply ../patch -3 || rc=$?
@@ -28,9 +28,11 @@ create_pr(){
     rm -rf $REPO
     git clone https://github.com/$ORG/$REPO
     cd $REPO
+    git config --global user.email "sonicbld@microsoft.com"
+    git config --global user.name "Sonic Build Admin"
     git remote add mssonicbld https://github.com/mssonicbld/$REPO
     git fetch mssonicbld
-    git checkout -b $target_branch
+    git checkout -b $target_branch --track origin/$target_branch
     git cherry-pick $PR_COMMIT_SHA
     git push mssonicbld HEAD:cherry/$target_branch/$PR_NUMBER
     result=$(gh pr create -R $ORG/$REPO -H mssonicbld:cherry/$branch/${pr_id} -B $branch -t "[action] [PR:$pr_id] $title" -b '' -l "automerge" 2>&1)
