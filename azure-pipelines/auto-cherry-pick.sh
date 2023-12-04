@@ -13,8 +13,8 @@ check_conflict(){
     git clone https://github.com/$ORG/$REPO
     cd $REPO
     git checkout -b $target_branch --track origin/$target_branch
-    git reset HEAD --hard
     git status
+    sleep 1
     git apply ../patch -3 || rc=$?
     cd ..
     rm -rf $REPO
@@ -35,10 +35,12 @@ create_pr(){
     git checkout -b $target_branch --track origin/$target_branch
     git cherry-pick $PR_COMMIT_SHA
     git push mssonicbld HEAD:cherry/$target_branch/$PR_NUMBER -f
-    result=$(gh pr create -R $ORG/$REPO -H mssonicbld:cherry/$target_branch/$PR_NUMBER -B $target_branch -t "[action] [PR:$PR_NUMBER] $(git log $PR_COMMIT_SHA -n 1 --pretty=format:'%s')" -b "$(git log $PR_COMMIT_SHA -n 1 --pretty=format:'%b')" -l "automerge" 2>&1)
+    title="[action] [PR:$PR_NUMBER] $(git log $PR_COMMIT_SHA -n 1 --pretty=format:'%s')"
+    git log $PR_COMMIT_SHA -n 1 --pretty=format:'%b' > body
+    result=$(gh pr create -R $ORG/$REPO -H mssonicbld:cherry/$target_branch/$PR_NUMBER -B $target_branch -t "$title" -F body -l "automerge" 2>&1)
     sleep 1
     echo $result | grep "already exists" && return 0 || true
-    new_pr_rul=$(echo $result | grep github.com)
+    new_pr_rul=$(echo $result | grep -Eo https://github.com.*)
     gh pr comment $new_pr_rul --body "Original PR: $PR_URL"
     sleep 1
     gh pr edit $PR_URL --add-label "Created PR to $branch Branch"
