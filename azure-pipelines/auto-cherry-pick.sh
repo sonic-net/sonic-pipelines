@@ -32,8 +32,11 @@ create_pr(){
     git config --global user.name "Sonic Build Admin"
     git remote add mssonicbld https://mssonicbld:$GH_TOKEN@github.com/mssonicbld/$REPO
     git fetch mssonicbld
+    git status
     git checkout -b $target_branch --track origin/$target_branch
+    git status
     git cherry-pick $PR_COMMIT_SHA
+    git status
     git push mssonicbld HEAD:cherry/$target_branch/$PR_NUMBER -f
     title="[action] [PR:$PR_NUMBER] $(git log $PR_COMMIT_SHA -n 1 --pretty=format:'%s')"
     git log $PR_COMMIT_SHA -n 1 --pretty=format:'%b' > body
