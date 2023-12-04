@@ -12,6 +12,8 @@ check_conflict(){
     rm -rf $REPO
     git clone https://github.com/$ORG/$REPO
     cd $REPO
+    git status
+    sleep 1
     git checkout -b $target_branch --track origin/$target_branch
     git status
     sleep 1
