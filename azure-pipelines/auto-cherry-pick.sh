@@ -8,7 +8,7 @@ echo $GH_TOKEN | gh auth login --with-token
 # $1 is a single label.
 check_conflict(){
     target_branch=$(echo $1 | grep -Eo [0-9]{6})
-    curl "$PR_PATCH_URL" -o patch -L
+    [ -f patch ] || curl "$PR_PATCH_URL" -o patch -L
     rm -rf $REPO
     git clone https://github.com/$ORG/$REPO
     cd $REPO
