@@ -30,7 +30,7 @@ create_pr(){
     cd $REPO
     git config --global user.email "sonicbld@microsoft.com"
     git config --global user.name "Sonic Build Admin"
-    git remote add mssonicbld https://github.com/mssonicbld/$REPO
+    git remote add mssonicbld https://mssonicbld:$GH_TOKEN@github.com/mssonicbld/$REPO
     git fetch mssonicbld
     git checkout -b $target_branch --track origin/$target_branch
     git cherry-pick $PR_COMMIT_SHA
