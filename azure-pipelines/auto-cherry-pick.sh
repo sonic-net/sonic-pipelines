@@ -34,7 +34,7 @@ create_pr(){
     git fetch mssonicbld
     git checkout -b $target_branch --track origin/$target_branch
     git cherry-pick $PR_COMMIT_SHA
-    git push mssonicbld HEAD:cherry/$target_branch/$PR_NUMBER
+    git push mssonicbld HEAD:cherry/$target_branch/$PR_NUMBER -f
     result=$(gh pr create -R $ORG/$REPO -H mssonicbld:cherry/$target_branch/$PR_NUMBER -B $target_branch -t "[action] [PR:$PR_NUMBER] $(git log $PR_COMMIT_SHA -n 1 --pretty=format:'%s')" -b "$(git log $PR_COMMIT_SHA -n 1 --pretty=format:'%b')" -l "automerge" 2>&1)
     sleep 1
     echo $result | grep "already exists" && return 0 || true
