@@ -57,33 +57,25 @@ labeled(){
 
 synchronize(){
     echo [ AUTO CHERRY PICK ] synchronize: $PR_LABELS
-    curl "$PR_PATCH_URL" -o patch -L
-    git clone https://github.com/$ORG/$REPO
-    cd $REPO
     IFS=, read -a labels <<< $PR_LABELS
     for label in "${labels[@]}"; do
         if echo $label | grep -E '^Request for [0-9]{6} Branch$'; then
             check_conflict $label
         fi
-
-        if echo $label | grep -E '^Approved for [0-9]{6} Branch$'; then
-            create_pr $label
-        fi
     done
-    cd ..
-    rm -rf $REPO
 }
 
 closed(){
     echo [ AUTO CHERRY PICK ] closed: $PR_LABELS
-    git clone https://github.com/$ORG/$REPO
-    cd $REPO
     IFS=, read -a labels <<< $PR_LABELS
     for label in "${labels[@]}"; do
-        if echo $label | grep -Eo 'Approved for [0-9]{6} Branch'; then
+        if echo $label | grep -E '^Approved for [0-9]{6} Branch$'; then
             create_pr $label
         fi
     done
 }
 
-$ACTION
+$ACTION 2>error.log | tee log.log
+rc=${PIPESTATUS[0]}
+echo "Exit Code: $rc" >> error.log
+exit $rc
