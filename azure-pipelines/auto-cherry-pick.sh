@@ -47,11 +47,11 @@ create_pr(){
 labeled(){
     echo [ AUTO CHERRY PICK ] labeled: $ACTION_LABEL
     if echo $ACTION_LABEL | grep -E '^Request for [0-9]{6} Branch$' || echo $ACTION_LABEL | grep -E '^Approved for [0-9]{6} Branch$'; then
-        check_conflict $ACTION_LABEL
+        check_conflict "$ACTION_LABEL"
     fi
 
     if echo $ACTION_LABEL | grep -E '^Approved for [0-9]{6} Branch$'; then
-        create_pr $ACTION_LABEL
+        create_pr "$ACTION_LABEL"
     fi
 }
 
@@ -60,7 +60,7 @@ synchronize(){
     IFS=, read -a labels <<< $PR_LABELS
     for label in "${labels[@]}"; do
         if echo $label | grep -E '^Request for [0-9]{6} Branch$'; then
-            check_conflict $label
+            check_conflict "$label"
         fi
     done
 }
@@ -70,7 +70,7 @@ closed(){
     IFS=, read -a labels <<< $PR_LABELS
     for label in "${labels[@]}"; do
         if echo $label | grep -E '^Approved for [0-9]{6} Branch$'; then
-            create_pr $label
+            create_pr "$label"
         fi
     done
 }
