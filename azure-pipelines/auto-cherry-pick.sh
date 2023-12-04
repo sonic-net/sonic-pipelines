@@ -46,9 +46,10 @@ create_pr(){
     new_pr_rul=$(echo $result | grep -Eo https://github.com.*)
     gh pr comment $new_pr_rul --body "Original PR: $PR_URL"
     sleep 1
-    gh pr edit $PR_URL --add-label "Created PR to $branch Branch"
+    gh pr edit $PR_URL --add-label "Created PR to $target_branch Branch"
     sleep 1
     gh pr comment $PR_URL --body "Cherry-pick PR to $target_branch: ${new_pr_rul}"
+    sleep 1
 }
 
 labeled(){
