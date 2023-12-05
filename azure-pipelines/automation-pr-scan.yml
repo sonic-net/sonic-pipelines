@@ -87,7 +87,6 @@ jobs:
                 gh pr merge --rebase --admin -R $repo $url || true
               fi
               echo ========Finished PR========
-        done
             done
           done
         displayName: scaning
