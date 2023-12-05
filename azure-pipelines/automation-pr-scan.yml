@@ -27,7 +27,7 @@ jobs:
         TOKEN: $(GH_TOKEN)
       displayName: install dependencies
     - script: |
-        set -e
+        set -ex
         # PR merge run per 2 hours
         # Other operation run per day.
         # Cherry pick PR:
