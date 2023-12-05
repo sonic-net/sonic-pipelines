@@ -49,7 +49,7 @@ jobs:
             c=$(echo $prs | jq length)
             for ((i=0; i<$c; i++)); do
               pr=$(echo $prs | jq .[$i])
-              echo $pr | jq [.[$i].url,.[$i].author.login,.[$i].labels[].name]
+              echo $pr | jq [.url,.author.login,.labels[].name]
               url=$(echo $pr | jq .url)
               body=$(echo $pr | jq .body)
               title=$(echo $pr | jq .title)
