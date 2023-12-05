@@ -15,5 +15,9 @@ jobs:
     steps:
       - checkout: none
       - script: |
-          gh --version
+          set -ex
+          sudo apt-get update && sudo apt-get install -y gh
+          echo $TOKEN | gh auth login --with-token
+        env:
+          TOKEN: $(GH_TOKEN)
         displayName: install dependencies
