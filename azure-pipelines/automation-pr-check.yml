@@ -1,0 +1,19 @@
+trigger: none
+pr: none
+
+schedules:
+- cron: "0 0 * * *"
+  branches:
+    include:
+    - main
+  always: true
+
+jobs:
+  - job: PRChecker
+    pool: ubuntu-20.04
+    timeoutInMinutes: 60
+    steps:
+      - checkout: none
+      - script: |
+          gh --version
+        displayName: install dependencies
