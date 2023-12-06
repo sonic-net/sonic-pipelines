@@ -45,7 +45,7 @@ jobs:
         repos="sonic-net/sonic-utilities sonic-net/sonic-swss sonic-net/sonic-sairedis sonic-net/sonic-swss-common sonic-net/sonic-dbsyncd sonic-net/sonic-gnmi sonic-net/sonic-host-services sonic-net/sonic-linkmgrd sonic-net/sonic-linux-kernel sonic-net/sonic-mgmt-common sonic-net/sonic-mgmt-framework sonic-net/sonic-platform-common sonic-net/sonic-platform-daemons sonic-net/sonic-py-swsssdk sonic-net/sonic-restapi sonic-net/sonic-snmpagent sonic-net/sonic-wpa-supplicant"
           for repo in $repos; do
             echo ======== working for $repo ========
-            prs=$(gh pr list -A mssonicbld --label automerge -R $repo -L 100 --json body,title,url,labels,statusCheckRollup,createdAt)
+            prs=$(gh pr list -A mssonicbld --label automerge -R $repo -L 100 --json body,title,url,labels,statusCheckRollup,createdAt,baseRefName)
             c=$(echo $prs | jq length)
             for ((i=0; i<$c; i++)); do
               pr=$(echo $prs | jq .[$i])
@@ -56,6 +56,7 @@ jobs:
               origin_pr_id=$(echo $title | grep -Eo "\[action\] \[PR:[0-9]*\]" | grep -Eo [0-9]* || true)
               created_at=$(echo $pr | jq .createdAt -r)
               checks=$(echo $pr | jq .statusCheckRollup)
+              base_ref=$(echo $pr | jq .baseRefName -r)
               cc=$(echo $checks | jq length)
               pr_success=true
               check_name=''
@@ -85,6 +86,7 @@ jobs:
                 gh pr merge --squash --admin -R $repo $url -b "$body" || true
               else
                 gh pr merge --rebase --admin -R $repo $url || true
+                [[ "$origin_pr_id" != "" ]] && gh pr edit https://github.com/$repo/pull/$origin_pr_id --add-label "Included in $base_ref Branch" --remove-label "Created PR to $base_ref Branch,Cherry Pick Conflict_$base_ref" || true
               fi
               echo ========Finished PR========
             done
