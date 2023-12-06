@@ -1,0 +1,94 @@
+trigger: none
+pr: none
+
+schedules:
+- cron: "11 */2 * * *"
+  branches:
+    include:
+    - main
+  always: true
+
+jobs:
+- job: PRChecker
+  pool: ubuntu-20.04
+  timeoutInMinutes: 60
+  steps:
+    - checkout: none
+    - script: |
+        set -ex
+        curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
+        sudo chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg
+        echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
+        sudo apt update
+        sudo apt install gh jq -y
+
+        echo $TOKEN | gh auth login --with-token
+      env:
+        TOKEN: $(GH_TOKEN)
+      displayName: install dependencies
+    - script: |
+        set -ex
+        # PR merge run per 2 hours
+        # Other operation run per day.
+        # Cherry pick PR:
+        # more than 3 days, comment @author to check
+        # more than 10 days, stop comment.
+        # more than 26 days, comment @author PR will be closed
+        # more than 30 days, close PR
+        date_3d_ago=$(date --date "3 day ago" -u +"%FT%TZ")
+        date_10d_ago=$(date --date "10 day ago" -u +"%FT%TZ")
+        date_26d_ago=$(date --date "26 day ago" -u +"%FT%TZ")
+        date_30d_ago=$(date --date "30 day ago" -u +"%FT%TZ")
+        date_now=$(date -u +"%T")
+        operate=false
+        [[ "$date_now" > "22:00:00" ]] && operate=true
+        repos="sonic-net/sonic-utilities sonic-net/sonic-swss sonic-net/sonic-sairedis sonic-net/sonic-swss-common sonic-net/sonic-dbsyncd sonic-net/sonic-gnmi sonic-net/sonic-host-services sonic-net/sonic-linkmgrd sonic-net/sonic-linux-kernel sonic-net/sonic-mgmt-common sonic-net/sonic-mgmt-framework sonic-net/sonic-platform-common sonic-net/sonic-platform-daemons sonic-net/sonic-py-swsssdk sonic-net/sonic-restapi sonic-net/sonic-snmpagent sonic-net/sonic-wpa-supplicant"
+          for repo in $repos; do
+            echo ======== working for $repo ========
+            prs=$(gh pr list -A mssonicbld --label automerge -R $repo -L 100 --json body,title,url,labels,statusCheckRollup,createdAt,baseRefName)
+            c=$(echo $prs | jq length)
+            for ((i=0; i<$c; i++)); do
+              pr=$(echo $prs | jq .[$i])
+              echo $pr | jq [.url,.author.login,.labels[].name]
+              url=$(echo $pr | jq .url -r)
+              body=$(echo $pr | jq .body -r)
+              title=$(echo $pr | jq .title -r)
+              origin_pr_id=$(echo $title | grep -Eo "\[action\] \[PR:[0-9]*\]" | grep -Eo [0-9]* || true)
+              created_at=$(echo $pr | jq .createdAt -r)
+              checks=$(echo $pr | jq .statusCheckRollup)
+              base_ref=$(echo $pr | jq .baseRefName -r)
+              cc=$(echo $checks | jq length)
+              pr_success=true
+              check_name=''
+              for ((j=0; j<$cc; j++)); do
+                check=$(echo $checks | jq .[$j])
+                [[ "$check_name" == "" ]] && check_name=$(echo $check | jq .name -r | grep -i -e "Azure.sonic" -e "sonic-net.sonic" | grep -v '(' || true)
+                echo $check | jq [.name,.status,.conclusion]
+                echo $check | jq .name | grep -i -v -e "Azure.sonic" -e "sonic-net.sonic" &>/dev/null && { echo continue; continue; }
+                echo $check | jq .status | grep -i -e in_progress -e queued &>/dev/null && { echo continue 2; continue 2; }
+                echo $check | jq .conclusion | grep -i -e failure -e cancelled && pr_success=false
+              done
+              # rerun PR checker
+              ! pr_success && operate && [[ "$check_name" != "" ]] && gh pr comment $url --body "/azp run $check_name"
+              # If auto cherry pick PRs failed, comment in original PR and close cherry pick PR
+              if [ -n "$origin_pr_id" ] && [[ $created_at < $date_3d_ago ]] && ! $pr_success;then
+                origin_pr_url=https://github.com/$repo/pull/$origin_pr_id
+                author=$(gh pr view $origin_pr_url --json author | jq .author.login -r)
+                echo "Original author will check."
+                $operate && [[ $created_at > $date_10d_ago ]] && gh pr comment $origin_pr_url --body "@$author cherry pick PR didn't pass PR checker. Please check!!!<br>$url"
+                $operate && [[ $created_at < $date_26d_ago ]] && gh pr comment $origin_pr_url --body "@$author cherry pick PR didn't pass PR checker. Please check!!! Auto cherry pick PR will be closed in 3 days.<br>$url"
+                $operate && [[ $created_at < $date_30d_ago ]] && echo "$url Closed" && gh pr close $url
+              fi
+              ! $pr_success && continue
+              # merge the PR
+              echo ========Merging  PR========
+              if echo $title | grep "^\[submodule\]";then
+                gh pr merge --squash --admin -R $repo $url -b "$body" || true
+              else
+                gh pr merge --rebase --admin -R $repo $url || true
+                [[ "$origin_pr_id" != "" ]] && gh pr edit https://github.com/$repo/pull/$origin_pr_id --add-label "Included in $base_ref Branch" --remove-label "Created PR to $base_ref Branch,Cherry Pick Conflict_$base_ref" || true
+              fi
+              echo ========Finished PR========
+            done
+          done
+      displayName: scaning
