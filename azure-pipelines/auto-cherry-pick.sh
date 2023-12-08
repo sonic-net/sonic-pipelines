@@ -4,21 +4,26 @@ gh --version || { curl -fsSL https://cli.github.com/packages/githubcli-archive-k
 
 . .bashenv
 echo $GH_TOKEN | gh auth login --with-token
+git config --global user.email "sonicbld@microsoft.com"
+git config --global user.name "Sonic Build Admin"
 
 # $1 is a single label.
 check_conflict(){
     target_branch=$(echo $1 | grep -Eo [0-9]{6})
     [ -f patch ] || curl "$PR_PATCH_URL" -o patch -L
     rm -rf $REPO
-    git clone -b $PR_BASE_BRANCH https://github.com/$ORG/$REPO
+    git clone https://github.com/$ORG/$REPO
     cd $REPO
+    git status
+    git checkout $PR_BASE_BRANCH
+    git status
     git apply ../patch
     git add .
-    git config user.email "test"
-    git config user.name "test"
     git commit -m draft
+    git status
     commit=$(git log -n 1 --format=%H)
     git checkout $target_branch
+    git status
     git cherry-pick $commit || rc=$?
     cd ..
     if [[ "$rc" == '' ]]; then
@@ -27,6 +32,7 @@ check_conflict(){
     else
         gh pr edit $PR_URL --add-label "Cherry Pick Conflict_$target_branch"
     fi
+    sleep 1
     return $rc
 }
 
@@ -36,14 +42,12 @@ create_pr(){
     rm -rf $REPO
     git clone https://github.com/$ORG/$REPO
     cd $REPO
-    git config --global user.email "sonicbld@microsoft.com"
-    git config --global user.name "Sonic Build Admin"
     git remote add mssonicbld https://mssonicbld:$GH_TOKEN@github.com/mssonicbld/$REPO
     git fetch mssonicbld
     git status
     git checkout -b $target_branch --track origin/$target_branch
     git status
-    git cherry-pick $PR_COMMIT_SHA
+    git cherry-pick $PR_COMMIT_SHA || { gh pr edit $PR_URL --add-label "Cherry Pick Conflict_$target_branch"; return 1; }
     git status
     git push mssonicbld HEAD:cherry/$target_branch/$PR_NUMBER -f
     title="[action] [PR:$PR_NUMBER] $(git log $PR_COMMIT_SHA -n 1 --pretty=format:'%s')"
