@@ -17,7 +17,7 @@ check_conflict(){
     git checkout -b $target_branch --track origin/$target_branch
     git status
     sleep 1
-    git apply ../patch --check -3
+    git apply ../patch --check -3 || true
     git status
     sleep 1
     git apply ../patch --check -3 || rc=$?
