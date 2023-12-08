@@ -13,11 +13,21 @@ check_conflict(){
     git clone https://github.com/$ORG/$REPO
     cd $REPO
     git status
+    sleep 1
     git checkout -b $target_branch --track origin/$target_branch
     git status
+    sleep 1
+    git apply ../patch --check -3
+    git status
+    sleep 1
     git apply ../patch --check -3 || rc=$?
     cd ..
-    { [[ "$rc" == '' ]] && rm -rf $REPO; } || gh pr edit $PR_URL --add-label "Cherry Pick Conflict_$target_branch"
+    if [[ "$rc" == '' ]]; then
+        rm -rf $REPO
+        gh pr edit $PR_URL --remove-label "Cherry Pick Conflict_$target_branch"
+    else
+        gh pr edit $PR_URL --add-label "Cherry Pick Conflict_$target_branch"
+    fi
     return $rc
 }
 
