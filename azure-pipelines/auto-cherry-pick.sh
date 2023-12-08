@@ -10,20 +10,19 @@ check_conflict(){
     target_branch=$(echo $1 | grep -Eo [0-9]{6})
     [ -f patch ] || curl "$PR_PATCH_URL" -o patch -L
     rm -rf $REPO
-    git clone https://github.com/$ORG/$REPO
+    git clone -b $PR_BASE_BRANCH https://github.com/$ORG/$REPO
     cd $REPO
-    git status
-    sleep 1
-    git checkout -b $target_branch --track origin/$target_branch
-    git status
-    sleep 1
-    git apply ../patch --check -3 || true
-    git status
-    sleep 1
-    git apply ../patch --check -3 || rc=$?
+    git apply ../patch
+    git add .
+    git config user.email "test"
+    git config user.name "test"
+    git commit -m draft
+    commit=$(git log -n 1 --format=%H)
+    git checkout $target_branch
+    git cherry-pick $commit || rc=$?
     cd ..
     if [[ "$rc" == '' ]]; then
-        rm -rf $REPO
+        # rm -rf $REPO
         gh pr edit $PR_URL --remove-label "Cherry Pick Conflict_$target_branch"
     else
         gh pr edit $PR_URL --add-label "Cherry Pick Conflict_$target_branch"
