@@ -9,6 +9,7 @@ git config --global user.name "Sonic Build Admin"
 
 # $1 is a single label.
 check_conflict(){
+    [[ "$PR_MERGED" == "true" ]] && echo "PR has been merged!" && return 0
     target_branch=$(echo $1 | grep -Eo [0-9]{6})
     [ -f patch ] || curl "$PR_PATCH_URL" -o patch -L
     rm -rf $REPO
