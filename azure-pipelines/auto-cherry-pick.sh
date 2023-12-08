@@ -17,8 +17,7 @@ check_conflict(){
     git status
     git apply ../patch --check -3 || rc=$?
     cd ..
-    rm -rf $REPO
-    [[ "$rc" == '' ]] || gh pr edit $PR_URL --add-label "Cherry Pick Conflict_$target_branch"
+    { [[ "$rc" == '' ]] && rm -rf $REPO; } || gh pr edit $PR_URL --add-label "Cherry Pick Conflict_$target_branch"
     return $rc
 }
 
