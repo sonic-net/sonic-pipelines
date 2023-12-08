@@ -17,7 +17,7 @@ check_conflict(){
     if [[ "$PR_MERGED" == "true" ]];then
         commit=$PR_COMMIT_SHA
     else
-        [ -f patch ] || curl "$PR_PATCH_URL" -o patch -L
+        [ -f patch ] || curl "$PR_PATCH_URL" -o ../patch -L
         git checkout $PR_BASE_BRANCH
         git status
         git apply ../patch
