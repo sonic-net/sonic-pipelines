@@ -9,20 +9,23 @@ git config --global user.name "Sonic Build Admin"
 
 # $1 is a single label.
 check_conflict(){
-    [[ "$PR_MERGED" == "true" ]] && echo "PR has been merged!" && return 0
     target_branch=$(echo $1 | grep -Eo [0-9]{6})
-    [ -f patch ] || curl "$PR_PATCH_URL" -o patch -L
     rm -rf $REPO
     git clone https://github.com/$ORG/$REPO
     cd $REPO
     git status
-    git checkout $PR_BASE_BRANCH
-    git status
-    git apply ../patch
-    git add .
-    git commit -m draft
-    git status
-    commit=$(git log -n 1 --format=%H)
+    if [[ "$PR_MERGED" == "true" ]];then
+        commit=$PR_COMMIT
+    else
+        [ -f patch ] || curl "$PR_PATCH_URL" -o patch -L
+        git checkout $PR_BASE_BRANCH
+        git status
+        git apply ../patch
+        git add .
+        git commit -m draft
+        git status
+        commit=$(git log -n 1 --format=%H)
+    fi
     git checkout $target_branch
     git status
     git cherry-pick $commit || rc=$?
