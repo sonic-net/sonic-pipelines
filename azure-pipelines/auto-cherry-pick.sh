@@ -35,6 +35,11 @@ check_conflict(){
         gh pr edit $PR_URL --remove-label "Cherry Pick Conflict_$target_branch"
         sleep 1
     else
+        if [[ "$(git status | grep -e 'You are currently cherry-picking commit' -e 'nothing to commit, working tree clean' | wc -l)" == "2" ]]; then
+            gh pr comment $PR_URL --body "@$PR_OWNER this PR already included in $PR_BASE_BRANCH Branch. Please remove Request for $PR_BASE_BRANCH label."
+            echo "PR don't need cherry pick"
+            return 251
+        fi
         gh pr edit $PR_URL --add-label "Cherry Pick Conflict_$target_branch"
         sleep 1
         echo  "Cherry pick conflict!"
