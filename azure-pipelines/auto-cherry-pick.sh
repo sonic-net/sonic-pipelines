@@ -20,24 +20,26 @@ check_conflict(){
         [ -f patch ] || curl "$PR_PATCH_URL" -o ../patch -L
         git checkout $PR_BASE_BRANCH
         git status
-        git apply ../patch
+        git apply ../patch || { echo "PR is Out of Date!"; return 253; }
         git add .
         git commit -m draft
         git status
         commit=$(git log -n 1 --format=%H)
     fi
-    git checkout $target_branch
+    git checkout $target_branch || { echo "$target_branch didn't exist!"; return 252; }
     git status
     git cherry-pick $commit || rc=$?
     cd ..
     if [[ "$rc" == '' ]]; then
-        # rm -rf $REPO
+        rm -rf $REPO
         gh pr edit $PR_URL --remove-label "Cherry Pick Conflict_$target_branch"
+        sleep 1
     else
         gh pr edit $PR_URL --add-label "Cherry Pick Conflict_$target_branch"
+        sleep 1
+        echo  "Cherry pick conflict!"
+        return 254
     fi
-    sleep 1
-    return $rc
 }
 
 create_pr(){
@@ -49,9 +51,9 @@ create_pr(){
     git remote add mssonicbld https://mssonicbld:$GH_TOKEN@github.com/mssonicbld/$REPO
     git fetch mssonicbld
     git status
-    git checkout -b $target_branch --track origin/$target_branch
+    git checkout -b $target_branch --track origin/$target_branch || { echo "$target_branch didn't exist!"; return 252; }
     git status
-    git cherry-pick $PR_COMMIT_SHA || { gh pr edit $PR_URL --add-label "Cherry Pick Conflict_$target_branch"; return 1; }
+    git cherry-pick $PR_COMMIT_SHA || { gh pr edit $PR_URL --add-label "Cherry Pick Conflict_$target_branch"; echo "Cherry pick conflict!"; return 254; }
     git status
     git push mssonicbld HEAD:cherry/$target_branch/$PR_NUMBER -f
     title="[action] [PR:$PR_NUMBER] $(git log $PR_COMMIT_SHA -n 1 --pretty=format:'%s')"
