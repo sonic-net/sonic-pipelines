@@ -17,11 +17,12 @@ check_conflict(){
     if [[ "$PR_MERGED" == "true" ]];then
         commit=$PR_COMMIT_SHA
     else
-        [ -f patch ] || curl "$PR_PATCH_URL" -o ../patch -L
         git checkout $PR_BASE_BRANCH
         git status
-        git apply ../patch || { echo "PR is Out of Date!"; return 253; }
-        git add .
+        git fetch origin +refs/pull/$PR_NUMBER/merge:refs/remotes/pull/$PR_NUMBER/merge
+        git status
+        git merge pull/$PR_NUMBER/merge --squash || { echo "PR is Out of Date!"; return 253; }
+        git status
         git commit -m draft
         git status
         commit=$(git log -n 1 --format=%H)
