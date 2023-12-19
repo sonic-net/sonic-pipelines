@@ -29,8 +29,8 @@ check_conflict(){
     git checkout $target_branch || { echo "$target_branch didn't exist!"; return 252; }
     git status
     git cherry-pick $commit || rc=$?
-    cd ..
     if [[ "$rc" == '' ]]; then
+        cd ..
         rm -rf $REPO
         gh pr edit $PR_URL --remove-label "Cherry Pick Conflict_$target_branch"
         sleep 1
@@ -91,7 +91,7 @@ synchronize(){
     IFS=, read -a labels <<< $PR_LABELS
     for label in "${labels[@]}"; do
         if echo $label | grep -E '^Request for [0-9]{6} Branch$'; then
-            check_conflict "$label"
+            check_conflict "$label" || true
         fi
     done
 }
@@ -101,7 +101,7 @@ closed(){
     IFS=, read -a labels <<< $PR_LABELS
     for label in "${labels[@]}"; do
         if echo $label | grep -E '^Approved for [0-9]{6} Branch$'; then
-            create_pr "$label"
+            create_pr "$label" || true
         fi
     done
 }
