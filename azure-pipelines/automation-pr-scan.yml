@@ -69,7 +69,7 @@ jobs:
                 echo $check | jq .conclusion | grep -i -e failure -e cancelled && pr_success=false
               done
               # rerun PR checker
-              ! pr_success && operate && [[ "$check_name" != "" ]] && gh pr comment $url --body "/azp run $check_name"
+              ! $pr_success && $operate && [[ "$check_name" != "" ]] && gh pr comment $url --body "/azp run $check_name"
               # If auto cherry pick PRs failed, comment in original PR and close cherry pick PR
               if [ -n "$origin_pr_id" ] && [[ $created_at < $date_3d_ago ]] && ! $pr_success;then
                 origin_pr_url=https://github.com/$repo/pull/$origin_pr_id
