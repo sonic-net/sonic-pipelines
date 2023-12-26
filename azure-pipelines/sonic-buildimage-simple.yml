@@ -37,7 +37,7 @@ stages:
       clean: true
     - bash: |
         set -ex
-        commit=$(git log --format=%s -n 1 --before "1 day ago")
+        commit=$(git log --format=%h -n 1 --before "1 day ago")
         git reset $commit --hard
         make init
         yes | make reset
