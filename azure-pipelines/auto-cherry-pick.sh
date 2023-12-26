@@ -4,21 +4,48 @@ gh --version || { curl -fsSL https://cli.github.com/packages/githubcli-archive-k
 
 . .bashenv
 echo $GH_TOKEN | gh auth login --with-token
+git config --global user.email "sonicbld@microsoft.com"
+git config --global user.name "Sonic Build Admin"
 
 # $1 is a single label.
 check_conflict(){
     target_branch=$(echo $1 | grep -Eo [0-9]{6})
-    [ -f patch ] || curl "$PR_PATCH_URL" -o patch -L
     rm -rf $REPO
     git clone https://github.com/$ORG/$REPO
     cd $REPO
     git status
-    git checkout -b $target_branch --track origin/$target_branch
+    if [[ "$PR_MERGED" == "true" ]];then
+        commit=$PR_COMMIT_SHA
+    else
+        git checkout $PR_BASE_BRANCH
+        git status
+        git fetch origin +refs/pull/$PR_NUMBER/merge:refs/remotes/pull/$PR_NUMBER/merge
+        git status
+        git merge pull/$PR_NUMBER/merge --squash || { echo "PR is Out of Date!"; return 253; }
+        git status
+        git commit -m draft
+        git status
+        commit=$(git log -n 1 --format=%H)
+    fi
+    git checkout $target_branch || { echo "$target_branch didn't exist!"; return 252; }
     git status
-    git apply ../patch --check -3 || rc=$?
-    cd ..
-    { [[ "$rc" == '' ]] && rm -rf $REPO; } || gh pr edit $PR_URL --add-label "Cherry Pick Conflict_$target_branch"
-    return $rc
+    git cherry-pick $commit || rc=$?
+    if [[ "$rc" == '' ]]; then
+        cd ..
+        rm -rf $REPO
+        gh pr edit $PR_URL --remove-label "Cherry Pick Conflict_$target_branch"
+        sleep 1
+    else
+        if [[ "$(git status | grep -e 'You are currently cherry-picking commit' -e 'nothing to commit, working tree clean' | wc -l)" == "2" ]]; then
+            gh pr comment $PR_URL --body "@$PR_OWNER this PR already included in $PR_BASE_BRANCH Branch. Please remove Request for $PR_BASE_BRANCH label."
+            echo "PR don't need cherry pick"
+            return 251
+        fi
+        gh pr edit $PR_URL --add-label "Cherry Pick Conflict_$target_branch"
+        sleep 1
+        echo  "Cherry pick conflict!"
+        return 254
+    fi
 }
 
 create_pr(){
@@ -27,14 +54,12 @@ create_pr(){
     rm -rf $REPO
     git clone https://github.com/$ORG/$REPO
     cd $REPO
-    git config --global user.email "sonicbld@microsoft.com"
-    git config --global user.name "Sonic Build Admin"
     git remote add mssonicbld https://mssonicbld:$GH_TOKEN@github.com/mssonicbld/$REPO
     git fetch mssonicbld
     git status
-    git checkout -b $target_branch --track origin/$target_branch
+    git checkout -b $target_branch --track origin/$target_branch || { echo "$target_branch didn't exist!"; return 252; }
     git status
-    git cherry-pick $PR_COMMIT_SHA
+    git cherry-pick $PR_COMMIT_SHA || { gh pr edit $PR_URL --add-label "Cherry Pick Conflict_$target_branch"; echo "Cherry pick conflict!"; return 254; }
     git status
     git push mssonicbld HEAD:cherry/$target_branch/$PR_NUMBER -f
     title="[action] [PR:$PR_NUMBER] $(git log $PR_COMMIT_SHA -n 1 --pretty=format:'%s')"
@@ -67,7 +92,7 @@ synchronize(){
     IFS=, read -a labels <<< $PR_LABELS
     for label in "${labels[@]}"; do
         if echo $label | grep -E '^Request for [0-9]{6} Branch$'; then
-            check_conflict "$label"
+            check_conflict "$label" || true
         fi
     done
 }
@@ -77,7 +102,7 @@ closed(){
     IFS=, read -a labels <<< $PR_LABELS
     for label in "${labels[@]}"; do
         if echo $label | grep -E '^Approved for [0-9]{6} Branch$'; then
-            create_pr "$label"
+            create_pr "$label" || true
         fi
     done
 }
