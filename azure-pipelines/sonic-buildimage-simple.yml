@@ -19,7 +19,7 @@ stages:
   pool: sonicbld
   variables:
     ARCH: amd64
-    PLATFORM: replace(variables['Build.DefinitionName'], '', '')
+    PLATFORM: replace(variables['Build.DefinitionName'], 'sonic-buildimage.simple.', '')
     SONIC_DPKG_CACHE_METHOD: rcache
     DEFAULT_CONTAINER_REGISTRY: 'publicmirror.azurecr.io'
     SONIC_SLAVE_DOCKER_DRIVER: 'overlay2'
