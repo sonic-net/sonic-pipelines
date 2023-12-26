@@ -1,0 +1,55 @@
+# Starter pipeline
+# Start with a minimal pipeline that you can customize to build and deploy your code.
+# Add steps that build, run tests, deploy, and more:
+# https://aka.ms/yaml
+
+resources:
+  repositories:
+  - repository: buildimage
+    type: github
+    name: sonic-net/sonic-buildimage
+    ref: master
+    endpoint: sonic-net
+
+trigger: none
+pr: none
+
+stages:
+- stage: Build
+  pool: sonicbld
+  variables:
+    ARCH: amd64
+    PLATFORM: replace(variables['Build.DefinitionName'], '', '')
+    SONIC_DPKG_CACHE_METHOD: rcache
+    DEFAULT_CONTAINER_REGISTRY: 'publicmirror.azurecr.io'
+    SONIC_SLAVE_DOCKER_DRIVER: 'overlay2'
+    DOCKER_BUILDKIT: 0
+    DOCKER_BUILD_TIMEOUT: 3600
+    MIRROR_SNAPSHOT: y
+    SONIC_VERSION_CONTROL_COMPONENTS: 'deb,py2,py3,web,git,docker'
+    ENABLE_DOCKER_BASE_PULL: y
+
+  jobs:
+  - job: build
+    timeoutInMinutes: 300
+    steps:
+    - checkout: self
+      clean: true
+    - bash: |
+        set -ex
+        commit=$(git log --format=%s -n 1 --before "1 day ago")
+        git reset $commit --hard
+        make init
+        yes | make reset
+        git status
+        git submodule
+      displayName: make init
+    - bash: |
+        set -ex
+        make configure SONIC_BUILD_JOBS=$(nproc) SONIC_DPKG_CACHE_SOURCE=/nfs/dpkg_cache/$PLATFORM
+      displayName: make config
+    - bash: |
+         set -ex
+         make target/sonic-$PLATFORM.bin
+      displayName: make image
+   
