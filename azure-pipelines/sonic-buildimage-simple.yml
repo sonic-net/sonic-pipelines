@@ -33,7 +33,7 @@ stages:
   - job: build
     timeoutInMinutes: 300
     steps:
-    - checkout: self
+    - checkout: buildimage
       clean: true
     - bash: |
         set -ex
