@@ -20,7 +20,6 @@ stages:
   variables:
     ARCH: amd64
     PLATFORM: ${{ replace(variables['Build.DefinitionName'], 'sonic-buildimage.simple.', '') }}
-    SONIC_DPKG_CACHE_METHOD: rcache
     DEFAULT_CONTAINER_REGISTRY: 'publicmirror.azurecr.io'
     SONIC_SLAVE_DOCKER_DRIVER: 'overlay2'
     DOCKER_BUILDKIT: 0
@@ -37,7 +36,7 @@ stages:
       clean: true
     - bash: |
         set -ex
-        commit=$(git log --format=%h -n 1 --before "1 day ago")
+        commit=$(git log --format=%h -n 1 --before "$(delay) day ago")
         git reset $commit --hard
         make init
         yes | make reset
@@ -46,10 +45,10 @@ stages:
       displayName: make init
     - bash: |
         set -ex
-        make configure SONIC_BUILD_JOBS=$(nproc) SONIC_DPKG_CACHE_SOURCE=/nfs/dpkg_cache/$PLATFORM
+        make configure
       displayName: make config
     - bash: |
-         set -ex
-         make target/sonic-$PLATFORM.bin
+        set -ex
+        make target/sonic-$PLATFORM.bin SONIC_BUILD_JOBS=$(nproc) SONIC_DPKG_CACHE_SOURCE=/nfs/dpkg_cache/$PLATFORM SONIC_DPKG_CACHE_METHOD=rcache
       displayName: make image
    
