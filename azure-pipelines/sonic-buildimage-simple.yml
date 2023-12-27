@@ -36,7 +36,7 @@ stages:
       clean: true
     - bash: |
         set -ex
-        commit=$(git log --format=%h -n 1 --before "$(delay) day ago")
+        commit=$(git log --format=%h -n 1 --before "$(date -d "$(delay) day ago" -I) 00:00")
         git reset $commit --hard
         make init
         yes | make reset
