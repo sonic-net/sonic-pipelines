@@ -1,0 +1,64 @@
+pr: none
+trigger: none
+
+schedules:
+- cron: '0 0 1 * *'
+  always: true
+  branches:
+    include:
+    - main
+
+jobs:
+- job: cleanup
+  pool: sonicbld
+  timeoutInMinutes: 120
+  variables:
+    - group: Debian-Mirror-Common
+
+  steps:
+    - checkout: none
+    - script: |
+        curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+      displayName: install dependencies
+    - bash: |
+          set -ex
+          az login -u $(ApplicationId) --service-principal --tenant $(AzureTenant) -p "$ApplicationKey"
+          az account set --subscription 9355ef17-3aa2-493a-94ab-a43a9bf8cd70
+          az acr show -n sonicdev
+          sudo apt-get update
+          sudo apt install -y jq
+
+      env:
+        ApplicationKey: '$(ApplicationKey)'
+      displayName: az login
+    - bash: |
+        set -e
+
+        for registry in $(sonic_acrs); do
+            for repo in $(sonic_slaves); do
+                echo "$registry $repo"
+                rm -rf tmp
+                touch tmp
+                for branch in $(sonic_branches); do
+                    az acr repository show -n $registry --image $repo:$branch 2>/dev/null | jq .digest -r >> tmp || continue
+                    echo "    $repo:$branch $(tail -n 1 tmp)"
+                done
+
+                az acr repository show-tags -n $registry --repository $repo --orderby time_desc --output table > a
+                (( $(cat a | wc -l) < 100 )) && continue
+                tag=$(tail -n 10 a | head -n 1)
+                az acr repository show -n $registry --image $repo:$tag
+                for tag in $(tail -n 10 a); do
+                    result=$(az acr repository show -n $registry --image $repo:$tag)
+                    sleep 10
+                    echo $result | grep -f tmp &>/dev/null && echo "SKIP(head): $registry $repo:$tag $(echo $result | grep -f tmp)" && continue
+                    if [[ $(echo $result | jq .lastUpdateTime -r) < $(date -I -d '2 year ago') ]]; then
+                        echo "DELETE $registry $repo:$tag"
+                        az acr repository delete -n $registry --image $repo:$tag -y
+                        sleep 10
+                    fi
+                    echo "SKIP(time): $registry $repo:$tag $(echo $result | grep -f tmp)"
+                done
+            done
+        done
+      displayName: main
