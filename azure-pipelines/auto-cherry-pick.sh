@@ -10,9 +10,10 @@ git config --global user.name "Sonic Build Admin"
 # $1 is a single label.
 check_conflict(){
     target_branch=$(echo $1 | grep -Eo [0-9]{6})
-    rm -rf $REPO
-    git clone https://github.com/$ORG/$REPO
-    cd $REPO
+    rm -rf $REPO-$target_branch
+    git clone https://github.com/$ORG/$REPO $REPO-$target_branch
+    popd || true
+    pushd $REPO-$target_branch
     git status
     if [[ "$PR_MERGED" == "true" ]];then
         commit=$PR_COMMIT_SHA
@@ -31,12 +32,10 @@ check_conflict(){
     git status
     git cherry-pick $commit || rc=$?
     if [[ "$rc" == '' ]]; then
-        cd ..
-        rm -rf $REPO
         gh pr edit $PR_URL --remove-label "Cherry Pick Conflict_$target_branch"
         sleep 1
     else
-        if [[ "$(git status | grep -e 'You are currently cherry-picking commit' -e 'nothing to commit, working tree clean' | wc -l)" == "2" ]]; then
+        if git status | grep 'nothing to commit, working tree clean'; then
             gh pr comment $PR_URL --body "@$PR_OWNER this PR already included in $PR_BASE_BRANCH Branch. Please remove Request for $PR_BASE_BRANCH label."
             echo "PR don't need cherry pick"
             return 251
@@ -51,9 +50,10 @@ check_conflict(){
 create_pr(){
     [[ "$PR_MERGED" != "true" ]] && echo "PR not merged!" && return 0
     target_branch=$(echo $1 | grep -Eo [0-9]{6})
-    rm -rf $REPO
-    git clone https://github.com/$ORG/$REPO
-    cd $REPO
+    rm -rf $REPO-$target_branch
+    git clone https://github.com/$ORG/$REPO $REPO-$target_branch
+    popd || true
+    pushd $REPO-$target_branch
     git remote add mssonicbld https://mssonicbld:$GH_TOKEN@github.com/mssonicbld/$REPO
     git fetch mssonicbld
     git status
