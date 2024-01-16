@@ -10,9 +10,9 @@ git config --global user.name "Sonic Build Admin"
 # $1 is a single label.
 check_conflict(){
     target_branch=$(echo $1 | grep -Eo [0-9]{6})
+    popd 2>/dev/null || true
     rm -rf $REPO-$target_branch
     git clone https://github.com/$ORG/$REPO $REPO-$target_branch
-    popd || true
     pushd $REPO-$target_branch
     git status
     if [[ "$PR_MERGED" == "true" ]];then
@@ -30,29 +30,23 @@ check_conflict(){
     fi
     git checkout $target_branch || { echo "$target_branch didn't exist!"; return 252; }
     git status
+    rc=''
     git cherry-pick $commit || rc=$?
     if [[ "$rc" == '' ]]; then
         gh pr edit $PR_URL --remove-label "Cherry Pick Conflict_$target_branch"
         sleep 1
     else
-        if git status | grep 'nothing to commit, working tree clean'; then
-            gh pr comment $PR_URL --body "@$PR_OWNER this PR already included in $PR_BASE_BRANCH Branch. Please remove Request for $PR_BASE_BRANCH label."
-            echo "PR don't need cherry pick"
-            return 251
-        fi
         gh pr edit $PR_URL --add-label "Cherry Pick Conflict_$target_branch"
         sleep 1
-        echo  "Cherry pick conflict!"
-        return 254
     fi
 }
 
 create_pr(){
     [[ "$PR_MERGED" != "true" ]] && echo "PR not merged!" && return 0
     target_branch=$(echo $1 | grep -Eo [0-9]{6})
+    popd 2>/dev/null || true
     rm -rf $REPO-$target_branch
     git clone https://github.com/$ORG/$REPO $REPO-$target_branch
-    popd || true
     pushd $REPO-$target_branch
     git remote add mssonicbld https://mssonicbld:$GH_TOKEN@github.com/mssonicbld/$REPO
     git fetch mssonicbld
