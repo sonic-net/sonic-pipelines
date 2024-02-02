@@ -50,6 +50,6 @@ stages:
       displayName: make config
     - bash: |
         set -ex
-        make target/sonic-$PLATFORM.bin SONIC_BUILD_JOBS=$(nproc) SONIC_DPKG_CACHE_SOURCE=/nfs/dpkg_cache/$PLATFORM SONIC_DPKG_CACHE_METHOD=rcache
+        make target/sonic-$PLATFORM.bin SONIC_BUILD_JOBS=$(nproc) SONIC_DPKG_CACHE_METHOD=none
       displayName: make image
    
