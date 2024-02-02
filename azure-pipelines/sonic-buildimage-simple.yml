@@ -46,7 +46,7 @@ stages:
       displayName: make init
     - bash: |
         set -ex
-        make configure
+        make configure SONIC_VERSION_CONTROL_COMPONENTS=all ENABLE_DOCKER_BASE_PULL=y DEFAULT_CONTAINER_REGISTRY=publicmirror.azurecr.io DOCKER_BUILDKIT=0 MIRROR_SNAPSHOT=y
       displayName: make config
     - bash: |
         set -ex
