@@ -42,8 +42,8 @@ jobs:
         date_now=$(date -u +"%T")
         operate=false
         [[ "$date_now" > "22:00:00" ]] && operate=true
-        repos="sonic-net/sonic-utilities sonic-net/sonic-swss sonic-net/sonic-sairedis sonic-net/sonic-swss-common sonic-net/sonic-dbsyncd sonic-net/sonic-gnmi sonic-net/sonic-host-services sonic-net/sonic-linkmgrd sonic-net/sonic-linux-kernel sonic-net/sonic-mgmt-common sonic-net/sonic-mgmt-framework sonic-net/sonic-platform-common sonic-net/sonic-platform-daemons sonic-net/sonic-py-swsssdk sonic-net/sonic-restapi sonic-net/sonic-snmpagent sonic-net/sonic-wpa-supplicant"
-          for repo in $repos; do
+        repos="sonic-net/sonic-buildimage sonic-net/sonic-utilities sonic-net/sonic-swss sonic-net/sonic-sairedis sonic-net/sonic-swss-common sonic-net/sonic-dbsyncd sonic-net/sonic-gnmi sonic-net/sonic-host-services sonic-net/sonic-linkmgrd sonic-net/sonic-linux-kernel sonic-net/sonic-mgmt-common sonic-net/sonic-mgmt-framework sonic-net/sonic-platform-common sonic-net/sonic-platform-daemons sonic-net/sonic-py-swsssdk sonic-net/sonic-restapi sonic-net/sonic-snmpagent sonic-net/sonic-wpa-supplicant"
+          for repo in $repos $(EXTRA_REPOS); do
             echo ======== working for $repo ========
             prs=$(gh pr list -A mssonicbld --label automerge -R $repo -L 100 --json body,title,url,labels,statusCheckRollup,createdAt,baseRefName)
             c=$(echo $prs | jq length)
