@@ -44,6 +44,7 @@ jobs:
         [[ "$date_now" > "22:00:00" ]] && operate=true
         repos="sonic-net/sonic-buildimage sonic-net/sonic-utilities sonic-net/sonic-swss sonic-net/sonic-sairedis sonic-net/sonic-swss-common sonic-net/sonic-dbsyncd sonic-net/sonic-gnmi sonic-net/sonic-host-services sonic-net/sonic-linkmgrd sonic-net/sonic-linux-kernel sonic-net/sonic-mgmt-common sonic-net/sonic-mgmt-framework sonic-net/sonic-platform-common sonic-net/sonic-platform-daemons sonic-net/sonic-py-swsssdk sonic-net/sonic-restapi sonic-net/sonic-snmpagent sonic-net/sonic-wpa-supplicant"
         rm -rf failure_prs.log
+        rc=0
           for repo in $repos $(EXTRA_REPOS); do
             echo ======== working for $repo ========
             echo $repo >> failure_prs.log
@@ -92,10 +93,12 @@ jobs:
                 else
                   echo "    $url"  >> failure_prs.log
                   echo "        $output"  >> failure_prs.log
+                  (( rc++ ))
                 fi
               fi
               echo ========Finished PR========
             done
           done
         cat failure_prs.log
+        exit $rc
       displayName: scaning
