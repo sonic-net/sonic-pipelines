@@ -40,12 +40,14 @@ jobs:
                 echo "$registry $repo"
                 rm -rf tmp
                 touch tmp
-                for branch in $(sonic_branches); do
-                    az acr repository show -n $registry --image $repo:$branch 2>/dev/null | jq .digest -r >> tmp || continue
-                    echo "    $repo:$branch $(tail -n 1 tmp)"
-                done
-
                 az acr repository show-tags -n $registry --repository $repo --orderby time_desc --output table > a
+                # keep tag: master,latest,202012
+                tags=$(grep -E -e "^20[0-9]{4}(-arm..)?$" -e "^(master|latest)(-arm..)?$" a)
+                for tag in $tags; do
+                    az acr repository show -n $registry --image $repo:$tag 2>/dev/null | jq .digest -r >> tmp || continue
+                    echo "    $repo:$tag $(tail -n 1 tmp)"
+                done
+                # for tag count > 100, keep 12 months, otherwise 24 months
                 keep_month=12
                 tail_n=40
                 (( $(cat a | wc -l) < 100 )) && keep_month=24 && tail_n=20
