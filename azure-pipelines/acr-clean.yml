@@ -42,7 +42,7 @@ jobs:
                 touch tmp
                 az acr repository show-tags -n $registry --repository $repo --orderby time_desc --output table > a
                 # keep tag: master,latest,202012
-                tags=$(grep -E -e "^20[0-9]{4}(-arm..)?$" -e "^(master|latest)(-arm..)?$" a)
+                tags=$(grep -E -e "^20[0-9]{4}(-arm..)?$" -e "^(master|latest)(-arm..)?$" a) || true
                 for tag in $tags; do
                     az acr repository show -n $registry --image $repo:$tag 2>/dev/null | jq .digest -r >> tmp || continue
                     echo "    $repo:$tag $(tail -n 1 tmp)"
