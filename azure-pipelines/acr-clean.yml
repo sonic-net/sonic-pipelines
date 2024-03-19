@@ -60,7 +60,7 @@ jobs:
                     echo $result | grep -f tmp &>/dev/null && echo "SKIP(head): $registry $repo:$tag $(echo $result | grep -f tmp)" && continue
                     if [[ $(echo $result | jq .lastUpdateTime -r) < $(date -I -d "$keep_month month ago") ]]; then
                         echo "        DELETE $registry $repo:$tag $(echo $result | jq .lastUpdateTime -r)"
-                        result=$(az acr repository delete -n $registry --image $repo:$tag -y 2>&1 || [[ $? == 3 ]])
+                        result=$(az acr repository delete -n $registry --image $repo:$tag -y 2>&1) || true
                         echo "            $result"
                         sleep 10
                     else
