@@ -35,7 +35,8 @@ jobs:
         set -e
 
         for registry in $(sonic_acrs); do
-            for repo in $(sonic_acr_repos); do
+            repos=$(az acr repository list --name $registry | jq -r .[])
+            for repo in $repos; do
                 echo "$registry $repo"
                 rm -rf tmp
                 touch tmp
@@ -45,14 +46,16 @@ jobs:
                 done
 
                 az acr repository show-tags -n $registry --repository $repo --orderby time_desc --output table > a
-                (( $(cat a | wc -l) < 100 )) && continue
-                tag=$(tail -n 10 a | head -n 1)
+                keep_month=12
+                tail_n=40
+                (( $(cat a | wc -l) < 100 )) && keep_month=24 && tail_n=20
+                tag=$(tail -n $tail_n a | head -n 1)
                 az acr repository show -n $registry --image $repo:$tag
-                for tag in $(tail -n 10 a); do
+                for tag in $(tail -n $tail_n a); do
                     result=$(az acr repository show -n $registry --image $repo:$tag)
                     sleep 10
                     echo $result | grep -f tmp &>/dev/null && echo "SKIP(head): $registry $repo:$tag $(echo $result | grep -f tmp)" && continue
-                    if [[ $(echo $result | jq .lastUpdateTime -r) < $(date -I -d '$(tag_keep_month) month ago') ]]; then
+                    if [[ $(echo $result | jq .lastUpdateTime -r) < $(date -I -d '$keep_month month ago') ]]; then
                         echo "DELETE $registry $repo:$tag"
                         az acr repository delete -n $registry --image $repo:$tag -y
                         sleep 10
