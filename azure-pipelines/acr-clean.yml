@@ -63,8 +63,9 @@ jobs:
                         echo "DELETE $registry $repo:$tag"
                         az acr repository delete -n $registry --image $repo:$tag -y
                         sleep 10
+                    else
+                        echo "SKIP(time): $registry $repo:$tag $(echo $result | grep -f tmp)"
                     fi
-                    echo "SKIP(time): $registry $repo:$tag $(echo $result | grep -f tmp)"
                 done
             done
         done
