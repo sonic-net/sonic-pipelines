@@ -41,7 +41,7 @@ jobs:
                 rm -rf tmp
                 touch tmp
                 az acr repository show-tags -n $registry --repository $repo --orderby time_desc --output table | tail -n +3 > a
-                (( $(wc -l a) < 30 )) && continue
+                (( $(cat a | wc -l) < 30 )) && continue
                 # keep tag: master,latest,202012
                 tags=$(grep -E -e "^20[0-9]{4}(-arm..)?$" -e "^(master|latest)(-arm..)?$" a) || true
                 for tag in $tags; do
