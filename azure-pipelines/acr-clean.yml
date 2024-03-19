@@ -2,7 +2,7 @@ pr: none
 trigger: none
 
 schedules:
-- cron: '0 0 1 * *'
+- cron: '0 0 * * *'
   always: true
   branches:
     include:
@@ -11,7 +11,7 @@ schedules:
 jobs:
 - job: cleanup
   pool: sonicbld
-  timeoutInMinutes: 120
+  timeoutInMinutes: 240
   variables:
     - group: Debian-Mirror-Common
 
