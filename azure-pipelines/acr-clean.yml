@@ -55,7 +55,7 @@ jobs:
                 (( $(cat a | wc -l) < 100 )) && keep_month=$(( keep_month*2 )) && tail_n=$(( tail_n/2 ))
                 echo $repo | grep docker-syncd &>/dev/null && tail_n=$(( tail_n*2 ))
                 for tag in $(tail -n $tail_n a); do
-                    result=$(az acr repository show -n $registry --image $repo:$tag) || { echo "        $result"; continue; }
+                    result=$(az acr repository show -n $registry --image $repo:$tag 2>&1) || { echo "        $repo:$tag $result"; continue; }
                     sleep $(interval)
                     echo $result | grep -f tmp &>/dev/null && echo "SKIP(head): $registry $repo:$tag $(echo $result | grep -f tmp)" && continue
                     if [[ $(echo $result | jq .lastUpdateTime -r) < $(date -I -d "$keep_month month ago") ]]; then
