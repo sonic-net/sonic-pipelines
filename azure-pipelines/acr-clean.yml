@@ -52,7 +52,8 @@ jobs:
                 # for tag count > 100, keep 12 months, otherwise 24 months
                 keep_month=12
                 tail_n=40
-                (( $(cat a | wc -l) < 100 )) && keep_month=24 && tail_n=20
+                (( $(cat a | wc -l) < 100 )) && keep_month=$(( keep_month*2 )) && tail_n=$(( tail_n/2 ))
+                echo $repo | grep docker-syncd && tail_n=$(( tail_n*2 ))
                 for tag in $(tail -n $tail_n a); do
                     result=$(az acr repository show -n $registry --image $repo:$tag)
                     sleep 10
