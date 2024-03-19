@@ -53,14 +53,12 @@ jobs:
                 keep_month=12
                 tail_n=40
                 (( $(cat a | wc -l) < 100 )) && keep_month=24 && tail_n=20
-                tag=$(tail -n $tail_n a | head -n 1)
-                az acr repository show -n $registry --image $repo:$tag
                 for tag in $(tail -n $tail_n a); do
                     result=$(az acr repository show -n $registry --image $repo:$tag)
                     sleep 10
                     echo $result | grep -f tmp &>/dev/null && echo "SKIP(head): $registry $repo:$tag $(echo $result | grep -f tmp)" && continue
                     if [[ $(echo $result | jq .lastUpdateTime -r) < $(date -I -d "$keep_month month ago") ]]; then
-                        echo "DELETE $registry $repo:$tag"
+                        echo "DELETE $registry $repo:$tag $(echo $result | jq .lastUpdateTime -r)"
                         az acr repository delete -n $registry --image $repo:$tag -y || [[ $? == 3 ]]
                         sleep 10
                     else
