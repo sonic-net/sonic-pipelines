@@ -13,7 +13,7 @@ jobs:
   pool: sonicbld
   timeoutInMinutes: 240
   variables:
-    - group: Debian-Mirror-Common
+  - group: sonic-build-group
 
   steps:
     - checkout: none
@@ -22,14 +22,14 @@ jobs:
       displayName: install dependencies
     - bash: |
           set -ex
-          az login -u $(ApplicationId) --service-principal --tenant $(AzureTenant) -p "$ApplicationKey"
+          az login -u $(azp-mssonic-cid) --service-principal --tenant $(azp-mssonic-tid) -p "$ApplicationKey"
           az account set --subscription 9355ef17-3aa2-493a-94ab-a43a9bf8cd70
           az acr show -n sonicdev
           sudo apt-get update
           sudo apt install -y jq
 
       env:
-        ApplicationKey: '$(ApplicationKey)'
+        ApplicationKey: '$(azp-mssonic-secret)'
       displayName: az login
     - bash: |
         set -e
