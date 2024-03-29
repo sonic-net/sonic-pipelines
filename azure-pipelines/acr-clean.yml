@@ -22,7 +22,7 @@ jobs:
       displayName: install dependencies
     - bash: |
           set -ex
-          az login -u $(ApplicationId) --service-principal --tenant $(AzureTenant) -p "$ApplicationKey"
+          az login -u 933a8f38-c5a3-4fe9-a81a-54ac05b21a7c --service-principal --tenant 72f988bf-86f1-41af-91ab-2d7cd011db47 -p "$ApplicationKey"
           az account set --subscription 9355ef17-3aa2-493a-94ab-a43a9bf8cd70
           az acr show -n sonicdev
           sudo apt-get update
