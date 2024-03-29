@@ -12,8 +12,6 @@ jobs:
 - job: cleanup
   pool: sonicbld
   timeoutInMinutes: 240
-  variables:
-    - group: Debian-Mirror-Common
 
   steps:
     - checkout: none
