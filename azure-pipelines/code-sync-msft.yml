@@ -64,9 +64,7 @@ steps:
         git status | grep "^nothing to commit, working tree clean" || exit 3
         for i in {1..10}; do
           git submodule sync
-          if git submodule update --init ${{ parameters.subs }};
-            break
-          fi
+          git submodule update --init ${{ parameters.subs }} && break
           sleep 2
           [[ $i == 10 ]] && exit 1
         done
