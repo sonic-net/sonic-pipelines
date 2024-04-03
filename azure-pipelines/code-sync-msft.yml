@@ -62,8 +62,14 @@ steps:
         git ls-remote --exit-code head refs/heads/$branch || exit 2
 
         git status | grep "^nothing to commit, working tree clean" || exit 3
-        git submodule sync
-        git submodule update --init ${{ parameters.subs }} || { cd src/sonic-swss; git remote -v; exit 1; }
+        for i in {1..10}; do
+          git submodule sync
+          if git submodule update --init ${{ parameters.subs }};
+            break
+          fi
+          sleep 2
+          [[ $i == 10 ]] && exit 1
+        done
 
         prehead=$(git log -n 1 --pretty=format:'%H')
 
