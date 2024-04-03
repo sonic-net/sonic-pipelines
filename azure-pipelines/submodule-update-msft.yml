@@ -10,7 +10,7 @@ parameters:
 
 - name: submodules
   type: string
-  default: 'src/sonic-utilities src/sonic-swss src/sonic-platform-common src/sonic-platform-daemons'
+  default: 'src/sonic-utilities src/sonic-swss src/sonic-platform-daemons src/sonic-platform-common'
 
 jobs:
 - ${{ each branch in parameters.branches }}:

@@ -19,7 +19,7 @@ jobs:
     pool: sonic-mirror-westus2-2
     timeoutInMinutes: 20
     variables:
-      - group: Debian-Mirror-Common
+    - group: sonic-build-group
     steps:
       - checkout: self
         clean: true
@@ -40,7 +40,7 @@ jobs:
               **/target/versions/default/versions-docker
       - script: |
           set -ex
-          az login -u $(ApplicationId) --service-principal --tenant $(AzureTenant) -p "$ApplicationKey"
+          az login -u $(azp-mssonic-cid) --service-principal --tenant $(azp-mssonic-tid) -p "$ApplicationKey"
           az account set --subscription 90318812-d77d-426d-90a3-44997faf17f4
           images=$(find download -name versions-docker | xargs -i grep -v "==$" {} | awk -F== '{print$1}' | sed -e "s/amd64://" -e "s/arm64://" -e "s/armhf://" | sort -u )
           for i in $images $SYNC_DOCKER_IMAGE_EXTRA
@@ -53,4 +53,4 @@ jobs:
           done
         displayName: push image to PublicMirror
         env:
-          ApplicationKey: '$(ApplicationKey)'
+          ApplicationKey: '$(azp-mssonic-secret)'

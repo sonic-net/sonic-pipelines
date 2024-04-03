@@ -2,7 +2,7 @@ pr: none
 trigger: none
 
 schedules:
-- cron: '0 0 1 * *'
+- cron: '0 0 * * *'
   always: true
   branches:
     include:
@@ -11,9 +11,9 @@ schedules:
 jobs:
 - job: cleanup
   pool: sonicbld
-  timeoutInMinutes: 120
+  timeoutInMinutes: 240
   variables:
-    - group: Debian-Mirror-Common
+  - group: sonic-build-group
 
   steps:
     - checkout: none
@@ -22,42 +22,50 @@ jobs:
       displayName: install dependencies
     - bash: |
           set -ex
-          az login -u $(ApplicationId) --service-principal --tenant $(AzureTenant) -p "$ApplicationKey"
+          az login -u $(azp-mssonic-cid) --service-principal --tenant $(azp-mssonic-tid) -p "$ApplicationKey"
           az account set --subscription 9355ef17-3aa2-493a-94ab-a43a9bf8cd70
           az acr show -n sonicdev
           sudo apt-get update
           sudo apt install -y jq
 
       env:
-        ApplicationKey: '$(ApplicationKey)'
+        ApplicationKey: '$(azp-mssonic-secret)'
       displayName: az login
     - bash: |
         set -e
 
         for registry in $(sonic_acrs); do
-            for repo in $(sonic_acr_repos); do
+            repos=$(az acr repository list --name $registry | jq -r .[])
+            for repo in $repos; do
                 echo "$registry $repo"
                 rm -rf tmp
                 touch tmp
-                for branch in $(sonic_branches); do
-                    az acr repository show -n $registry --image $repo:$branch 2>/dev/null | jq .digest -r >> tmp || continue
-                    echo "    $repo:$branch $(tail -n 1 tmp)"
+                az acr repository show-tags -n $registry --repository $repo --orderby time_desc --output table | tail -n +3 > a
+                echo "    tag count: $(cat a | wc -l)"
+                (( $(cat a | wc -l) < 30 )) && continue
+                # keep tag: master,latest,202012
+                tags=$(grep -E -e "^20[0-9]{4}(-arm..)?$" -e "^(master|latest)(-arm..)?$" a) || true
+                for tag in $tags; do
+                    az acr repository show -n $registry --image $repo:$tag 2>/dev/null | jq .digest -r >> tmp || continue
+                    echo "    $repo:$tag $(tail -n 1 tmp)"
                 done
-
-                az acr repository show-tags -n $registry --repository $repo --orderby time_desc --output table > a
-                (( $(cat a | wc -l) < 100 )) && continue
-                tag=$(tail -n 10 a | head -n 1)
-                az acr repository show -n $registry --image $repo:$tag
-                for tag in $(tail -n 10 a); do
-                    result=$(az acr repository show -n $registry --image $repo:$tag)
-                    sleep 10
+                # for tag count > 100, keep 12 months, otherwise 24 months
+                keep_month=12
+                tail_n=40
+                (( $(cat a | wc -l) < $(threshold) )) && keep_month=$(( keep_month*2 )) && tail_n=$(( tail_n/2 ))
+                echo $repo | grep docker-syncd &>/dev/null && tail_n=$(( tail_n*2 ))
+                for tag in $(tail -n $tail_n a); do
+                    result=$(az acr repository show -n $registry --image $repo:$tag 2>&1) || { echo "        $repo:$tag $result"; continue; }
+                    sleep $(interval)
                     echo $result | grep -f tmp &>/dev/null && echo "SKIP(head): $registry $repo:$tag $(echo $result | grep -f tmp)" && continue
-                    if [[ $(echo $result | jq .lastUpdateTime -r) < $(date -I -d '$(tag_keep_month) month ago') ]]; then
-                        echo "DELETE $registry $repo:$tag"
-                        az acr repository delete -n $registry --image $repo:$tag -y
-                        sleep 10
+                    if [[ $(echo $result | jq .lastUpdateTime -r) < $(date -I -d "$keep_month month ago") ]]; then
+                        echo "        DELETE $registry $repo:$tag $(echo $result | jq .lastUpdateTime -r)"
+                        result=$(az acr repository delete -n $registry --image $repo:$tag -y 2>&1) || true
+                        echo "            $result"
+                        sleep $(interval)
+                    else
+                        echo "SKIP(time): $registry $repo:$tag $(echo $result | grep -f tmp)"
                     fi
-                    echo "SKIP(time): $registry $repo:$tag $(echo $result | grep -f tmp)"
                 done
             done
         done
