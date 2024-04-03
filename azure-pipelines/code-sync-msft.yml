@@ -56,7 +56,9 @@ steps:
         git reset HEAD --hard
         git clean -xdff
         git status
+        set +x
         echo "##vso[task.setvariable variable=ASSIGNEDTO]"
+        set -x
 
         git ls-remote --exit-code origin refs/heads/$branch || exit 1
         git ls-remote --exit-code head refs/heads/$branch || exit 2
@@ -106,6 +108,7 @@ steps:
             done
 
             git merge --abort
+            set +x
             echo "##vso[task.setvariable variable=ASSIGNEDTO]$assign"
             echo "##vso[task.setvariable variable=DESCRIPTION]$description"
             exit 4
