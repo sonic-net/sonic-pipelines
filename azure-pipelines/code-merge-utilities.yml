@@ -91,6 +91,8 @@ steps:
           set -ex
           cd ${{repo}}
           branch=${{branch}}
+          git ls-remote --exit-code origin refs/heads/$branch || exit 0
+          git ls-remote --exit-code head refs/heads/$branch || exit 0
 
           git branch -D $branch || true
           git checkout -b $branch --track origin/$branch
@@ -98,8 +100,6 @@ steps:
           git clean -xdff
           echo "##vso[task.setvariable variable=ASSIGNEDTO]"
 
-          git ls-remote --exit-code origin refs/heads/$branch || exit 0
-          git ls-remote --exit-code head refs/heads/$branch || exit 0
 
           git status | grep "^nothing to commit, working tree clean" || exit 0
 
