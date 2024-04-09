@@ -23,8 +23,8 @@ resources:
   repositories:
   - repository: buildimage
     type: github
-    name: Azure/sonic-buildimage-msft
-    endpoint: build
+    name: sonic-net/sonic-buildimage-msft
+    endpoint: sonic-net
 
 pool:
   vmImage: 'ubuntu-20.04'
@@ -85,7 +85,7 @@ steps:
           if git status | grep "You have unmerged paths";then
             CommitID=$(git log $prehead..HEAD --merge --pretty=format:'%H'  | tail -n 1)
             description="<h1>Please merge $CommitID into sonic-buildimage-msft.Do not Cherry-pick!!!</h1>"
-            description="code conflict: sonic-net/sonic-buildimage:$branch -> Azure/sonic-buildimage-msft:$branch<br>"
+            description="code conflict: sonic-net/sonic-buildimage:$branch -> sonic-net/sonic-buildimage-msft:$branch<br>"
             description+=$(git log $prehead..HEAD --merge --pretty=format:'%h -%d %s (%cs) [%aN]')
             assign="Gen-Hwa Chiang <gechiang@microsoft.com>"
 
@@ -98,7 +98,7 @@ steps:
               az boards work-item show --org https://dev.azure.com/mssonic/ --id $childid > $childid
               title=$(cat $childid | jq -r '.fields."System.Title"')
               state=$(cat $childid | jq -r '.fields."System.State"')
-              if [[ "$title" == "code conflict: sonic-net/sonic-buildimage:${{branch}} -> Azure/sonic-buildimage-msft:${{branch}}" ]] && [[ "$state" != "Done" ]] && [[ "$state" != "Removed" ]];then
+              if [[ "$title" == "code conflict: sonic-net/sonic-buildimage:${{branch}} -> sonic-net/sonic-buildimage-msft:${{branch}}" ]] && [[ "$state" != "Done" ]] && [[ "$state" != "Removed" ]];then
                 echo "WorkItem already exist: $childid"
                 az boards work-item update --org https://dev.azure.com/mssonic/ --id $childid --discussion "$description"
                 echo "WorkItem updated: $childid"
@@ -128,8 +128,8 @@ steps:
         # push code
         git push https://mssonicbld:$TOKEN@github.com/mssonicbld/sonic-buildimage-msft HEAD:sonicbld/$branch-merge -f
         # create PR
-        url_=$(gh pr create -R Azure/sonic-buildimage-msft -H mssonicbld:sonicbld/$branch-merge -B $branch -t "[code sync] Merge code from sonic-net/sonic-buildimage:$branch to $branch" -b "$body" 2>&1; rc=$?)
-        url=$(echo "$url_" | grep -Eo https://github.com/Azure/sonic-buildimage-msft/pull/[0-9]* )
+        url_=$(gh pr create -R sonic-net/sonic-buildimage-msft -H mssonicbld:sonicbld/$branch-merge -B $branch -t "[code sync] Merge code from sonic-net/sonic-buildimage:$branch to $branch" -b "$body" 2>&1; rc=$?)
+        url=$(echo "$url_" | grep -Eo https://github.com/sonic-net/sonic-buildimage-msft/pull/[0-9]* )
 
         if echo $url_ | grep "already exists:"; then
           gh pr edit $url -b "$body"
@@ -151,7 +151,7 @@ steps:
     - task: CreateWorkItem@1
       inputs:
         workItemType: 'task'
-        title: 'code conflict: sonic-net/sonic-buildimage:${{branch}} -> Azure/sonic-buildimage-msft:${{branch}}'
+        title: 'code conflict: sonic-net/sonic-buildimage:${{branch}} -> sonic-net/sonic-buildimage-msft:${{branch}}'
         assignedTo: '$(ASSIGNEDTO)'
         areaPath: '$(ADO_AREA)'
         iterationPath: '$(ADO_ITERATION)'
