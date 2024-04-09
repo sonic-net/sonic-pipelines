@@ -21,17 +21,27 @@ parameters:
   default:
   - sonic-utilities.msft
   - sonic-swss.msft
+  - sonic-platform-daemons.msft
+  - sonic-platform-common.msft
 
 resources:
   repositories:
   - repository: utilities
     type: github
-    name: Azure/sonic-utilities.msft
-    endpoint: build
+    name: sonic-net/sonic-utilities.msft
+    endpoint: sonic-net
   - repository: swss
     type: github
-    name: Azure/sonic-swss.msft
-    endpoint: build
+    name: sonic-net/sonic-swss.msft
+    endpoint: sonic-net
+  - repository: platform-daemons
+    type: github
+    name: sonic-net/sonic-platform-daemons.msft
+    endpoint: sonic-net
+  - repository: platform-common
+    type: github
+    name: sonic-net/sonic-platform-common.msft
+    endpoint: sonic-net
 
 pool:
   vmImage: 'ubuntu-20.04'
@@ -41,21 +51,35 @@ steps:
     clean: true
   - checkout: swss
     clean: true
+  - checkout: platform-daemons
+    clean: true
+  - checkout: platform-common
+    clean: true
   - bash: |
       set -ex
+      ls
       cd sonic-utilities.msft
       git remote add head https://github.com/sonic-net/sonic-utilities
       git remote update
-      git config --global user.email "sonicbld@microsoft.com"
-      git config --global user.name "Sonic Automation"
       git config pull.rebase false
 
       cd ../sonic-swss.msft
       git remote add head https://github.com/sonic-net/sonic-swss
       git remote update
+      git config pull.rebase false
+
+      cd ../sonic-platform-daemons.msft
+      git remote add head https://github.com/sonic-net/sonic-platform-daemons.msft
+      git remote update
+      git config pull.rebase false
+
+      cd ../sonic-platform-common.msft
+      git remote add head https://github.com/sonic-net/sonic-platform-common.msft
+      git remote update
       git config --global user.email "sonicbld@microsoft.com"
       git config --global user.name "Sonic Automation"
       git config pull.rebase false
+
       echo $TOKEN | gh auth login --with-token
       echo $AZURE_DEVOPS_EXT_PAT | az devops login
     env:
@@ -68,19 +92,17 @@ steps:
           set -ex
           cd ${{repo}}
           branch=${{branch}}
-          if [[ ${{ repo }} == sonic-swss.msft && ${{ branch }} == 202205 ]];then
-            exit 0
-          fi
+          git ls-remote --exit-code origin refs/heads/$branch || exit 0
+          git ls-remote --exit-code head refs/heads/$branch || exit 0
+
           git branch -D $branch || true
           git checkout -b $branch --track origin/$branch
           git reset HEAD --hard
           git clean -xdff
           echo "##vso[task.setvariable variable=ASSIGNEDTO]"
 
-          git ls-remote --exit-code origin refs/heads/$branch || exit 1
-          git ls-remote --exit-code head refs/heads/$branch || exit 2
 
-          git status | grep "^nothing to commit, working tree clean" || exit 3
+          git status | grep "^nothing to commit, working tree clean" || exit 0
 
           prehead=$(git log -n 1 --pretty=format:'%H')
 
@@ -92,7 +114,7 @@ steps:
             if git status | grep "You have unmerged paths";then
               CommitID=$(git log $prehead..HEAD --merge --pretty=format:'%H'  | tail -n 1)
               description="<h1>Please merge $CommitID into ${{repo}}.Do not Cherry-pick!!!</h1>"
-              description="code conflict: sonic-net/${{repo}}:$branch -> Azure/${{repo}}:$branch<br>"
+              description="code conflict: sonic-net/${{repo}}:$branch -> sonic-net/${{repo}}:$branch<br>"
               description+=$(git log $prehead..HEAD --merge --pretty=format:'%h -%d %s (%cs) [%aN]')
               assign="Gen-Hwa Chiang <gechiang@microsoft.com>"
 
@@ -105,9 +127,9 @@ steps:
                 az boards work-item show --org https://dev.azure.com/mssonic/ --id $childid > $childid
                 title=$(cat $childid | jq -r '.fields."System.Title"')
                 state=$(cat $childid | jq -r '.fields."System.State"')
-                if [[ "$title" == "code conflict: sonic-net/${{repo}}:${{branch}} -> Azure/${{repo}}:${{branch}}" ]] && [[ "$state" != "Done" ]] && [[ "$state" != "Removed" ]];then
+                if [[ "$title" == "code conflict: sonic-net/${{repo}}:${{branch}} -> sonic-net/${{repo}}:${{branch}}" ]] && [[ "$state" != "Done" ]] && [[ "$state" != "Removed" ]];then
                   echo "WorkItem already exist: $childid"
-                  az boards work-item update --org https://dev.azure.com/mssonic/ --id $childid --discussion "$description"
+                  # az boards work-item update --org https://dev.azure.com/mssonic/ --id $childid --discussion "$description"
                   echo "WorkItem updated: $childid"
                   assign=''
                   break
@@ -135,7 +157,7 @@ steps:
           # push code
           git push https://mssonicbld:$TOKEN@github.com/mssonicbld/${{repo}} HEAD:sonicbld/$branch-merge -f
           # craete PR
-          url_=$(gh pr create -R Azure/${{repo}} -H mssonicbld:sonicbld/$branch-merge -B $branch -t "[code sync] Merge code from sonic-net/${{repo}}:$branch to $branch" -b "$body" 2>&1; rc=$?)
+          url_=$(gh pr create -R sonic-net/${{repo}} -H mssonicbld:sonicbld/$branch-merge -B $branch -t "[code sync] Merge code from sonic-net/${{repo}}:$branch to $branch" -b "$body" 2>&1; rc=$?)
           url=$(echo "$url_" | grep -Eo https://github.com/Azure/${{repo}}/pull/[0-9]* )
 
           if echo $url_ | grep "already exists:"; then
@@ -167,5 +189,5 @@ steps:
           linkType: 'System.LinkTypes.Hierarchy-Reverse'
           linkTarget: 'id'
           targetId: '$(ADO_PARENT)'
-        condition: ne(variables.ASSIGNEDTO, '')
+        condition: false # ne(variables.ASSIGNEDTO, '')
         displayName: Create ${{repo}}-${{branch}} workitem
