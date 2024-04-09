@@ -51,21 +51,34 @@ steps:
     clean: true
   - checkout: swss
     clean: true
+  - checkout: platform-daemons
+    clean: true
+  - checkout: platform-common
+    clean: true
   - bash: |
       set -ex
       cd sonic-utilities.msft
       git remote add head https://github.com/sonic-net/sonic-utilities
       git remote update
-      git config --global user.email "sonicbld@microsoft.com"
-      git config --global user.name "Sonic Automation"
       git config pull.rebase false
 
       cd ../sonic-swss.msft
       git remote add head https://github.com/sonic-net/sonic-swss
       git remote update
+      git config pull.rebase false
+
+      cd ../sonic-platform-daemons.msft
+      git remote add head https://github.com/sonic-net/sonic-platform-daemons.msft
+      git remote update
+      git config pull.rebase false
+
+      cd ../sonic-platform-common.msft
+      git remote add head https://github.com/sonic-net/sonic-platform-common.msft
+      git remote update
       git config --global user.email "sonicbld@microsoft.com"
       git config --global user.name "Sonic Automation"
       git config pull.rebase false
+
       echo $TOKEN | gh auth login --with-token
       echo $AZURE_DEVOPS_EXT_PAT | az devops login
     env:
