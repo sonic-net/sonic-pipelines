@@ -21,6 +21,8 @@ parameters:
   default:
   - sonic-utilities.msft
   - sonic-swss.msft
+  - sonic-platform-daemons
+  - sonic-platform-common
 
 resources:
   repositories:
@@ -34,11 +36,11 @@ resources:
     endpoint: sonic-net
   - repository: platform-daemons
     type: github
-    name: sonic-net/sonic-platform-daemons
+    name: sonic-net/sonic-platform-daemons.msft
     endpoint: sonic-net
   - repository: platform-common
     type: github
-    name: sonic-net/sonic-swss.msft
+    name: sonic-net/sonic-platform-common.msft
     endpoint: sonic-net
 
 pool:
