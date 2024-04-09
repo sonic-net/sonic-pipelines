@@ -21,8 +21,8 @@ parameters:
   default:
   - sonic-utilities.msft
   - sonic-swss.msft
-  - sonic-platform-daemons
-  - sonic-platform-common
+  - sonic-platform-daemons.msft
+  - sonic-platform-common.msft
 
 resources:
   repositories:
