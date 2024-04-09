@@ -98,10 +98,10 @@ steps:
           git clean -xdff
           echo "##vso[task.setvariable variable=ASSIGNEDTO]"
 
-          git ls-remote --exit-code origin refs/heads/$branch || exit 1
-          git ls-remote --exit-code head refs/heads/$branch || exit 2
+          git ls-remote --exit-code origin refs/heads/$branch || exit 0
+          git ls-remote --exit-code head refs/heads/$branch || exit 0
 
-          git status | grep "^nothing to commit, working tree clean" || exit 3
+          git status | grep "^nothing to commit, working tree clean" || exit 0
 
           prehead=$(git log -n 1 --pretty=format:'%H')
 
