@@ -57,6 +57,7 @@ steps:
     clean: true
   - bash: |
       set -ex
+      ls
       cd sonic-utilities.msft
       git remote add head https://github.com/sonic-net/sonic-utilities
       git remote update
