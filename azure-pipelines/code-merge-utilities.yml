@@ -158,7 +158,7 @@ steps:
           git push https://mssonicbld:$TOKEN@github.com/mssonicbld/${{repo}} HEAD:sonicbld/$branch-merge -f
           # craete PR
           url_=$(gh pr create -R sonic-net/${{repo}} -H mssonicbld:sonicbld/$branch-merge -B $branch -t "[code sync] Merge code from sonic-net/${{repo}}:$branch to $branch" -b "$body" 2>&1; rc=$?)
-          url=$(echo "$url_" | grep -Eo https://github.com/Azure/${{repo}}/pull/[0-9]* )
+          url=$(echo "$url_" | grep -Eo https://github.com/sonic-net/${{repo}}/pull/[0-9]* )
 
           if echo $url_ | grep "already exists:"; then
             gh pr edit $url -b "$body"
@@ -179,7 +179,7 @@ steps:
       - task: CreateWorkItem@1
         inputs:
           workItemType: 'task'
-          title: "code conflict: sonic-net/${{ replace(repo, '.msft', '') }}:${{branch}} -> Azure/${{repo}}:${{branch}}"
+          title: "code conflict: sonic-net/${{ replace(repo, '.msft', '') }}:${{branch}} -> sonic-net/${{repo}}:${{branch}}"
           assignedTo: '$(ASSIGNEDTO)'
           areaPath: '$(ADO_AREA)'
           iterationPath: '$(ADO_ITERATION)'
