@@ -21,7 +21,7 @@ jobs:
     - bash: |
         set -ex
         sudo rm -rf sonic-buildimage-msft
-        git clone https://github.com/azure/sonic-buildimage-msft
+        git clone https://github.com/sonic-net/sonic-buildimage-msft
         cd sonic-buildimage-msft
         git config user.email $(user_email)
         git config user.name $(user_name)
@@ -47,8 +47,8 @@ jobs:
             [[ "$ignore_path" == "$path" ]] && continue 2
           done
           cd $work_space/$path
-          # 1. only keep repos in azure organization
-          git remote -vv | grep -i 'github.com/azure/' || continue
+          # 1. only keep repos with msft
+          git remote -vv | grep -i 'msft' || continue
           # 2. only update the same branch with sonic-buildimage-msft
           git branch -a --contains HEAD | grep 'remotes/origin/${{ branch }}' || continue
 
@@ -72,13 +72,13 @@ jobs:
             git push mssonicbld HEAD:submodule-${{ branch }}-$module_name -f
             label=""
             echo $(automerge_branches) | grep ${{ branch }} && label=",automerge"
-            result=$(gh pr create -R azure/sonic-buildimage-msft -H mssonicbld:submodule-${{ branch }}-$module_name -B ${{ branch }} -t "[submodule][${{ branch }}] Update submodule $module_name to the latest HEAD automatically" -l "Submodule Update :arrow_double_up:$label" -b "$body" 2>&1 || true)
+            result=$(gh pr create -R sonic-net/sonic-buildimage-msft -H mssonicbld:submodule-${{ branch }}-$module_name -B ${{ branch }} -t "[submodule][${{ branch }}] Update submodule $module_name to the latest HEAD automatically" -l "Submodule Update :arrow_double_up:$label" -b "$body" 2>&1 || true)
             if echo $result | grep "already exists:"; then
               pr_url=$(echo $result | awk -F"already exists:" '{print$2}')
               gh pr edit $pr_url -b "$body"
             else
               echo $result
-              pr_url=$(echo $result | grep -i "https://github.com/azure/sonic-buildimage-msft/pull/")
+              pr_url=$(echo $result | grep -i "https://github.com/sonic-net/sonic-buildimage-msft/pull/")
             fi
             git reset HEAD~ --hard
             sleep $(INTERVAL)
