@@ -65,14 +65,19 @@ jobs:
               check_name=''
               for ((j=0; j<$cc; j++)); do
                 check=$(echo $checks | jq .[$j])
-                [[ "$check_name" == "" ]] && check_name=$(echo $check | jq .name -r | grep -i -e "Azure.sonic" -e "sonic-net.sonic" | grep -v '(' || true)
+                check_name=$(echo $check | jq .name -r)
                 echo $check | jq [.name,.status,.conclusion]
-                echo $check | jq .name | grep -i -v -e "Azure.sonic" -e "sonic-net.sonic" &>/dev/null && { echo continue; continue; }
-                echo $check | jq .status | grep -i -e in_progress -e queued &>/dev/null && { echo continue 2; continue 2; }
-                echo $check | jq .conclusion | grep -i -e failure -e cancelled && pr_success=false
+                echo $check | jq .conclusion -r | grep -i -e failure -e cancelled && pr_success=false || continue
+                if echo $check_name | grep -i -e ms_conflict -e ms_checker; then
+                  # check ms_
+                  $operate && [[ $date_3d_ago > $(echo $check | jq -r .startedAt) ]] && gh pr comment $url --body "@liushilongbuaa, please check $check_name"
+                fi
+                if echo $check_name | grep -i -e "Azure.sonic" -e "sonic-net.sonic" | grep -v '('; then
+                  echo $check | jq .status | grep -i -e in_progress -e queued && continue
+                  # rerun PR checker
+                  $operate && echo $check | jq .conclusion -r | grep -i -e failure -e cancelled && gh pr comment $url --body "/azp run $check_name"
+                fi
               done
-              # rerun PR checker
-              ! $pr_success && $operate && [[ "$check_name" != "" ]] && gh pr comment $url --body "/azp run $check_name"
               # If auto cherry pick PRs failed, comment in original PR and close cherry pick PR
               if [ -n "$origin_pr_id" ] && [[ $created_at < $date_3d_ago ]] && ! $pr_success;then
                 origin_pr_url=https://github.com/$repo/pull/$origin_pr_id
