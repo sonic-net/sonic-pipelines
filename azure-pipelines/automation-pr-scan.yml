@@ -10,7 +10,7 @@ schedules:
 
 jobs:
 - job: PRChecker
-  pool: ubuntu-20.04
+  pool: sonic-ubuntu-1c
   timeoutInMinutes: 60
   steps:
     - checkout: none
