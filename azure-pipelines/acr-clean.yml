@@ -10,7 +10,7 @@ schedules:
 
 jobs:
 - job: cleanup
-  pool: sonicbld
+  pool: sonicbld-1es
   timeoutInMinutes: 240
   variables:
   - group: sonic-build-group
