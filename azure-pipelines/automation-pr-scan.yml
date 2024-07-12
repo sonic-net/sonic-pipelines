@@ -67,6 +67,7 @@ jobs:
                 check=$(echo $checks | jq .[$j])
                 check_name=$(echo $check | jq .name -r)
                 echo $check | jq [.name,.status,.conclusion]
+                echo $check | jq .status -r | grep -i queued && pr_success=false || continue
                 echo $check | jq .conclusion -r | grep -i -e failure -e cancelled && pr_success=false || continue
                 if echo $check_name | grep -i -e ms_conflict -e ms_checker; then
                   # check ms_
