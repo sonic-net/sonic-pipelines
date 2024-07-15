@@ -94,7 +94,7 @@ jobs:
               if echo $title | grep "^\[submodule\]";then
                 output=$(gh pr merge --squash --admin -R $repo $url -b "$body" 2>&1 ) || { echo "    $url"  >> failure_prs.log ; echo "        $output"  >> failure_prs.log ; }
               else
-                if gh pr merge --rebase --admin -R $repo $url; then
+                if output=$(gh pr merge --rebase --admin -R $repo $url 2>&1); then
                   [[ "$origin_pr_id" != "" ]] && gh pr edit https://github.com/$repo/pull/$origin_pr_id --add-label "Included in $base_ref Branch" --remove-label "Created PR to $base_ref Branch,Cherry Pick Conflict_$base_ref"
                 else
                   echo "    $url"  >> failure_prs.log

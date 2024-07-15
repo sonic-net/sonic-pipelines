@@ -19,7 +19,7 @@ jobs:
     pool: sonic-mirror-westus2-2
     timeoutInMinutes: 20
     variables:
-    - group: sonic-build-group
+      - group: sonicbld
     steps:
       - checkout: self
         clean: true
@@ -40,7 +40,11 @@ jobs:
               **/target/versions/default/versions-docker
       - script: |
           set -ex
-          az login -u $(azp-mssonic-cid) --service-principal --tenant $(azp-mssonic-tid) -p "$ApplicationKey"
+
+          echo "$sonicclient" > ~/azpw-kv-1-sonicclient-20240627.pfx.base64
+          cat ~/azpw-kv-1-sonicclient-20240627.pfx.base64 | base64 -d > ~/azpw-kv-1-sonicclient-20240627.pfx
+          openssl pkcs12 -in ~/azpw-kv-1-sonicclient-20240627.pfx -out ~/client_ssl.pem -clcerts -nodes -password pass:
+          az login --service-principal --use-cert-sn-issuer -u 08fd13c1-63ab-4b08-9007-f4ff86b61248 -p ~/client_ssl.pem --tenant 72f988bf-86f1-41af-91ab-2d7cd011db47
           az account set --subscription 90318812-d77d-426d-90a3-44997faf17f4
           images=$(find download -name versions-docker | xargs -i grep -v "==$" {} | awk -F== '{print$1}' | sed -e "s/amd64://" -e "s/arm64://" -e "s/armhf://" | sort -u )
           for i in $images $SYNC_DOCKER_IMAGE_EXTRA
@@ -53,4 +57,4 @@ jobs:
           done
         displayName: push image to PublicMirror
         env:
-          ApplicationKey: '$(azp-mssonic-secret)'
+          sonicclient: $(sonicclient)
