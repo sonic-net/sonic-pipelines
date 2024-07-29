@@ -53,7 +53,7 @@ jobs:
             if [[ "$i" == debian* ]] || [[ "$i" == ubuntu* ]];then
               source=library/$i
             fi
-            az acr import -n PublicMirror --source docker.io/$source --image $i --force
+            az acr import -n PublicMirror --source docker.io/$source --image $i --force -u $(user1) -p $(pass1)
           done
         displayName: push image to PublicMirror
         env:
