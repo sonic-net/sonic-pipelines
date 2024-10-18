@@ -28,6 +28,7 @@ stages:
         sudo apt-get install -y python3-pip
         sudo pip3 install azure-storage-queue azure-storage-blob
         sudo update-alternatives --install /usr/bin/python python /usr/bin/python3 10
+        sleep 3600
       displayName: Install build tools
     - task: PythonScript@0
       displayName: Publish SONiC telemetry
@@ -37,7 +38,9 @@ stages:
           import datetime, base64, json, time, os, re
           from urllib import request
           from azure.storage.queue import QueueClient
-          from azure.storage.blob import BlobServiceClient
+          #from azure.storage.blob import BlobServiceClient
+          from azure.kusto.data import KustoConnectionStringBuilder, DataFormat
+          from azure.kusto.ingest import QueuedIngestClient, IngestionProperties, FileDescriptor, BlobDescriptor
 
           QUEUE_NAME="builds"
           CONTAINER="build"
