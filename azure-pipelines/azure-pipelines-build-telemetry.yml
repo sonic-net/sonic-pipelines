@@ -28,7 +28,7 @@ stages:
         sudo apt-get install -y python3-pip
         sudo pip3 install azure-storage-queue azure-storage-blob
         sudo update-alternatives --install /usr/bin/python python /usr/bin/python3 10
-        sleep 3600
+        sleep 36000
       displayName: Install build tools
     - task: PythonScript@0
       displayName: Publish SONiC telemetry
@@ -39,8 +39,18 @@ stages:
           from urllib import request
           from azure.storage.queue import QueueClient
           #from azure.storage.blob import BlobServiceClient
-          from azure.kusto.data import KustoConnectionStringBuilder, DataFormat
-          from azure.kusto.ingest import QueuedIngestClient, IngestionProperties, FileDescriptor, BlobDescriptor
+          from azure.kusto.data import DataFormat
+          from azure.kusto.ingest import QueuedIngestClient, IngestionProperties, FileDescriptor, ReportLevel, ReportMethod
+
+          cluster = "https://sonic.westus2.kusto.windows.net"
+          kcsb = KustoConnectionStringBuilder.with_az_cli_authentication(cluster)
+          client = KustoClient(kcsb)
+
+          ingest_cluster = "https://ingest-sonic.westus2.kusto.windows.net"
+          ingest_kcsb = KustoConnectionStringBuilder.with_az_cli_authentication(ingest_cluster)
+          ingest_client = QueuedIngestClient(ingest_kcsb)
+          properties = IngestionProperties(database="sonic-buildimage-prs", table="author", data_format=DataFormat.CSV, ingestion_mapping_reference="mapping1", additional_properties={'ignoreFirstRecord': 'false'})
+          response = ingest_client.ingest_from_file('a.csv', properties)
 
           QUEUE_NAME="builds"
           CONTAINER="build"
