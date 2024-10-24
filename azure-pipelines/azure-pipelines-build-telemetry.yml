@@ -34,5 +34,4 @@ stages:
       displayName: Install build tools
     - bash: |
         python3 azure-pipelines/scripts/publish-mssonic-logs.py
-        sleep 7200
       displayName: Ingest data into kusto

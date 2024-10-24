@@ -102,46 +102,45 @@ ingest_client = get_kusto_ingest_client()
 def main():
     max_messages = 30
 
-    build_messages = []
-    build_infos = []
-    build_logs = []
-    build_coverages = []
-    msgs = []
+    count = queue_client.get_queue_properties().approximate_message_count
+    for page in range(0,int(count/max_messages)+1):
+        messages = queue_client.receive_messages(messages_per_page=1, visibility_timeout=3600, max_messages=max_messages)
+        build_messages = []
+        build_infos = []
+        build_logs = []
+        build_coverages = []
+        msgs = []
+        for msg in messages:
+            msgs.append(msg)
+            msg_content = base64.b64decode(msg.content)
+            build = json.loads(msg_content)
+            content = json.dumps(build, separators=(',', ':'))
+            build_messages.append(content)
+            build_url = build['resource']['url']
+            if 'dev.azure.com' not in build_url:
+                print(f"Skipped the the url {build_url}")
+                continue
+            build_content = get_response(build_url)
+            if not build_content:
+                print("Skipped the message for no build content, the message: {}".format(msg_content))
+                continue
+            build_info = json.loads(build_content)
+            build_info['definitionId'] = build_info['definition']['id']
+            build_info['definitionName'] = build_info['definition']['name']
+            build_infos.append(json.dumps(build_info))
 
-    properties = queue_client.get_queue_properties()
-    messages = queue_client.receive_messages(messages_per_page=1, visibility_timeout=3600, max_messages=max_messages)
+            timeline_url = build_info['_links']['timeline']['href']
+            logs = get_build_logs(timeline_url, build_info)
+            build_logs += logs
+            build_coverages += get_coverage(build_info)
 
-    for msg in messages:
-        msgs.append(msg)
-        msg_content = base64.b64decode(msg.content)
-        build = json.loads(msg_content)
-        content = json.dumps(build, separators=(',', ':'))
-        build_messages.append(content)
-        build_url = build['resource']['url']
-        if 'dev.azure.com' not in build_url:
-            print(f"Skipped the the url {build_url}")
-            continue
-        build_content = get_response(build_url)
-        if not build_content:
-            print("Skipped the message for no build content, the message: {}".format(msg_content))
-            continue
-        build_info = json.loads(build_content)
-        build_info['definitionId'] = build_info['definition']['id']
-        build_info['definitionName'] = build_info['definition']['name']
-        build_infos.append(json.dumps(build_info))
-
-        timeline_url = build_info['_links']['timeline']['href']
-        logs = get_build_logs(timeline_url, build_info)
-        build_logs += logs
-        build_coverages += get_coverage(build_info)
-
-    kusto_ingest(database='build', table='AzurePipelineBuildCoverages', mapping="AzurePipelineBuildCoverages-json", buildid=build['resource']['id'], lines=build_coverages)
-    kusto_ingest(database='build', table='AzurePipelineBuildLogs', mapping="AzurePipelineBuildLogs-json", buildid=build['resource']['id'], lines=build_logs)
-    kusto_ingest(database='build', table='AzurePipelineBuildMessages', mapping="AzurePipelineBuildMessages-json", buildid=build['resource']['id'], lines=build_messages)
-    kusto_ingest(database='build', table='AzurePipelineBuilds', mapping="AzurePipelineBuilds-json", buildid=build['resource']['id'], lines=build_infos)
-    for msg in msgs:
-        print(f'deleting message: {msg.id}')
-        queue_client.delete_message(msg)
+        kusto_ingest(database='build', table='AzurePipelineBuildCoverages', mapping="AzurePipelineBuildCoverages-json", buildid=build['resource']['id'], lines=build_coverages)
+        kusto_ingest(database='build', table='AzurePipelineBuildLogs', mapping="AzurePipelineBuildLogs-json", buildid=build['resource']['id'], lines=build_logs)
+        kusto_ingest(database='build', table='AzurePipelineBuildMessages', mapping="AzurePipelineBuildMessages-json", buildid=build['resource']['id'], lines=build_messages)
+        kusto_ingest(database='build', table='AzurePipelineBuilds', mapping="AzurePipelineBuilds-json", buildid=build['resource']['id'], lines=build_infos)
+        for msg in msgs:
+            print(f'deleting message: {msg.id}')
+            queue_client.delete_message(msg)
 
 if __name__ == '__main__':
     main()
