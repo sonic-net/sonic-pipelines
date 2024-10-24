@@ -18,8 +18,7 @@ name: $(TeamProject)_$(Build.DefinitionName)_$(SourceBranchName)_$(Date:yyyyMMdd
 
 stages:
 - stage: Build
-  pool:
-    vmImage: 'ubuntu-latest'
+  pool: sonicbld-1es
   jobs:
   - job: Build
     timeoutInMinutes: 120
@@ -30,7 +29,13 @@ stages:
         addToPath: true
         architecture: 'x64'
     - script: |
-        pip install azure-storage-queue azure-storage-blob pytz python-dateutil
+        set -ex
+        # Install Azure cli
+        curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+        az login --service-principal --use-cert-sn-issuer -u 08fd13c1-63ab-4b08-9007-f4ff86b61248 -p $CERTPATH --tenant 72f988bf-86f1-41af-91ab-2d7cd011db47
+        pip3 install azure-storage-queue azure-storage-blob pytz python-dateutil azure.core azure.kusto.data azure.kusto.ingest
+      env:
+        CERTPATH: $(CERTPATH)
       displayName: Install build tools
     - task: PythonScript@0
       displayName: Publish SONiC telemetry
@@ -48,12 +53,21 @@ stages:
           from dateutil import parser
           import http.client
           from azure.storage.blob import BlobServiceClient
+          from azure.identity import AzureCliCredential
+
+          from azure.kusto.data import DataFormat
+          from azure.kusto.ingest import QueuedIngestClient, IngestionProperties, FileDescriptor, ReportLevel, ReportMethod
+          from azure.kusto.data import KustoClient, KustoConnectionStringBuilder
 
           CONTAINER = 'build'
           INFO_PULLREQUESTS_FILE = "info/pullrequests.json"
           GITHUB_TOKEN = '$(GITHUB_TOKEN)'
           AZURE_STORAGE_CONNECTION_STRING = '$(AZURE_STORAGE_CONNECTION_STRING)'
           blob_service_client = BlobServiceClient.from_connection_string(AZURE_STORAGE_CONNECTION_STRING)
+
+          ingest_cluster = "https://ingest-sonic.westus2.kusto.windows.net"
+          ingest_kcsb = KustoConnectionStringBuilder.with_az_cli_authentication(ingest_cluster)
+          ingest_client = QueuedIngestClient(ingest_kcsb)
 
           url="https://api.github.com/graphql"
           timestamp = datetime.datetime.utcnow()
@@ -67,20 +81,17 @@ stages:
             delta =  datetime.timedelta(minutes=timedelta_in_minutes)
           max_timedelta_in_days = 35
 
-          # Upload a list of lines to blob
-          def upload_to_blob(lines, blob_prefix, file_prefix=""):
-            now = datetime.datetime.now()
-            if not lines:
-              print("no lines to upload, skipped")
-              return
-            local_file_name = file_prefix + now.strftime("_%Y%m%d-%H%M%S-%f") + '.json'
-            with open(local_file_name, "w") as file:
-              count = file.write('\n'.join(lines))
-            blob_file_name = blob_prefix + now.strftime("/%Y/%m/%d/") + local_file_name
-            blob_client = blob_service_client.get_blob_client(container=CONTAINER, blob=blob_file_name)
-            with open(local_file_name, "rb") as data:
-              blob_client.upload_blob(data)
-            os.remove(local_file_name)
+          def kusto_ingest(database='build', table='', mapping='', lines=[]):
+              now = datetime.datetime.utcnow().isoformat().replace(':','_')
+              if lines:
+                  tmpfile = f"{database}_{table}_{now}.json"
+                  with open(tmpfile, "w") as file:
+                      file.write('\n'.join(lines))
+                  properties = IngestionProperties(database=database, table=table, data_format=DataFormat.JSON, ingestion_mapping_reference=mapping)
+                  response = ingest_client.ingest_from_file(tmpfile, properties)
+                  print(response)
+              else:
+                  print('No lines', database, table, buildid)
 
           def get_start_timestamp(force=False):
             if not force and 'START_TIMESTAMP' in os.environ and os.environ['START_TIMESTAMP']:
@@ -198,5 +209,5 @@ stages:
             return results
 
           results = get_pullrequests()
-          upload_to_blob(results, 'pullrequests')
+          kusto_ingest(database='build', table='PullRequests', mapping='PullRequests-json', lines=results)
           update_start_timestamp()

@@ -32,7 +32,7 @@ def get_queue_client(queue_name='builds', storageaccount_name='sonicazurepipelin
 def get_response(url):
     for i in range(0, 3):
         try:
-            res = requests.get(url, timeout=30) 
+            res = requests.get(url, timeout=300)
             return res.text
         except Exception as e:
             print(e)
