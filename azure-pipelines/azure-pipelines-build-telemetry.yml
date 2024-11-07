@@ -21,7 +21,7 @@ stages:
   pool: sonicbld-1es
   jobs:
   - job: Build
-    timeoutInMinutes: 120
+    timeoutInMinutes: 240
     steps:
     - script: |
         sudo apt-get update
@@ -35,7 +35,7 @@ stages:
         CERTPATH: $(CERTPATH)
       displayName: Install build tools
     - bash: |
-        python3 azure-pipelines/scripts/publish-mssonic-logs.py || sleep 7200
+        python3 azure-pipelines/scripts/publish-mssonic-logs.py
       env:
         SYSTEM_ACCESSTOKEN: $(System.AccessToken)
       displayName: Ingest data into kusto
