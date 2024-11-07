@@ -34,7 +34,7 @@ def get_queue_client(queue_name='builds', storageaccount_name='sonicazurepipelin
 def get_response(url):
     for i in range(0, 3):
         try:
-            res = requests.get(url, timeout=300)
+            res = requests.get(url, timeout=300, headers=headers)
             return res.text
         except Exception as e:
             print(e)
@@ -97,6 +97,11 @@ def kusto_ingest(database='build', table='', mapping='', buildid='', lines=[]):
         print(response)
     else:
         print('No lines', database, table, buildid)
+
+headers={}
+if os.getenv('SYSTEM_ACCESSTOKEN'):
+    token = os.getenv('SYSTEM_ACCESSTOKEN')
+    headers = {"Authorization": "Bearer " + token}
 
 queue_client = get_queue_client()
 ingest_client = get_kusto_ingest_client()

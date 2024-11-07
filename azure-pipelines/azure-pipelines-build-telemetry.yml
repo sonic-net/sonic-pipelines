@@ -35,5 +35,7 @@ stages:
         CERTPATH: $(CERTPATH)
       displayName: Install build tools
     - bash: |
-        python3 azure-pipelines/scripts/publish-mssonic-logs.py
+        python3 azure-pipelines/scripts/publish-mssonic-logs.py || sleep 7200
+      env:
+        SYSTEM_ACCESSTOKEN: $(System.AccessToken)
       displayName: Ingest data into kusto
