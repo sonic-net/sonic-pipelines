@@ -23,6 +23,8 @@ def get_kusto_ingest_client():
 
 # Azure Storage Queue Client
 def get_queue_client(queue_name='builds', storageaccount_name='sonicazurepipelines'):
+    if os.getenv('AZURE_STORAGE_QUEUE_NAME'):
+        queue_name = os.getenv('AZURE_STORAGE_QUEUE_NAME')
     url=f"https://{storageaccount_name}.queue.core.windows.net"
     default_credential = AzureCliCredential()
     queue_client = QueueClient(url, queue_name=queue_name ,credential=default_credential)
@@ -134,10 +136,13 @@ def main():
             build_logs += logs
             build_coverages += get_coverage(build_info)
 
-        kusto_ingest(database='build', table='AzurePipelineBuildCoverages', mapping="AzurePipelineBuildCoverages-json", buildid=build['resource']['id'], lines=build_coverages)
-        kusto_ingest(database='build', table='AzurePipelineBuildLogs', mapping="AzurePipelineBuildLogs-json", buildid=build['resource']['id'], lines=build_logs)
-        kusto_ingest(database='build', table='AzurePipelineBuildMessages', mapping="AzurePipelineBuildMessages-json", buildid=build['resource']['id'], lines=build_messages)
-        kusto_ingest(database='build', table='AzurePipelineBuilds', mapping="AzurePipelineBuilds-json", buildid=build['resource']['id'], lines=build_infos)
+        database = 'build'
+        if os.getenv('AZURE_STORAGE_DATABASE'):
+            database = os.getenv('AZURE_STORAGE_DATABASE')
+        kusto_ingest(database=database, table='AzurePipelineBuildCoverages', mapping="AzurePipelineBuildCoverages-json", buildid=build['resource']['id'], lines=build_coverages)
+        kusto_ingest(database=database, table='AzurePipelineBuildLogs', mapping="AzurePipelineBuildLogs-json", buildid=build['resource']['id'], lines=build_logs)
+        kusto_ingest(database=database, table='AzurePipelineBuildMessages', mapping="AzurePipelineBuildMessages-json", buildid=build['resource']['id'], lines=build_messages)
+        kusto_ingest(database=database, table='AzurePipelineBuilds', mapping="AzurePipelineBuilds-json", buildid=build['resource']['id'], lines=build_infos)
         for msg in msgs:
             print(f'deleting message: {msg.id}')
             queue_client.delete_message(msg)
