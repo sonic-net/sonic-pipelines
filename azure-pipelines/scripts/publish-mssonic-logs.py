@@ -23,6 +23,8 @@ def get_kusto_ingest_client():
 
 # Azure Storage Queue Client
 def get_queue_client(queue_name='builds', storageaccount_name='sonicazurepipelines'):
+    if os.getenv('AZURE_STORAGE_QUEUE_NAME'):
+        queue_name = os.getenv('AZURE_STORAGE_QUEUE_NAME')
     url=f"https://{storageaccount_name}.queue.core.windows.net"
     default_credential = AzureCliCredential()
     queue_client = QueueClient(url, queue_name=queue_name ,credential=default_credential)
@@ -32,7 +34,7 @@ def get_queue_client(queue_name='builds', storageaccount_name='sonicazurepipelin
 def get_response(url):
     for i in range(0, 3):
         try:
-            res = requests.get(url, timeout=300)
+            res = requests.get(url, timeout=300, headers=headers)
             return res.text
         except Exception as e:
             print(e)
@@ -96,6 +98,11 @@ def kusto_ingest(database='build', table='', mapping='', buildid='', lines=[]):
     else:
         print('No lines', database, table, buildid)
 
+headers={}
+if os.getenv('SYSTEM_ACCESSTOKEN'):
+    token = os.getenv('SYSTEM_ACCESSTOKEN')
+    headers = {"Authorization": "Bearer " + token}
+
 queue_client = get_queue_client()
 ingest_client = get_kusto_ingest_client()
 
@@ -134,10 +141,13 @@ def main():
             build_logs += logs
             build_coverages += get_coverage(build_info)
 
-        kusto_ingest(database='build', table='AzurePipelineBuildCoverages', mapping="AzurePipelineBuildCoverages-json", buildid=build['resource']['id'], lines=build_coverages)
-        kusto_ingest(database='build', table='AzurePipelineBuildLogs', mapping="AzurePipelineBuildLogs-json", buildid=build['resource']['id'], lines=build_logs)
-        kusto_ingest(database='build', table='AzurePipelineBuildMessages', mapping="AzurePipelineBuildMessages-json", buildid=build['resource']['id'], lines=build_messages)
-        kusto_ingest(database='build', table='AzurePipelineBuilds', mapping="AzurePipelineBuilds-json", buildid=build['resource']['id'], lines=build_infos)
+        database = 'build'
+        if os.getenv('AZURE_STORAGE_DATABASE'):
+            database = os.getenv('AZURE_STORAGE_DATABASE')
+        kusto_ingest(database=database, table='AzurePipelineBuildCoverages', mapping="AzurePipelineBuildCoverages-json", buildid=build['resource']['id'], lines=build_coverages)
+        kusto_ingest(database=database, table='AzurePipelineBuildLogs', mapping="AzurePipelineBuildLogs-json", buildid=build['resource']['id'], lines=build_logs)
+        kusto_ingest(database=database, table='AzurePipelineBuildMessages', mapping="AzurePipelineBuildMessages-json", buildid=build['resource']['id'], lines=build_messages)
+        kusto_ingest(database=database, table='AzurePipelineBuilds', mapping="AzurePipelineBuilds-json", buildid=build['resource']['id'], lines=build_infos)
         for msg in msgs:
             print(f'deleting message: {msg.id}')
             queue_client.delete_message(msg)
