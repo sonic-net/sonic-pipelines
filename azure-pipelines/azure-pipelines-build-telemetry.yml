@@ -19,6 +19,8 @@ name: $(TeamProject)_$(Build.DefinitionName)_$(SourceBranchName)_$(Date:yyyyMMdd
 stages:
 - stage: Build
   pool: sonicbld-1es
+  variables:
+    - group: sonicbld
   jobs:
   - job: Build
     timeoutInMinutes: 240
@@ -38,4 +40,5 @@ stages:
         python3 azure-pipelines/scripts/publish-mssonic-logs.py
       env:
         SYSTEM_ACCESSTOKEN: $(System.AccessToken)
+        TOKEN: $(MSAZURE-TOKEN)
       displayName: Ingest data into kusto
