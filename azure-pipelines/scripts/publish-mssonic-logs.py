@@ -32,9 +32,14 @@ def get_queue_client(queue_name='builds', storageaccount_name='sonicazurepipelin
 
 # Download the web content from the url
 def get_response(url):
+    headers = soheaders
+    if 'mssonic' not in url:
+        headers = msheaders
     for i in range(0, 3):
         try:
             res = requests.get(url, timeout=300, headers=headers)
+            if not res.ok:
+                raise Exception(f'http code: {res.status_code},reason: {res.reason}')
             return res.text
         except Exception as e:
             print(e)
@@ -98,10 +103,13 @@ def kusto_ingest(database='build', table='', mapping='', buildid='', lines=[]):
     else:
         print('No lines', database, table, buildid)
 
-headers={}
+headers,msheaders = {},{}
 if os.getenv('SYSTEM_ACCESSTOKEN'):
     token = os.getenv('SYSTEM_ACCESSTOKEN')
-    headers = {"Authorization": "Bearer " + token}
+    soheaders = {"Authorization": "Bearer " + token}
+if os.getenv('TOKEN'):
+    token = os.getenv('TOKEN')
+    msheaders = {"Authorization": "Bearer " + token}
 
 queue_client = get_queue_client()
 ingest_client = get_kusto_ingest_client()
@@ -124,12 +132,12 @@ def main():
             content = json.dumps(build, separators=(',', ':'))
             build_messages.append(content)
             build_url = build['resource']['url']
-            if 'dev.azure.com' not in build_url:
+            if 'dev.azure.com' not in build_url and 'msazure.visualstudio.com' not in build_url:
                 print(f"Skipped the the url {build_url}")
                 continue
             build_content = get_response(build_url)
             if not build_content:
-                print("Skipped the message for no build content, the message: {}".format(msg_content))
+                print("Skipped the message for no build content, the build_url: {}".format(build_url))
                 continue
             build_info = json.loads(build_content)
             build_info['definitionId'] = build_info['definition']['id']
