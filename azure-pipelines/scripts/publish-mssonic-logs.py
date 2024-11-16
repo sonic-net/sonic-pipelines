@@ -132,7 +132,7 @@ def main():
             content = json.dumps(build, separators=(',', ':'))
             build_messages.append(content)
             build_url = build['resource']['url']
-            if 'dev.azure.com' not in build_url or 'msazure.visualstudio.com' not in build_url:
+            if 'dev.azure.com' not in build_url and 'msazure.visualstudio.com' not in build_url:
                 print(f"Skipped the the url {build_url}")
                 continue
             build_content = get_response(build_url)
