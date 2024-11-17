@@ -26,6 +26,7 @@ def get_queue_client(queue_name='builds', storageaccount_name='sonicazurepipelin
     if os.getenv('AZURE_STORAGE_QUEUE_NAME'):
         queue_name = os.getenv('AZURE_STORAGE_QUEUE_NAME')
     url=f"https://{storageaccount_name}.queue.core.windows.net"
+    print(url, queue_name)
     default_credential = AzureCliCredential()
     queue_client = QueueClient(url, queue_name=queue_name ,credential=default_credential)
     return queue_client
@@ -89,6 +90,7 @@ def get_build_logs(timeline_url, build_info):
             record['status'] = build_info['status']
         if 'uri' in build_info:
             record['uri'] = build_info['uri']
+        print(record['id'])
         results.append(json.dumps(record))
     return results
 
@@ -98,6 +100,7 @@ def kusto_ingest(database='build', table='', mapping='', buildid='', lines=[]):
         with open(tmpfile, "w") as file:
             file.write('\n'.join(lines))
         properties = IngestionProperties(database=database, table=table, data_format=DataFormat.JSON, ingestion_mapping_reference=mapping)
+        # properties.report_level = ReportLevel.FailuresAndSuccesses
         response = ingest_client.ingest_from_file(tmpfile, properties)
         print(response)
     else:
