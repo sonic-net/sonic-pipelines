@@ -10,7 +10,7 @@ schedules:
 
 jobs:
 - job: cleanup
-  pool: sonicbld-1es
+  pool: sonic-ubuntu-1c
   timeoutInMinutes: 240
   variables:
     - group: sonicbld
@@ -23,18 +23,10 @@ jobs:
     - bash: |
           set -ex
 
-          echo "$sonicclient" > ~/azpw-kv-1-sonicclient-20240627.pfx.base64
-          cat ~/azpw-kv-1-sonicclient-20240627.pfx.base64 | base64 -d > ~/azpw-kv-1-sonicclient-20240627.pfx
-          openssl pkcs12 -in ~/azpw-kv-1-sonicclient-20240627.pfx -out ~/client_ssl.pem -clcerts -nodes -password pass:
-          az login --service-principal --use-cert-sn-issuer -u 08fd13c1-63ab-4b08-9007-f4ff86b61248 -p ~/client_ssl.pem --tenant 72f988bf-86f1-41af-91ab-2d7cd011db47
-
-          az account set --subscription 9355ef17-3aa2-493a-94ab-a43a9bf8cd70
+          az login --identity
           az acr show -n sonicdev
           sudo apt-get update
           sudo apt install -y jq
-
-      env:
-        sonicclient: $(sonicclient)
       displayName: az login
     - bash: |
         set -e
