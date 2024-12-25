@@ -15,6 +15,7 @@ parameters:
   default:
   - 202205
   - 202305
+  - 202405
 - name: subs
   type: string
   default: "src/sonic-utilities src/sonic-swss src/sonic-platform-common src/sonic-platform-daemons"
@@ -23,11 +24,12 @@ resources:
   repositories:
   - repository: buildimage
     type: github
-    name: sonic-net/sonic-buildimage-msft
-    endpoint: sonic-net
+    name: Azure/sonic-buildimage-msft
+    endpoint: build
 
-pool:
-  vmImage: 'ubuntu-20.04'
+pool: sonic-ubuntu-1c
+variables:
+  - group: sonicbld
 
 steps:
   - checkout: buildimage
@@ -42,8 +44,8 @@ steps:
       echo $TOKEN | gh auth login --with-token
       echo $AZURE_DEVOPS_EXT_PAT | az devops login
     env:
-      TOKEN: $(SONICBLD_GIT_PAT)
-      AZURE_DEVOPS_EXT_PAT: $(AZURE_DEVOPS_EXT_PAT)
+      TOKEN: $(GITHUB-TOKEN)
+      AZURE_DEVOPS_EXT_PAT: $(MSAZURE-TOKEN)
     displayName: Configure
   - ${{each branch in parameters.branches}}:
     - bash: |
@@ -56,10 +58,6 @@ steps:
         git reset HEAD --hard
         git clean -xdff
         git status
-        set +x
-        echo "##vso[task.setvariable variable=ASSIGNEDTO]"
-        set -x
-
         git ls-remote --exit-code origin refs/heads/$branch || exit 1
         git ls-remote --exit-code head refs/heads/$branch || exit 2
 
@@ -83,35 +81,14 @@ steps:
           git reset platform/checkout/cisco-8000.ini
           git checkout platform/checkout/cisco-8000.ini
           if git status | grep "You have unmerged paths";then
+            exit 12 #TODO add alert
             CommitID=$(git log $prehead..HEAD --merge --pretty=format:'%H'  | tail -n 1)
             description="<h1>Please merge $CommitID into sonic-buildimage-msft.Do not Cherry-pick!!!</h1>"
-            description="code conflict: sonic-net/sonic-buildimage:$branch -> sonic-net/sonic-buildimage-msft:$branch<br>"
+            description="code conflict: sonic-net/sonic-buildimage:$branch -> Azure/sonic-buildimage-msft:$branch<br>"
             description+=$(git log $prehead..HEAD --merge --pretty=format:'%h -%d %s (%cs) [%aN]')
             assign="Gen-Hwa Chiang <gechiang@microsoft.com>"
-
-            # check if the workitem already exist
-            az boards work-item show --org https://dev.azure.com/mssonic/ --id $(ADO_PARENT) > workitem_parent
-            child_count=$(cat workitem_parent | jq '[ .relations[] | select(.attributes.name | contains("Child")) ] | length')
-            for (( i=0; i<$child_count; i++ ))
-            do
-              childid=$(cat workitem_parent | jq -r "[ .relations[] | select(.attributes.name | contains(\"Child\")) ] | .[$i].url" | awk -F/ '{print$NF}')
-              az boards work-item show --org https://dev.azure.com/mssonic/ --id $childid > $childid
-              title=$(cat $childid | jq -r '.fields."System.Title"')
-              state=$(cat $childid | jq -r '.fields."System.State"')
-              if [[ "$title" == "code conflict: sonic-net/sonic-buildimage:${{branch}} -> sonic-net/sonic-buildimage-msft:${{branch}}" ]] && [[ "$state" != "Done" ]] && [[ "$state" != "Removed" ]];then
-                echo "WorkItem already exist: $childid"
-                az boards work-item update --org https://dev.azure.com/mssonic/ --id $childid --discussion "$description"
-                echo "WorkItem updated: $childid"
-                assign=''
-                break
-              fi
-            done
-
-            git merge --abort
-            set +x
-            echo "##vso[task.setvariable variable=ASSIGNEDTO]$assign"
-            echo "##vso[task.setvariable variable=DESCRIPTION]$description"
-            exit 4
+            # update work-item
+            az boards work-item update --org https://dev.azure.com/mssonic/ --id $ADO_ID --discussion "$description" -f "Custom Field 1=type_A"
           fi
         fi
         GIT_EDITOR=true git merge --continue || true
@@ -134,8 +111,6 @@ steps:
         if echo $url_ | grep "already exists:"; then
           gh pr edit $url -b "$body"
         fi
-        count=1
-        sleep 10
         for (( c=1; c<=RETRY_COUNT; c++ ));do
           echo count: $c
           sleep 60
@@ -144,22 +119,7 @@ steps:
         done
         gh pr merge $url --merge --admin
       env:
-        TOKEN: $(SONICBLD_GIT_PAT)
-        AZURE_DEVOPS_EXT_PAT: $(AZURE_DEVOPS_EXT_PAT)
+        TOKEN: $(GITHUB-TOKEN)
+        AZURE_DEVOPS_EXT_PAT: $(MSAZURE-TOKEN)
       condition: always()
       displayName: '${{branch}} code merge'
-    - task: CreateWorkItem@1
-      inputs:
-        workItemType: 'task'
-        title: 'code conflict: sonic-net/sonic-buildimage:${{branch}} -> sonic-net/sonic-buildimage-msft:${{branch}}'
-        assignedTo: '$(ASSIGNEDTO)'
-        areaPath: '$(ADO_AREA)'
-        iterationPath: '$(ADO_ITERATION)'
-        fieldMappings: |
-          Description=$(DESCRIPTION)
-        linkWorkItems: true
-        linkType: 'System.LinkTypes.Hierarchy-Reverse'
-        linkTarget: 'id'
-        targetId: '$(ADO_PARENT)'
-      condition: ne(variables.ASSIGNEDTO, '')
-      displayName: Create ${{branch}} workitem
