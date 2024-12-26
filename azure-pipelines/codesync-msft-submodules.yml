@@ -124,12 +124,13 @@ steps:
           fi
           sleep 10
           for (( c=1; c<=RETRY_COUNT; c++ ));do
-            echo count: $c
+            echo "count: $c"
             sleep 60
             gh pr checks $url | grep https || continue
             gh pr checks $url | grep https | grep pending && continue || break
           done
           gh pr merge $url --merge --admin
+        done
       env:
         TOKEN: $(GITHUB-TOKEN)
         AZURE_DEVOPS_EXT_PAT: $(MSAZURE-TOKEN)
