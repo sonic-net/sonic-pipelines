@@ -108,8 +108,8 @@ steps:
         # push code
         git push https://mssonicbld:$TOKEN@github.com/mssonicbld/sonic-buildimage-msft HEAD:sonicbld/$branch-merge -f
         # create PR
-        url_=$(gh pr create -R sonic-net/sonic-buildimage-msft -H mssonicbld:sonicbld/$branch-merge -B $branch -t "[code sync] Merge code from sonic-net/sonic-buildimage:$branch to $branch" -b "$body" 2>&1; rc=$?)
-        url=$(echo "$url_" | grep -Eo https://github.com/sonic-net/sonic-buildimage-msft/pull/[0-9]* )
+        url_=$(gh pr create -R Azure/sonic-buildimage-msft -H mssonicbld:sonicbld/$branch-merge -B $branch -t "[code sync] Merge code from sonic-net/sonic-buildimage:$branch to $branch" -b "$body" 2>&1; rc=$?)
+        url=$(echo "$url_" | grep -Eo https://github.com/Azure/sonic-buildimage-msft/pull/[0-9]* )
 
         if echo $url_ | grep "already exists:"; then
           gh pr edit $url -b "$body"
