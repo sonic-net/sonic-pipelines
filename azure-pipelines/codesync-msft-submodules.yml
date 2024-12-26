@@ -69,6 +69,9 @@ steps:
       git config --global user.email "sonicbld@microsoft.com"
       git config --global user.name "Sonic Automation"
       git config pull.rebase false
+      sudo apt update
+      sudo apt install -y gh
+      curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
       echo $TOKEN | gh auth login --with-token
       echo $AZURE_DEVOPS_EXT_PAT | az devops login
     env:
