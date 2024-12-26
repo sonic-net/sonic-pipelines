@@ -7,21 +7,26 @@ parameters:
   default:
   - 202205
   - 202305
-
+  - 202405
 - name: submodules
   type: string
   default: 'src/sonic-utilities src/sonic-swss src/sonic-platform-daemons src/sonic-platform-common'
 
+variables:
+  - group: sonicbld
 jobs:
 - ${{ each branch in parameters.branches }}:
   - job:
     displayName: ${{ branch }}
+    pool: sonic-ubuntu-1c
     steps:
     - checkout: none
     - bash: |
         set -ex
+        sudo apt update
+        sudo apt install -y gh
         sudo rm -rf sonic-buildimage-msft
-        git clone https://github.com/sonic-net/sonic-buildimage-msft
+        git clone https://github.com/Azure/sonic-buildimage-msft
         cd sonic-buildimage-msft
         git config user.email $(user_email)
         git config user.name $(user_name)
@@ -29,10 +34,10 @@ jobs:
         git remote add mssonicbld https://mssonicbld:$TOKEN@github.com/mssonicbld/sonic-buildimage-msft
         git checkout ${{ branch }}
         git fetch mssonicbld
-        git submodule update --init src/*
+        git submodule update --init -- ${{ parameters.submodules }}
         echo $TOKEN | gh auth login --with-token
       env:
-        TOKEN: $(token)
+        TOKEN: $(GITHUB-TOKEN)
       displayName: Setup env
     - bash: |
         set -ex
@@ -72,13 +77,13 @@ jobs:
             git push mssonicbld HEAD:submodule-${{ branch }}-$module_name -f
             label=""
             echo $(automerge_branches) | grep ${{ branch }} && label=",automerge"
-            result=$(gh pr create -R sonic-net/sonic-buildimage-msft -H mssonicbld:submodule-${{ branch }}-$module_name -B ${{ branch }} -t "[submodule][${{ branch }}] Update submodule $module_name to the latest HEAD automatically" -l "Submodule Update :arrow_double_up:$label" -b "$body" 2>&1 || true)
+            result=$(gh pr create -R Azure/sonic-buildimage-msft -H mssonicbld:submodule-${{ branch }}-$module_name -B ${{ branch }} -t "[submodule][${{ branch }}] Update submodule $module_name to the latest HEAD automatically" -l "Submodule Update :arrow_double_up:$label" -b "$body" 2>&1 || true)
             if echo $result | grep "already exists:"; then
               pr_url=$(echo $result | awk -F"already exists:" '{print$2}')
               gh pr edit $pr_url -b "$body"
             else
               echo $result
-              pr_url=$(echo $result | grep -i "https://github.com/sonic-net/sonic-buildimage-msft/pull/")
+              pr_url=$(echo $result | grep -i "https://github.com/Azure/sonic-buildimage-msft/pull/")
             fi
             git reset HEAD~ --hard
             sleep $(INTERVAL)
