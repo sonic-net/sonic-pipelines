@@ -36,6 +36,9 @@ steps:
     clean: true
   - bash: |
       set -ex
+      sudo apt update
+      sudo apt install -y gh
+      curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
       git remote add head https://github.com/sonic-net/sonic-buildimage
       git remote update
       git config --global user.email "sonicbld@microsoft.com"
