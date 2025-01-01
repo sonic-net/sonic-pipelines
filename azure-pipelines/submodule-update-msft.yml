@@ -8,9 +8,13 @@ parameters:
   - 202205
   - 202305
   - 202405
+  - 202412
 - name: submodules
   type: string
   default: 'src/sonic-utilities src/sonic-swss src/sonic-platform-daemons src/sonic-platform-common'
+- name: aisubs
+  type: string
+  default: 'src/sonic-sairedis src/sonic-linux-kernel'
 
 variables:
   - group: sonicbld
@@ -34,7 +38,7 @@ jobs:
         git remote add mssonicbld https://mssonicbld:$TOKEN@github.com/mssonicbld/sonic-buildimage-msft
         git checkout ${{ branch }}
         git fetch mssonicbld
-        git submodule update --init -- ${{ parameters.submodules }}
+        git submodule update --init -- ${{ parameters.submodules }} $([[ ${{ branch }} == "202412" ]] && echo ${{ parameters.aisubs }})
         echo $TOKEN | gh auth login --with-token
       env:
         TOKEN: $(GITHUB-TOKEN)
@@ -43,7 +47,7 @@ jobs:
         set -ex
         cd sonic-buildimage-msft
         work_space=$(pwd)
-        for path in ${{ parameters.submodules }}
+        for path in ${{ parameters.submodules }} $([[ ${{ branch }} == "202412" ]] && echo ${{ parameters.aisubs }})
         do
           module_name=$(echo $path | sed 's#src/##')
           # if some modules break PR build. Add them to ignore_pathes
