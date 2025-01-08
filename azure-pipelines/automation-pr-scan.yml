@@ -43,12 +43,12 @@ jobs:
         operate=false
         [[ "$date_now" > "22:00:00" ]] && operate=true
         repos="sonic-net/sonic-buildimage sonic-net/sonic-utilities sonic-net/sonic-swss sonic-net/sonic-sairedis sonic-net/sonic-swss-common sonic-net/sonic-dbsyncd sonic-net/sonic-gnmi sonic-net/sonic-host-services sonic-net/sonic-linkmgrd sonic-net/sonic-linux-kernel sonic-net/sonic-mgmt-common sonic-net/sonic-mgmt-framework sonic-net/sonic-platform-common sonic-net/sonic-platform-daemons sonic-net/sonic-py-swsssdk sonic-net/sonic-restapi sonic-net/sonic-snmpagent sonic-net/sonic-wpa-supplicant Azure/sonic-swss.msft Azure/sonic-sairedis.msft Azure/sonic-utilities.msft Azure/sonic-platform-daemons.msft Azure/sonic-platform-common.msft Azure/sonic-linux-kernel.msft Azure/SAI.msft Azure/sonic-buildimage-msft"
-        rm -rf failure_prs.log
+        rm -rf failure_prs.log skip_prs.log
         rc=0
           for repo in $repos $(EXTRA_REPOS); do
             echo ======== working for $repo ========
             echo $repo >> failure_prs.log
-            prs=$(gh pr list -A mssonicbld --label automerge -R $repo -L 100 --json body,title,url,labels,statusCheckRollup,createdAt,baseRefName)
+            prs=$(gh pr list -A mssonicbld --label automerge -R $repo -L 100 --json body,title,url,labels,statusCheckRollup,createdAt,baseRefName,comments)
             c=$(echo $prs | jq length)
             for ((i=0; i<$c; i++)); do
               pr=$(echo $prs | jq .[$i])
@@ -56,7 +56,7 @@ jobs:
               url=$(echo $pr | jq .url -r)
               body=$(echo $pr | jq .body -r)
               title=$(echo $pr | jq .title -r)
-              origin_pr_id=$(echo $title | grep -Eo "\[action\] \[PR:[0-9]*\]" | grep -Eo [0-9]* || true)
+              origin_pr_url=$(echo $pr | jq .comments[].body -r | grep '^Original PR: ' | grep -Eo "https://github.com/.*/pull/[0-9]*" || true)
               created_at=$(echo $pr | jq .createdAt -r)
               checks=$(echo $pr | jq .statusCheckRollup)
               base_ref=$(echo $pr | jq .baseRefName -r)
@@ -80,22 +80,25 @@ jobs:
                 fi
               done
               # If auto cherry pick PRs failed, comment in original PR and close cherry pick PR
-              if [ -n "$origin_pr_id" ] && [[ $created_at < $date_3d_ago ]] && ! $pr_success;then
-                origin_pr_url=https://github.com/$repo/pull/$origin_pr_id
+              if [ -n "$origin_pr_url" ] && [[ $created_at < $date_3d_ago ]] && ! $pr_success;then
                 author=$(gh pr view $origin_pr_url --json author | jq .author.login -r)
                 echo "Original author will check."
                 $operate && [[ $created_at > $date_10d_ago ]] && gh pr comment $origin_pr_url --body "@$author cherry pick PR didn't pass PR checker. Please check!!!<br>$url"
                 $operate && [[ $created_at < $date_26d_ago ]] && gh pr comment $origin_pr_url --body "@$author cherry pick PR didn't pass PR checker. Please check!!! Auto cherry pick PR will be closed in 3 days.<br>$url"
                 $operate && [[ $created_at < $date_30d_ago ]] && echo "$url Closed" && gh pr close $url
               fi
-              ! $pr_success && continue
+              if ! $pr_success; then
+                echo "    $url" >> skip_prs.log
+                echo $pr | jq '.statusCheckRollup[] | "        "+.status+" "+.conclusion+"  "+.name' -r >> skip_prs.log
+                continue
+              fi
               # merge the PR
               echo ========Merging  PR========
               if echo $title | grep "^\[submodule\]";then
                 output=$(gh pr merge --squash --admin -R $repo $url -b "$body" 2>&1) || { echo "    $url"  >> failure_prs.log ; echo "        $output"  >> failure_prs.log ; }
               else
                 if output=$(gh pr merge --squash --admin -R $repo $url -b "$body" 2>&1); then
-                  [[ "$origin_pr_id" != "" ]] && gh pr edit https://github.com/$repo/pull/$origin_pr_id --add-label "Included in $base_ref Branch" --remove-label "Created PR to $base_ref Branch,Cherry Pick Conflict_$base_ref"
+                  [[ "$origin_pr_url" != "" ]] && gh pr edit $origin_pr_url --add-label "Included in $base_ref Branch" --remove-label "Created PR to $base_ref Branch,Cherry Pick Conflict_$base_ref"
                 else
                   echo "    $url"  >> failure_prs.log
                   echo "        $output"  >> failure_prs.log
@@ -105,6 +108,13 @@ jobs:
               echo ========Finished PR========
             done
           done
-        cat failure_prs.log
         exit $rc
       displayName: scaning
+    - script: |
+        set -ex
+        [ -f skip_prs.log ] && cat skip_prs.log
+        echo ====================================
+        [ -f failure_prs.log ] && cat failure_prs.log
+      displayName: show result
+      condition: always()
+  
