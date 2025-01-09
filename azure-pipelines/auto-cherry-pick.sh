@@ -61,12 +61,13 @@ create_pr(){
     result=$(gh pr create -R $ORG/$REPO -H mssonicbld:cherry/$target_branch/$PR_NUMBER -B $target_branch -t "$title" -F body -l "automerge" 2>&1)
     sleep 1
     echo $result | grep "already exists" && return 0 || true
-    new_pr_rul=$(echo $result | grep -Eo https://github.com.*)
-    gh pr comment $new_pr_rul --body "Original PR: $PR_URL"
+    new_pr_url=$(echo $result | grep -Eo https://github.com.*)
+    gh pr comment $new_pr_url --body "Original PR: $PR_URL"
+    echo $new_pr_url | grep 'github.com/Azure' && sleep 1 && gh pr comment $new_pr_url --body "/azp run"
     sleep 1
     gh pr edit $PR_URL --add-label "Created PR to $target_branch Branch"
     sleep 1
-    gh pr comment $PR_URL --body "Cherry-pick PR to $target_branch: ${new_pr_rul}"
+    gh pr comment $PR_URL --body "Cherry-pick PR to $target_branch: ${new_pr_url}"
     sleep 1
 }
 
