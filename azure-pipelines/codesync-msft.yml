@@ -32,6 +32,10 @@ variables:
 steps:
   - checkout: buildimage
     clean: true
+    path: s
+  - checkout: self
+    clean: true
+    path: tool
   - bash: |
       set -ex
       sudo apt update
@@ -52,12 +56,13 @@ steps:
     - bash: |
         set -ex
 
+        cd s
         branch_base=${{branch}}
         branch_head=${{branch}}
         if [[ $branch_head == "202412" ]]; then
           branch_head=202411
         fi
-        subs=$(cat azure-pipelines/codesync.json | jq -r '."${{ branch }}"')
+        subs=$(cat ../tool/azure-pipelines/codesync.json | jq -r '."${{ branch }}"')
         git branch -D $branch_base || true
         git checkout -b $branch_base --track origin/$branch_base
         rm -rf $subs
