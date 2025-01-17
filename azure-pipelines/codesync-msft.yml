@@ -56,7 +56,7 @@ steps:
     - bash: |
         set -ex
 
-        cd s
+        pwd
         branch_base=${{branch}}
         branch_head=${{branch}}
         if [[ $branch_head == "202412" ]]; then
