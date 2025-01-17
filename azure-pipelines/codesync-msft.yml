@@ -82,7 +82,7 @@ steps:
 
         prehead=$(git log -n 1 --pretty=format:'%H')
 
-        git pull head $branch --no-commit || true
+        git pull head $branch_head --no-commit || true
         git status
         git submodule
 
@@ -95,7 +95,7 @@ steps:
             exit 12 #TODO add alert
             CommitID=$(git log $prehead..HEAD --merge --pretty=format:'%H'  | tail -n 1)
             description="<h1>Please merge $CommitID into sonic-buildimage-msft.Do not Cherry-pick!!!</h1>"
-            description="code conflict: sonic-net/sonic-buildimage:$branch -> Azure/sonic-buildimage-msft:$branch<br>"
+            description="code conflict: sonic-net/sonic-buildimage:$branch_head -> Azure/sonic-buildimage-msft:$branch_base<br>"
             description+=$(git log $prehead..HEAD --merge --pretty=format:'%h -%d %s (%cs) [%aN]')
             assign="Gen-Hwa Chiang <gechiang@microsoft.com>"
             # update work-item
@@ -114,9 +114,9 @@ steps:
         body=$(git log $prehead..HEAD --graph --pretty=format:'%h -%d %s (%cs) [%aN]')
         body='```<br>'$body'<br>```'
         # push code
-        git push https://mssonicbld:$TOKEN@github.com/mssonicbld/sonic-buildimage-msft HEAD:sonicbld/$branch-merge -f
+        git push https://mssonicbld:$TOKEN@github.com/mssonicbld/sonic-buildimage-msft HEAD:sonicbld/$branch_base-merge -f
         # create PR
-        url_=$(gh pr create -R Azure/sonic-buildimage-msft -H mssonicbld:sonicbld/$branch-merge -B $branch -t "[code sync] Merge code from sonic-net/sonic-buildimage:$branch to $branch" -b "$body" 2>&1; rc=$?)
+        url_=$(gh pr create -R Azure/sonic-buildimage-msft -H mssonicbld:sonicbld/$branch_base-merge -B $branch_base -t "[code sync] Merge code from sonic-net/sonic-buildimage:$branch_head to $branch_base" -b "$body" 2>&1; rc=$?)
         url=$(echo "$url_" | grep -Eo https://github.com/Azure/sonic-buildimage-msft/pull/[0-9]* )
 
         if echo $url_ | grep "already exists:"; then
