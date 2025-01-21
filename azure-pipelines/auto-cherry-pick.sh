@@ -83,7 +83,7 @@ create_pr(){
     sleep 1
     gh pr edit $PR_URL --add-label "Created PR to $branch_label Branch"
     sleep 1
-    gh pr comment $PR_URL --body "Cherry-pick PR to $branch_label: ${new_pr_rul}"
+    gh pr comment $PR_URL --body "Cherry-pick PR to $branch_label: ${new_pr_url}"
     sleep 1
 }
 
