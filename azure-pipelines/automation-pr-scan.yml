@@ -60,6 +60,7 @@ jobs:
               created_at=$(echo $pr | jq .createdAt -r)
               checks=$(echo $pr | jq .statusCheckRollup)
               base_ref=$(echo $pr | jq .baseRefName -r)
+              echo $repo | grep ^Azure/ && base_ref=msft-$base_ref
               cc=$(echo $checks | jq length)
               pr_success=true
               check_name=''
