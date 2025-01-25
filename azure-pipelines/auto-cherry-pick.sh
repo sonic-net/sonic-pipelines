@@ -89,6 +89,9 @@ create_pr(){
 
 labeled(){
     echo [ AUTO CHERRY PICK ] labeled: $ACTION_LABEL $PR_URL
+    if [[ $REPO == "sonic-mgmt" ]]; then
+        echo $ACTION_LABEL | grep msft- || return 0
+    fi
     if echo $ACTION_LABEL | grep -E '^Approved for (msft-)?[0-9]{6} Branch$'; then
         create_pr "$ACTION_LABEL"
         return $?
@@ -104,6 +107,9 @@ synchronize(){
     IFS=, read -a labels <<< $PR_LABELS
     for label in "${labels[@]}"; do
         if echo $label | grep -E '^Request for (msft-)?[0-9]{6} Branch$'; then
+            if [[ $REPO == "sonic-mgmt" ]];then
+                echo $label | grep msft- || continue
+            fi
             check_conflict "$label" || true
         fi
     done
@@ -114,6 +120,9 @@ closed(){
     IFS=, read -a labels <<< $PR_LABELS
     for label in "${labels[@]}"; do
         if echo $label | grep -E '^Approved for (msft-)?[0-9]{6} Branch$'; then
+            if [[ $REPO == "sonic-mgmt" ]];then
+                echo $label | grep msft- || continue
+            fi
             create_pr "$label" || true
         fi
     done
