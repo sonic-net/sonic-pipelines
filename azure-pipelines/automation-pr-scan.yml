@@ -42,7 +42,7 @@ jobs:
         date_now=$(date -u +"%T")
         operate=false
         [[ "$date_now" > "22:00:00" ]] && operate=true
-        repos="sonic-net/sonic-buildimage sonic-net/sonic-utilities sonic-net/sonic-swss sonic-net/sonic-sairedis sonic-net/sonic-swss-common sonic-net/sonic-dbsyncd sonic-net/sonic-gnmi sonic-net/sonic-host-services sonic-net/sonic-linkmgrd sonic-net/sonic-linux-kernel sonic-net/sonic-mgmt-common sonic-net/sonic-mgmt-framework sonic-net/sonic-platform-common sonic-net/sonic-platform-daemons sonic-net/sonic-py-swsssdk sonic-net/sonic-restapi sonic-net/sonic-snmpagent sonic-net/sonic-wpa-supplicant Azure/sonic-swss.msft Azure/sonic-sairedis.msft Azure/sonic-utilities.msft Azure/sonic-platform-daemons.msft Azure/sonic-platform-common.msft Azure/sonic-linux-kernel.msft Azure/SAI.msft Azure/sonic-buildimage-msft"
+        repos="sonic-net/sonic-buildimage sonic-net/sonic-utilities sonic-net/sonic-swss sonic-net/sonic-sairedis sonic-net/sonic-swss-common sonic-net/sonic-dbsyncd sonic-net/sonic-gnmi sonic-net/sonic-host-services sonic-net/sonic-linkmgrd sonic-net/sonic-linux-kernel sonic-net/sonic-mgmt-common sonic-net/sonic-mgmt-framework sonic-net/sonic-platform-common sonic-net/sonic-platform-daemons sonic-net/sonic-py-swsssdk sonic-net/sonic-restapi sonic-net/sonic-snmpagent sonic-net/sonic-wpa-supplicant Azure/sonic-swss.msft Azure/sonic-sairedis.msft Azure/sonic-utilities.msft Azure/sonic-platform-daemons.msft Azure/sonic-platform-common.msft Azure/sonic-linux-kernel.msft Azure/SAI.msft Azure/sonic-buildimage-msft Azure/sonic-mgmt.msft Azure/sonic-swss-common.msft"
         rm -rf failure_prs.log skip_prs.log
         rc=0
           for repo in $repos $(EXTRA_REPOS); do
