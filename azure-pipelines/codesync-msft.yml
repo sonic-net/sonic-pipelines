@@ -16,9 +16,7 @@ parameters:
   - 202205
   - 202305
   - 202405
-- name: subs
-  type: string
-  default: "src/sonic-utilities src/sonic-swss src/sonic-platform-common src/sonic-platform-daemons"
+  - 202412
 
 resources:
   repositories:
@@ -34,10 +32,14 @@ variables:
 steps:
   - checkout: buildimage
     clean: true
+    path: s
+  - checkout: self
+    clean: true
+    path: tool
   - bash: |
       set -ex
       sudo apt update
-      sudo apt install -y gh
+      sudo apt install -y gh jq
       curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
       git remote add head https://github.com/sonic-net/sonic-buildimage
       git remote update
@@ -54,40 +56,45 @@ steps:
     - bash: |
         set -ex
 
-        branch=${{branch}}
-        git branch -D $branch || true
-        git checkout -b $branch --track origin/$branch
-        rm -rf ${{ parameters.subs }}
+        branch_base=${{branch}}
+        branch_head=${{branch}}
+        if [[ $branch_head == "202412" ]]; then
+          branch_head=202411
+        fi
+        subs=$(cat ../tool/azure-pipelines/codesync.json | jq -r '."${{ branch }}"')
+        git branch -D $branch_base || true
+        git checkout -b $branch_base --track origin/$branch_base
+        rm -rf $subs
         git reset HEAD --hard
         git clean -xdff
         git status
-        git ls-remote --exit-code origin refs/heads/$branch || exit 1
-        git ls-remote --exit-code head refs/heads/$branch || exit 2
+        git ls-remote --exit-code origin refs/heads/$branch_base || exit 1
+        git ls-remote --exit-code head refs/heads/$branch_head || exit 2
 
         git status | grep "^nothing to commit, working tree clean" || exit 3
         for i in {1..10}; do
           git submodule sync
-          git submodule update --init ${{ parameters.subs }} && break
+          git submodule update --init $subs && break
           sleep 2
           [[ $i == 10 ]] && exit 1
         done
 
         prehead=$(git log -n 1 --pretty=format:'%H')
 
-        git pull head $branch --no-commit || true
+        git pull head $branch_head --no-commit || true
         git status
         git submodule
 
         if ! git status | grep "^nothing to commit, working tree clean";then
           # code conflict
-          git add ${{ parameters.subs }}
+          git add $subs
           git reset platform/checkout/cisco-8000.ini
           git checkout platform/checkout/cisco-8000.ini
           if git status | grep "You have unmerged paths";then
             exit 12 #TODO add alert
             CommitID=$(git log $prehead..HEAD --merge --pretty=format:'%H'  | tail -n 1)
             description="<h1>Please merge $CommitID into sonic-buildimage-msft.Do not Cherry-pick!!!</h1>"
-            description="code conflict: sonic-net/sonic-buildimage:$branch -> Azure/sonic-buildimage-msft:$branch<br>"
+            description="code conflict: sonic-net/sonic-buildimage:$branch_head -> Azure/sonic-buildimage-msft:$branch_base<br>"
             description+=$(git log $prehead..HEAD --merge --pretty=format:'%h -%d %s (%cs) [%aN]')
             assign="Gen-Hwa Chiang <gechiang@microsoft.com>"
             # update work-item
@@ -106,9 +113,9 @@ steps:
         body=$(git log $prehead..HEAD --graph --pretty=format:'%h -%d %s (%cs) [%aN]')
         body='```<br>'$body'<br>```'
         # push code
-        git push https://mssonicbld:$TOKEN@github.com/mssonicbld/sonic-buildimage-msft HEAD:sonicbld/$branch-merge -f
+        git push https://mssonicbld:$TOKEN@github.com/mssonicbld/sonic-buildimage-msft HEAD:sonicbld/$branch_base-merge -f
         # create PR
-        url_=$(gh pr create -R Azure/sonic-buildimage-msft -H mssonicbld:sonicbld/$branch-merge -B $branch -t "[code sync] Merge code from sonic-net/sonic-buildimage:$branch to $branch" -b "$body" 2>&1; rc=$?)
+        url_=$(gh pr create -R Azure/sonic-buildimage-msft -H mssonicbld:sonicbld/$branch_base-merge -B $branch_base -t "[code sync] Merge code from sonic-net/sonic-buildimage:$branch_head to $branch_base" -b "$body" 2>&1; rc=$?)
         url=$(echo "$url_" | grep -Eo https://github.com/Azure/sonic-buildimage-msft/pull/[0-9]* )
 
         if echo $url_ | grep "already exists:"; then

@@ -7,100 +7,71 @@ schedules:
     include:
     - mssonicmaster
   always: true
-parameters:
-- name: branches
-  type: string
-  default: '202205 202305 202405'
-- name: repos
-  type: object
-  default:
-  - sonic-utilities.msft
-  - sonic-swss.msft
-  - sonic-platform-daemons.msft
-  - sonic-platform-common.msft
-resources:
-  repositories:
-  - repository: utilities
-    type: github
-    name: Azure/sonic-utilities.msft
-    endpoint: build
-  - repository: swss
-    type: github
-    name: Azure/sonic-swss.msft
-    endpoint: build
-  - repository: platform-daemons
-    type: github
-    name: Azure/sonic-platform-daemons.msft
-    endpoint: build
-  - repository: platform-common
-    type: github
-    name: Azure/sonic-platform-common.msft
-    endpoint: build
+
+
 pool: sonic-ubuntu-1c
 variables:
   - group: sonicbld
 steps:
-  - checkout: utilities
+  - checkout: self
     clean: true
-  - checkout: swss
-    clean: true
-  - checkout: platform-daemons
-    clean: true
-  - checkout: platform-common
-    clean: true
+    path: tool
   - bash: |
       set -ex
+      repos=$(for i in $(cat tool/azure-pipelines/codesync.json | jq .[] -r); do echo $i | sed 's#src/##'; done | sort -u)
+      for repo in $repos
+        git clone https://github.com/sonic-net/$repo
+        cd $repo
+        git remote add base https://github.com/Azure/$repo.msft
+        git remote update
+        git config pull.rebase false
+        sleep 2
+        cd ..
+      do
+      done
       ls
-      cd sonic-utilities.msft
-      git remote add head https://github.com/sonic-net/sonic-utilities
-      git remote update
-      git config pull.rebase false
-      cd ../sonic-swss.msft
-      git remote add head https://github.com/sonic-net/sonic-swss
-      git remote update
-      git config pull.rebase false
-      cd ../sonic-platform-daemons.msft
-      git remote add head https://github.com/sonic-net/sonic-platform-daemons
-      git remote update
-      git config pull.rebase false
-      cd ../sonic-platform-common.msft
-      git remote add head https://github.com/sonic-net/sonic-platform-common
-      git remote update
       git config --global user.email "sonicbld@microsoft.com"
       git config --global user.name "Sonic Automation"
-      git config pull.rebase false
       sudo apt update
-      sudo apt install -y gh
+      sudo apt install -y gh jq
       curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
       echo $TOKEN | gh auth login --with-token
       echo $AZURE_DEVOPS_EXT_PAT | az devops login
     env:
       TOKEN: $(GITHUB-TOKEN)
       AZURE_DEVOPS_EXT_PAT: $(MSAZURE-TOKEN)
-    displayName: Configure
-  - ${{ each repo in parameters.repos }}:
-    - bash: |
-        set -ex
-        cd ${{repo}}
-        echo "====${{repo}}===="
-        for branch in ${{ parameters.branches }}; do
+    displayName: Setup env
+  - bash: |
+      set -ex
+      repos=$(for i in $(cat tool/azure-pipelines/codesync.json | jq .[] -r); do echo $i | sed 's#src/##'; done | sort -u)
+      for repo in $repos
+        cd $repo
+        echo "====$repo===="
+        branches=$(cat tool/azure-pipelines/codesync.json | jq keys[])
+        for branch in $branches; do
+          if cat tool/azure-pipelines/codesync.json | jq -r ".\"$branch\"" | grep -v $repo; then
+            continue
+          fi
           echo "    ===$branch==="
           git ls-remote --exit-code origin refs/heads/$branch || { echo "        ==no branch: origin=="; continue; }
-          git ls-remote --exit-code head refs/heads/$branch || { echo "        ==no branch: head=="; continue; }
+          git ls-remote --exit-code base refs/heads/$branch || { echo "        ==no branch: base=="; continue; }
+          git branch -D test || true
+          git checkout -b test
           git branch -D $branch || true
-          git checkout -b $branch --track origin/$branch
+          git checkout -b $branch --track base/$branch
           git reset HEAD --hard
           git clean -xdff
           git status | grep "^nothing to commit, working tree clean" || { echo "        ==git not clean=="; continue; }
           prehead=$(git log -n 1 --pretty=format:'%H')
-          git pull head $branch --no-edit || true
+          git pull origin $branch --no-edit || true
           git status
           if git status | grep "You have unmerged paths";then
+            echo "        ==conflict!=="
             # code conflict, send alert TODO
             continue
             CommitID=$(git log $prehead..HEAD --merge --pretty=format:'%H'  | tail -n 1)
-            description="<h1>Please merge $CommitID into ${{repo}}.Do not Cherry-pick!!!</h1>"
-            description="code conflict: sonic-net/$(echo ${{repo}} | sed 's/\.msft//'):$branch -> Azure/${{repo}}:$branch<br>"
+            description="<h1>Please merge $CommitID into $repo.Do not Cherry-pick!!!</h1>"
+            description="code conflict: sonic-net/$repo:$branch -> Azure/$repo.msft:$branch<br>"
             description+=$(git log $prehead..HEAD --merge --pretty=format:'%h -%d %s (%cs) [%aN]')
             assign="Gen-Hwa Chiang <gechiang@microsoft.com>"
             # check if the workitem already exist
@@ -118,10 +89,10 @@ steps:
           body=$(git log $prehead..HEAD --graph --pretty=format:'%h -%d %s (%cs) [%aN]')
           body='```<br>'$body'<br>```'
           # push code
-          git push https://mssonicbld:$TOKEN@github.com/mssonicbld/${{repo}} HEAD:sonicbld/$branch-merge -f
+          git push https://mssonicbld:$TOKEN@github.com/mssonicbld/$repo.msft HEAD:sonicbld/$branch-merge -f
           # craete PR
-          url_=$(gh pr create -R Azure/${{repo}} -H mssonicbld:sonicbld/$branch-merge -B $branch -t "[code sync] Merge code from sonic-net/$(echo ${{repo}} | sed 's/\.msft//'):$branch to $branch" -b "$body" 2>&1; rc=$?)
-          url=$(echo "$url_" | grep -Eo https://github.com/Azure/${{repo}}/pull/[0-9]* )
+          url_=$(gh pr create -R Azure/$repo.msft -H mssonicbld:sonicbld/$branch-merge -B $branch -t "[code sync] Merge code from sonic-net/$repo:$branch to $branch" -b "$body" 2>&1; rc=$?)
+          url=$(echo "$url_" | grep -Eo https://github.com/Azure/$repo.msft/pull/[0-9]* )
           if echo $url_ | grep "already exists:"; then
             gh pr edit $url -b "$body"
           fi
@@ -134,9 +105,10 @@ steps:
           done
           gh pr merge $url --merge --admin
         done
-      env:
-        TOKEN: $(GITHUB-TOKEN)
-        AZURE_DEVOPS_EXT_PAT: $(MSAZURE-TOKEN)
-      condition: always()
-      displayName: '${{repo}} code sync'
+      done
+    env:
+      TOKEN: $(GITHUB-TOKEN)
+      AZURE_DEVOPS_EXT_PAT: $(MSAZURE-TOKEN)
+      RETRY_COUNT: $(RETRY_COUNT)
+    displayName: 'code sync'
 

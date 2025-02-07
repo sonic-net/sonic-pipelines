@@ -9,12 +9,6 @@ parameters:
   - 202305
   - 202405
   - 202412
-- name: submodules
-  type: string
-  default: 'src/sonic-utilities src/sonic-swss src/sonic-platform-daemons src/sonic-platform-common'
-- name: aisubs
-  type: string
-  default: 'src/sonic-sairedis src/sonic-linux-kernel'
 
 variables:
   - group: sonicbld
@@ -24,11 +18,15 @@ jobs:
     displayName: ${{ branch }}
     pool: sonic-ubuntu-1c
     steps:
-    - checkout: none
+    - checkout: self
+      clean: true
+      path: tool
     - bash: |
         set -ex
+        pwd
+        ls
         sudo apt update
-        sudo apt install -y gh
+        sudo apt install -y gh jq
         sudo rm -rf sonic-buildimage-msft
         git clone https://github.com/Azure/sonic-buildimage-msft
         cd sonic-buildimage-msft
@@ -47,7 +45,8 @@ jobs:
         set -ex
         cd sonic-buildimage-msft
         work_space=$(pwd)
-        for path in ${{ parameters.submodules }} $([[ ${{ branch }} == "202412" ]] && echo ${{ parameters.aisubs }})
+        subs=$(cat ../tool/azure-pipelines/codesync.json | jq -r '."${{ branch }}"')
+        for path in $subs
         do
           module_name=$(echo $path | sed 's#src/##')
           # if some modules break PR build. Add them to ignore_pathes
