@@ -37,30 +37,31 @@ steps:
       set -ex
       repos=$(for i in $(cat azure-pipelines/codesync.json | jq .[] -r); do echo $i | sed 's#src/##'; done | sort -u)
       cur_dir=$(pwd)
+      sudo rm -rf $cur_dir/log
       for repo in $repos; do
         [ -d $cur_dir/$repo ] || continue
         cd $cur_dir/$repo
-        echo "====$repo===="
+        echo "====$repo====" | tee $cur_dir/log
         branches=$(cat ../azure-pipelines/codesync.json | jq -r keys[])
         for branch in $branches; do
           if cat ../azure-pipelines/codesync.json | jq -r ".\"$branch\"" | grep -v $repo; then
             continue
           fi
-          echo "    ===$branch==="
-          git ls-remote --exit-code origin refs/heads/$branch || { echo "        ==no branch: origin=="; continue; }
-          git ls-remote --exit-code base refs/heads/$branch || { echo "        ==no branch: base=="; continue; }
+          echo "    ===$branch===" | tee $cur_dir/log
+          git ls-remote --exit-code origin refs/heads/$branch || { echo "        ==no branch: origin==" | tee $cur_dir/log; continue; }
+          git ls-remote --exit-code base refs/heads/$branch || { echo "        ==no branch: base==" | tee $cur_dir/log; continue; }
           git branch -D test || true
           git checkout -b test
           git branch -D $branch || true
           git checkout -b $branch --track base/$branch
           git reset HEAD --hard
           git clean -xdff
-          git status | grep "^nothing to commit, working tree clean" || { echo "        ==git not clean=="; continue; }
+          git status | grep "^nothing to commit, working tree clean" || { echo "        ==git not clean==" | tee $cur_dir/log; continue; }
           prehead=$(git log -n 1 --pretty=format:'%H')
           git pull origin $branch --no-edit || true
           git status
           if git status | grep "You have unmerged paths";then
-            echo "        ==conflict!=="
+            echo "        ==conflict!==" | tee $cur_dir/log
             # code conflict, send alert TODO
             continue
             CommitID=$(git log $prehead..HEAD --merge --pretty=format:'%H'  | tail -n 1)
@@ -75,10 +76,10 @@ steps:
           fi
           head=$(git log -n 1 --pretty=format:'%H')
           if [[ $prehead == $head ]];then
-            echo "        ==No change after merging=="
+            echo "        ==No change after merging==" | tee $cur_dir/log
             continue
           fi
-          echo "        ==Diff logs=="
+          echo "        ==Diff logs==" | tee $cur_dir/log
           git log $prehead..HEAD --graph --pretty=format:'%h -%d %s (%cs) [%aN]' | xargs -i echo "          {}"
           body=$(git log $prehead..HEAD --graph --pretty=format:'%h -%d %s (%cs) [%aN]')
           body='```<br>'$body'<br>```'
@@ -105,4 +106,4 @@ steps:
       AZURE_DEVOPS_EXT_PAT: $(MSAZURE-TOKEN)
       RETRY_COUNT: $(RETRY_COUNT)
     displayName: 'code sync'
-
+  - bash: cat log
