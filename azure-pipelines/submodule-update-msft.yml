@@ -47,6 +47,7 @@ steps:
           done
           cd $work_space/$path
           # 1. only keep repos with msft
+          git remote -vv
           git remote -vv | grep -i '\.msft' || continue
           # 2. only update the same branch with sonic-buildimage-msft
           git branch -a --contains HEAD | grep "remotes/origin/$branch" || continue
