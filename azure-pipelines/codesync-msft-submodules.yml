@@ -1,13 +1,13 @@
 pr: none
 trigger: none
+
 schedules:
 - cron: "0 0 * * *"
   displayName: Daily
   branches:
     include:
-    - mssonicmaster
+    - main
   always: true
-
 
 pool: sonic-ubuntu-1c
 variables:
@@ -15,10 +15,11 @@ variables:
 steps:
   - checkout: self
     clean: true
-    path: tool
+    path: s/tool
   - bash: |
       set -ex
       repos=$(for i in $(cat tool/azure-pipelines/codesync.json | jq .[] -r); do echo $i | sed 's#src/##'; done | sort -u)
+      [ -z $repos ] && exit 1
       for repo in $repos
         git clone https://github.com/sonic-net/$repo
         cd $repo

@@ -9,29 +9,20 @@ schedules:
     - main
   always: true
 
-resources:
-  repositories:
-  - repository: buildimage
-    type: github
-    name: Azure/sonic-buildimage-msft
-    endpoint: build
-
 pool: sonic-ubuntu-1c
 variables:
   - group: sonicbld
-
 steps:
-  - checkout: buildimage
-    clean: true
-    path: s
   - checkout: self
     clean: true
-    path: tool
+    path: s/tool
   - bash: |
       set -ex
       sudo apt update
       sudo apt install -y gh jq
       curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+      git clone https://github.com/Azure/sonic-buildimage-msft sonic-buildimage
+      cd sonic-buildimage
       git remote add head https://github.com/sonic-net/sonic-buildimage
       git remote update
       git config --global user.email "sonicbld@microsoft.com"
@@ -45,7 +36,9 @@ steps:
     displayName: Configure
   - bash: |
       set -ex
+      ls -al
       branches=$(cat tool/azure-pipelines/codesync.json | jq -r keys[])
+      [ z- "$branches" ] && exit 1
       for branch in $branches; do
         branch_base=$branch
         branch_head=$branch
