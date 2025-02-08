@@ -1,56 +1,47 @@
 pr: none
 trigger: none
 
-schedules:
-- cron: "0 0 * * *"
-  displayName: Daily
-  branches:
-    include:
-    - main
-  always: true
-
 pool: sonic-ubuntu-1c
 variables:
   - group: sonicbld
 steps:
   - checkout: self
     clean: true
-    path: s/tool
   - bash: |
       set -ex
-      repos=$(for i in $(cat tool/azure-pipelines/codesync.json | jq .[] -r); do echo $i | sed 's#src/##'; done | sort -u)
+      sudo apt update
+      sudo apt install -y gh jq
+      curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+      git config --global user.email "sonicbld@microsoft.com"
+      git config --global user.name "Sonic Automation"
+      git config --global pull.rebase false
+      echo $TOKEN | gh auth login --with-token
+      echo $AZURE_DEVOPS_EXT_PAT | az devops login
+
+      repos=$(for i in $(cat azure-pipelines/codesync.json | jq .[] -r); do echo $i | sed 's#src/##'; done | sort -u)
       [ -z $repos ] && exit 1
-      for repo in $repos
+      for repo in $repos; do
+        sudo rm -rf $repo
         git clone https://github.com/sonic-net/$repo
         cd $repo
         git remote add base https://github.com/Azure/$repo.msft
         git remote update
-        git config pull.rebase false
-        sleep 2
         cd ..
-      do
+        sleep 2
       done
-      ls
-      git config --global user.email "sonicbld@microsoft.com"
-      git config --global user.name "Sonic Automation"
-      sudo apt update
-      sudo apt install -y gh jq
-      curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
-      echo $TOKEN | gh auth login --with-token
-      echo $AZURE_DEVOPS_EXT_PAT | az devops login
     env:
       TOKEN: $(GITHUB-TOKEN)
       AZURE_DEVOPS_EXT_PAT: $(MSAZURE-TOKEN)
     displayName: Setup env
   - bash: |
       set -ex
-      repos=$(for i in $(cat tool/azure-pipelines/codesync.json | jq .[] -r); do echo $i | sed 's#src/##'; done | sort -u)
+      repos=$(for i in $(cat azure-pipelines/codesync.json | jq .[] -r); do echo $i | sed 's#src/##'; done | sort -u)
       for repo in $repos
         cd $repo
         echo "====$repo===="
-        branches=$(cat tool/azure-pipelines/codesync.json | jq -r keys[])
+        branches=$(cat azure-pipelines/codesync.json | jq -r keys[])
         for branch in $branches; do
-          if cat tool/azure-pipelines/codesync.json | jq -r ".\"$branch\"" | grep -v $repo; then
+          if cat azure-pipelines/codesync.json | jq -r ".\"$branch\"" | grep -v $repo; then
             continue
           fi
           echo "    ===$branch==="

@@ -1,32 +1,32 @@
 pr: none
 trigger: none
 
+pool: sonic-ubuntu-1c
 variables:
   - group: sonicbld
-jobs:
-- job:
-  displayName: msft sub ref update
-  pool: sonic-ubuntu-1c
-  steps:
+steps:
   - checkout: self
     clean: true
-    path: tool
+    path: s/tool
   - bash: |
       set -ex
-
       sudo apt update
       sudo apt install -y gh jq
+      curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+      git config --global user.email "sonicbld@microsoft.com"
+      git config --global user.name "Sonic Automation"
+      git config --global pull.rebase false
+      echo $TOKEN | gh auth login --with-token
+      echo $AZURE_DEVOPS_EXT_PAT | az devops login
+
       sudo rm -rf sonic-buildimage-msft
       git clone https://github.com/Azure/sonic-buildimage-msft
       cd sonic-buildimage-msft
-      git config user.email sonicbld@microsoft.com
-      git config user.name mssonicbld
-      git config credential.https://github.com.username mssonicbld
       git remote add mssonicbld https://mssonicbld:$TOKEN@github.com/mssonicbld/sonic-buildimage-msft
       git fetch mssonicbld
-      echo $TOKEN | gh auth login --with-token
     env:
       TOKEN: $(GITHUB-TOKEN)
+      AZURE_DEVOPS_EXT_PAT: $(MSAZURE-TOKEN)
     displayName: Setup env
   - bash: |
       set -ex
