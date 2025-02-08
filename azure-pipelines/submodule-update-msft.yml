@@ -33,6 +33,7 @@ steps:
       cd sonic-buildimage-msft
       work_space=$(pwd)
       for branch in $branches; do
+        cd $work_space
         paths=$(cat ../azure-pipelines/codesync.json | jq -r ".\"$branch\"")
         for path in $paths; do
           module_name=$(echo $path | sed 's#src/##')
