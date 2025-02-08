@@ -47,18 +47,23 @@ steps:
           if cat ../azure-pipelines/codesync.json | jq -r ".\"$branch\"" | grep -v $repo; then
             continue
           fi
+          branch_base=$branch
+          branch_head=$branch
+          if [[ $branch == "202412" ]]; then
+            branch_head=202411
+          fi
           echo "    ===$branch===" | tee -a $cur_dir/log
-          git ls-remote --exit-code origin refs/heads/$branch || { echo "        ==no branch: origin==" | tee -a $cur_dir/log; continue; }
-          git ls-remote --exit-code base refs/heads/$branch || { echo "        ==no branch: base==" | tee -a $cur_dir/log; continue; }
+          git ls-remote --exit-code origin refs/heads/$branch_head || { echo "        ==no branch: origin==" | tee -a $cur_dir/log; continue; }
+          git ls-remote --exit-code base refs/heads/$branch_base || { echo "        ==no branch: base==" | tee -a $cur_dir/log; continue; }
           git branch -D test || true
           git checkout -b test
-          git branch -D $branch || true
-          git checkout -b $branch --track base/$branch
+          git branch -D $branch_base || true
+          git checkout -b $branch_base --track base/$branch_base
           git reset HEAD --hard
           git clean -xdff
           git status | grep "^nothing to commit, working tree clean" || { echo "        ==git not clean==" | tee -a $cur_dir/log; continue; }
           prehead=$(git log -n 1 --pretty=format:'%H')
-          git pull origin $branch --no-edit || true
+          git pull origin $branch_head --no-edit || true
           git status
           if git status | grep "You have unmerged paths";then
             echo "        ==conflict!==" | tee -a $cur_dir/log
@@ -66,7 +71,7 @@ steps:
             continue
             CommitID=$(git log $prehead..HEAD --merge --pretty=format:'%H'  | tail -n 1)
             description="<h1>Please merge $CommitID into $repo.Do not Cherry-pick!!!</h1>"
-            description="code conflict: sonic-net/$repo:$branch -> Azure/$repo.msft:$branch<br>"
+            description="code conflict: sonic-net/$repo:$branch_head -> Azure/$repo.msft:$branch_base<br>"
             description+=$(git log $prehead..HEAD --merge --pretty=format:'%h -%d %s (%cs) [%aN]')
             assign="Gen-Hwa Chiang <gechiang@microsoft.com>"
             # check if the workitem already exist
@@ -86,7 +91,7 @@ steps:
           # push code
           git push https://mssonicbld:$TOKEN@github.com/mssonicbld/$repo.msft HEAD:sonicbld/$branch-merge -f
           # craete PR
-          url_=$(gh pr create -R Azure/$repo.msft -H mssonicbld:sonicbld/$branch-merge -B $branch -t "[code sync] Merge code from sonic-net/$repo:$branch to $branch" -b "$body" 2>&1; rc=$?)
+          url_=$(gh pr create -R Azure/$repo.msft -H mssonicbld:sonicbld/$branch-merge -B $branch_base -t "[code sync] Merge code from sonic-net/$repo:$branch_head to $branch" -b "$body" 2>&1; rc=$?)
           url=$(echo "$url_" | grep -Eo https://github.com/Azure/$repo.msft/pull/[0-9]* )
           if echo $url_ | grep "already exists:"; then
             gh pr edit $url -b "$body"
@@ -98,7 +103,7 @@ steps:
             gh pr checks $url | grep https || continue
             gh pr checks $url | grep https | grep pending && continue || break
           done
-          gh pr merge $url --merge --admin
+          echo gh pr merge $url --merge --admin
         done
       done
     env:
