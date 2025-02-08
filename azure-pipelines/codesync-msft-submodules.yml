@@ -47,7 +47,7 @@ steps:
       for repo in $repos
         cd $repo
         echo "====$repo===="
-        branches=$(cat tool/azure-pipelines/codesync.json | jq keys[])
+        branches=$(cat tool/azure-pipelines/codesync.json | jq -r keys[])
         for branch in $branches; do
           if cat tool/azure-pipelines/codesync.json | jq -r ".\"$branch\"" | grep -v $repo; then
             continue

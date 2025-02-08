@@ -9,15 +9,6 @@ schedules:
     - main
   always: true
 
-parameters:
-- name: branches
-  type: object
-  default:
-  - 202205
-  - 202305
-  - 202405
-  - 202412
-
 resources:
   repositories:
   - repository: buildimage
@@ -52,10 +43,10 @@ steps:
       TOKEN: $(GITHUB-TOKEN)
       AZURE_DEVOPS_EXT_PAT: $(MSAZURE-TOKEN)
     displayName: Configure
-  - ${{each branch in parameters.branches}}:
-    - bash: |
-        set -ex
-
+  - bash: |
+      set -ex
+      branches=$(cat tool/azure-pipelines/codesync.json | jq -r keys[])
+      for branch in $branches; do
         branch_base=${{branch}}
         branch_head=${{branch}}
         if [[ $branch_head == "202412" ]]; then
@@ -128,8 +119,8 @@ steps:
           gh pr checks $url | grep https | grep pending && continue || break
         done
         gh pr merge $url --merge --admin
-      env:
-        TOKEN: $(GITHUB-TOKEN)
-        AZURE_DEVOPS_EXT_PAT: $(MSAZURE-TOKEN)
-      condition: always()
-      displayName: '${{branch}} code merge'
+      done
+    env:
+      TOKEN: $(GITHUB-TOKEN)
+      AZURE_DEVOPS_EXT_PAT: $(MSAZURE-TOKEN)
+    displayName: 'code merge'
