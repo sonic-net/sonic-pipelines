@@ -55,6 +55,8 @@ steps:
           echo "    ===$branch===" | tee -a $cur_dir/log
           git ls-remote --exit-code origin refs/heads/$branch_head || { echo "        ==no branch: origin==" | tee -a $cur_dir/log; continue; }
           git ls-remote --exit-code base refs/heads/$branch_base || { echo "        ==no branch: base==" | tee -a $cur_dir/log; continue; }
+          head_commit=$(git log -n 1 --format=%H origin/$branch_head)
+          git log --format=%H base/$branch_base | grep $head_commit && continue
           git branch -D test || true
           git checkout -b test
           git branch -D $branch_base || true
@@ -91,19 +93,12 @@ steps:
           # push code
           git push https://mssonicbld:$TOKEN@github.com/mssonicbld/$repo.msft HEAD:sonicbld/$branch-merge -f
           # craete PR
-          url_=$(gh pr create -R Azure/$repo.msft -H mssonicbld:sonicbld/$branch-merge -B $branch_base -t "[code sync] Merge code from sonic-net/$repo:$branch_head to $branch" -b "$body" 2>&1; rc=$?)
+          url_=$(gh pr create -R Azure/$repo.msft -H mssonicbld:sonicbld/$branch-merge -B $branch_base -t "[code sync] Merge code from sonic-net/$repo:$branch_head to $branch" -b "$body" -l automerge 2>&1; rc=$?)
           url=$(echo "$url_" | grep -Eo https://github.com/Azure/$repo.msft/pull/[0-9]* )
           if echo $url_ | grep "already exists:"; then
-            gh pr edit $url -b "$body"
+            gh pr edit $url -b "$body" --add-label automerge
           fi
           sleep 10
-          for (( c=1; c<=RETRY_COUNT; c++ ));do
-            echo "count: $c"
-            sleep 60
-            gh pr checks $url | grep https || continue
-            gh pr checks $url | grep https | grep pending && continue || break
-          done
-          echo gh pr merge $url --merge --admin
         done
       done
     env:
