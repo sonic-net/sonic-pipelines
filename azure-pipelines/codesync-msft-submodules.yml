@@ -36,7 +36,7 @@ steps:
   - bash: |
       set -ex
       repos=$(for i in $(cat azure-pipelines/codesync.json | jq .[] -r); do echo $i | sed 's#src/##'; done | sort -u)
-      for repo in $repos
+      for repo in $repos; do
         cd $repo
         echo "====$repo===="
         branches=$(cat azure-pipelines/codesync.json | jq -r keys[])
