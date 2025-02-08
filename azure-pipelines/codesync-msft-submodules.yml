@@ -99,6 +99,7 @@ steps:
           if echo $url_ | grep "already exists:"; then
             gh pr edit $url -b "$body" --add-label automerge
           fi
+          echo "        ==$url==" >> $cur_dir/log
           sleep 10
         done
       done
