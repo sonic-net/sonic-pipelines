@@ -30,6 +30,7 @@ steps:
   - bash: |
       set -ex
       branches=$(cat azure-pipelines/codesync.json | jq -r keys[])
+      pushd sonic-buildimage-msft
       [ -z "$branches" ] && exit 1
       for branch in $branches; do
         branch_base=$branch
@@ -37,10 +38,11 @@ steps:
         if [[ $branch_head == "202412" ]]; then
           branch_head=202411
         fi
-        subs=$(cat azure-pipelines/codesync.json | jq -r ".\"$branch\"")
-        git branch -D $branch_base || true
         git ls-remote origin refs/heads/$branch_base || continue
         git ls-remote head refs/heads/$branch_head || continue
+        subs=$(cat ../azure-pipelines/codesync.json | jq -r ".\"$branch\"")
+        [ -z "$subs" ] && continue
+        git branch -D $branch_base || true
         git checkout -b $branch_base --track origin/$branch_base
         rm -rf $subs
         git reset HEAD --hard
