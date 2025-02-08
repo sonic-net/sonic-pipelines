@@ -40,6 +40,8 @@ steps:
         fi
         git ls-remote origin refs/heads/$branch_base || continue
         git ls-remote head refs/heads/$branch_head || continue
+        head_commit=$(git log -n 1 --format=%H head/$branch_head)
+        git log --format=%H origin/$branch_base | grep $head_commit && continue
         subs=$(cat ../azure-pipelines/codesync.json | jq -r ".\"$branch\"")
         [ -z "$subs" ] && continue
         git branch -D $branch_base || true
@@ -49,12 +51,12 @@ steps:
         git clean -xdff
         git status
 
-        git status | grep "^nothing to commit, working tree clean" || exit 3
+        git status | grep "^nothing to commit, working tree clean" || continue
         for i in {1..10}; do
           git submodule sync
           git submodule update --init $subs && break
           sleep 2
-          [[ $i == 10 ]] && exit 1
+          [[ $i == 10 ]] && continue 2
         done
         prehead=$(git log -n 1 --pretty=format:'%H')
         git pull head $branch_head --no-commit || true
@@ -67,7 +69,7 @@ steps:
           git reset platform/checkout/cisco-8000.ini
           git checkout platform/checkout/cisco-8000.ini
           if git status | grep "You have unmerged paths";then
-            exit 12 #TODO add alert
+            continue #TODO add alert
             CommitID=$(git log $prehead..HEAD --merge --pretty=format:'%H'  | tail -n 1)
             description="<h1>Please merge $CommitID into sonic-buildimage-msft.Do not Cherry-pick!!!</h1>"
             description="code conflict: sonic-net/sonic-buildimage:$branch_head -> Azure/sonic-buildimage-msft:$branch_base<br>"
@@ -82,7 +84,7 @@ steps:
         head=$(git log -n 1 --pretty=format:'%H')
         if [[ $prehead == $head ]];then
           echo "======No change after merging...======"
-          exit 0
+          continue
         fi
         echo "======Diff logs======"
         git log $prehead..HEAD --graph --pretty=format:'%h -%d %s (%cs) [%aN]'
