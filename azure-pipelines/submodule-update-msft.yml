@@ -46,10 +46,10 @@ jobs:
           # 1. only keep repos with msft
           git remote -vv | grep -i 'msft' || continue
           # 2. only update the same branch with sonic-buildimage-msft
-          git branch -a --contains HEAD | grep 'remotes/origin/${{ branch }}' || continue
+          git branch -a --contains HEAD | grep "remotes/origin/$branch" || continue
 
           head=$(git rev-parse HEAD)
-          git checkout ${{ branch }}
+          git checkout $branch
           git pull
           commits=$(git log ${head}..HEAD --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)[%an]%Creset')
           if [[ "$commits" != "" ]];then
@@ -65,11 +65,11 @@ jobs:
 
             git add $path
             git commit -m "[submodule] Update submodule $module_name to the latest HEAD automatically" || continue
-            git push mssonicbld HEAD:submodule-${{ branch }}-$module_name -f
+            git push mssonicbld HEAD:submodule-$branch-$module_name -f
             label=""
-            echo $(automerge_branches) | grep ${{ branch }} && label=",automerge"
+            echo $(automerge_branches) | grep $branch && label=",automerge"
             git status
-            result=$(gh pr create -R Azure/sonic-buildimage-msft -H mssonicbld:submodule-${{ branch }}-$module_name -B ${{ branch }} -t "[submodule][${{ branch }}] Update submodule $module_name to the latest HEAD automatically" -l "Submodule Update :arrow_double_up:$label" -b "$body" 2>&1 || true)
+            result=$(gh pr create -R Azure/sonic-buildimage-msft -H mssonicbld:submodule-$branch-$module_name -B $branch -t "[submodule][$branch] Update submodule $module_name to the latest HEAD automatically" -l "Submodule Update :arrow_double_up:$label" -b "$body" 2>&1 || true)
             pr_url=$(echo "$result" | grep -Eo "https://github.com/Azure/sonic-buildimage-msft/pull/[0-9]*")
             if echo $result | grep "already exists:"; then
               gh pr edit $pr_url -b "$body"
