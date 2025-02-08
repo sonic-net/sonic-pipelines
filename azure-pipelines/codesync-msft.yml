@@ -93,19 +93,12 @@ steps:
         # push code
         git push https://mssonicbld:$TOKEN@github.com/mssonicbld/sonic-buildimage-msft HEAD:sonicbld/$branch_base-merge -f
         # create PR
-        url_=$(gh pr create -R Azure/sonic-buildimage-msft -H mssonicbld:sonicbld/$branch_base-merge -B $branch_base -t "[code sync] Merge code from sonic-net/sonic-buildimage:$branch_head to $branch_base" -b "$body" 2>&1; rc=$?)
+        url_=$(gh pr create -R Azure/sonic-buildimage-msft -H mssonicbld:sonicbld/$branch_base-merge -B $branch_base -t "[code sync] Merge code from sonic-net/sonic-buildimage:$branch_head to $branch_base" -b "$body" -l automerge 2>&1; rc=$?)
         url=$(echo "$url_" | grep -Eo https://github.com/Azure/sonic-buildimage-msft/pull/[0-9]* )
 
         if echo $url_ | grep "already exists:"; then
-          gh pr edit $url -b "$body"
+          gh pr edit $url -b "$body" --add-label automerge
         fi
-        for (( c=1; c<=RETRY_COUNT; c++ ));do
-          echo count: $c
-          sleep 60
-          gh pr checks $url | grep https || continue
-          gh pr checks $url | grep https | grep pending && continue || break
-        done
-        gh pr merge $url --merge --admin
       done
     env:
       TOKEN: $(GITHUB-TOKEN)

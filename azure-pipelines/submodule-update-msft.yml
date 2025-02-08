@@ -35,16 +35,19 @@ steps:
       for branch in $branches; do
         cd $work_space
         paths=$(cat ../azure-pipelines/codesync.json | jq -r ".\"$branch\"")
+        sudo rm -rf $paths
+        git reset HEAD --hard
+        git submodule sync
+        git submodule update --init $paths
         for path in $paths; do
           module_name=$(echo $path | sed 's#src/##')
           # if some modules break PR build. Add them to ignore_pathes
-          for ignore_path in $(ignore_pathes)
-          do
+          for ignore_path in $(ignore_pathes); do
             [[ "$ignore_path" == "$path" ]] && continue 2
           done
           cd $work_space/$path
           # 1. only keep repos with msft
-          git remote -vv | grep -i 'msft' || continue
+          git remote -vv | grep -i '\.msft' || continue
           # 2. only update the same branch with sonic-buildimage-msft
           git branch -a --contains HEAD | grep "remotes/origin/$branch" || continue
 
