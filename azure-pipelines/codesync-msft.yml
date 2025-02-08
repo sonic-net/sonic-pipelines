@@ -39,13 +39,13 @@ steps:
         fi
         subs=$(cat azure-pipelines/codesync.json | jq -r ".\"$branch\"")
         git branch -D $branch_base || true
+        git ls-remote origin refs/heads/$branch_base || continue
+        git ls-remote head refs/heads/$branch_head || continue
         git checkout -b $branch_base --track origin/$branch_base
         rm -rf $subs
         git reset HEAD --hard
         git clean -xdff
         git status
-        git ls-remote --exit-code origin refs/heads/$branch_base || exit 1
-        git ls-remote --exit-code head refs/heads/$branch_head || exit 2
 
         git status | grep "^nothing to commit, working tree clean" || exit 3
         for i in {1..10}; do
@@ -54,9 +54,7 @@ steps:
           sleep 2
           [[ $i == 10 ]] && exit 1
         done
-
         prehead=$(git log -n 1 --pretty=format:'%H')
-
         git pull head $branch_head --no-commit || true
         git status
         git submodule
