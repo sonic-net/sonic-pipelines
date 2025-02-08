@@ -65,17 +65,14 @@ steps:
             git add $path
             git commit -m "[submodule] Update submodule $module_name to the latest HEAD automatically" || continue
             git push mssonicbld HEAD:submodule-$branch-$module_name -f
-            label=""
-            echo $(automerge_branches) | grep $branch && label=",automerge"
             git status
-            result=$(gh pr create -R Azure/sonic-buildimage-msft -H mssonicbld:submodule-$branch-$module_name -B $branch -t "[submodule][$branch] Update submodule $module_name to the latest HEAD automatically" -l "Submodule Update :arrow_double_up:$label" -b "$body" 2>&1 || true)
+            result=$(gh pr create -R Azure/sonic-buildimage-msft -H mssonicbld:submodule-$branch-$module_name -B $branch -t "[submodule][$branch] Update submodule $module_name to the latest HEAD automatically" -l "automerge" -b "$body" 2>&1 || true)
             pr_url=$(echo "$result" | grep -Eo "https://github.com/Azure/sonic-buildimage-msft/pull/[0-9]*")
             if echo $result | grep "already exists:"; then
-              gh pr edit $pr_url -b "$body"
+              gh pr edit $pr_url -b "$body" -l automerge
             fi
             git reset HEAD~ --hard
-            sleep $(INTERVAL)
-            gh pr merge $pr_url --merge --admin
+            sleep 10
           fi
         done
       done
