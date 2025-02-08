@@ -39,9 +39,9 @@ steps:
       for repo in $repos; do
         cd $repo
         echo "====$repo===="
-        branches=$(cat azure-pipelines/codesync.json | jq -r keys[])
+        branches=$(cat ../azure-pipelines/codesync.json | jq -r keys[])
         for branch in $branches; do
-          if cat azure-pipelines/codesync.json | jq -r ".\"$branch\"" | grep -v $repo; then
+          if cat ../azure-pipelines/codesync.json | jq -r ".\"$branch\"" | grep -v $repo; then
             continue
           fi
           echo "    ===$branch==="
