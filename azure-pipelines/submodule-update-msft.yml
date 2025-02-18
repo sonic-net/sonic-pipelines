@@ -35,12 +35,12 @@ steps:
       for branch in $branches; do
         cd $work_space
         paths=$(cat ../azure-pipelines/codesync.json | jq -r ".\"$branch\"")
-        git submodule deinit -f -- $paths
+        git submodule deinit -f --all
+        rm .git/modules/* -rf
         git reset HEAD --hard
         git checkout -b $branch --track origin/$branch
-        git submodule init -- $paths
         git submodule sync
-        git submodule update $paths
+        git submodule update --init $paths
         for path in $paths; do
           module_name=$(echo $path | sed 's#src/##')
           # if some modules break PR build. Add them to ignore_pathes
