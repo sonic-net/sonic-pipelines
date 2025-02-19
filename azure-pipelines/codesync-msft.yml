@@ -45,10 +45,10 @@ steps:
         subs=$(cat ../azure-pipelines/codesync.json | jq -r ".\"$branch\"")
         [ -z "$subs" ] && continue
         git branch -D $branch_base || true
+        git clean -xdff && git reset HEAD --hard
         git checkout -b $branch_base --track origin/$branch_base
         rm -rf $subs
         git reset HEAD --hard
-        git clean -xdff
         git status
 
         git status | grep "^nothing to commit, working tree clean" || continue
