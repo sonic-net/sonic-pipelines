@@ -15,10 +15,6 @@ parameters:
   - 202411
   - 202405
   - 202311
-  - 202305
-  - 202211
-  - 202205
-  - 202012
 
 jobs:
 - ${{ each branch in parameters.branches }}:
