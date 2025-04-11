@@ -11,6 +11,8 @@ schedules:
 jobs:
 - job: PRChecker
   pool: sonic-ubuntu-1c
+  variables:
+    - group: sonicbld
   timeoutInMinutes: 60
   steps:
     - checkout: none
@@ -24,7 +26,7 @@ jobs:
 
         echo $TOKEN | gh auth login --with-token
       env:
-        TOKEN: $(GH_TOKEN)
+        TOKEN: $(GITHUB-TOKEN)
       displayName: install dependencies
     - script: |
         set -ex
