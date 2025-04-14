@@ -103,8 +103,8 @@ steps:
       set -ex
       cat log
       body="
-      https://dev.azure.com/mssonic/build/_build?definitionId=862
-      $(cat log)
+      https://dev.azure.com/mssonic/build/_build?definitionId=862\n
+      $(cat log | sed 's/$/\n/')
       "
       if grep -q '==conflict!==' log; then
         curl $URL -H 'Content-Type: application/json' -d "{\"text\": \"$body\"}"
