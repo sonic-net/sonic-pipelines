@@ -70,15 +70,6 @@ steps:
           git status
           if git status | grep "You have unmerged paths";then
             echo "        ==conflict!==" | tee -a $cur_dir/log
-            # code conflict, send alert TODO
-            continue
-            CommitID=$(git log $prehead..HEAD --merge --pretty=format:'%H'  | tail -n 1)
-            description="<h1>Please merge $CommitID into $repo.Do not Cherry-pick!!!</h1>"
-            description="code conflict: sonic-net/$repo:$branch_head -> Azure/$repo.msft:$branch_base<br>"
-            description+=$(git log $prehead..HEAD --merge --pretty=format:'%h -%d %s (%cs) [%aN]')
-            assign="Gen-Hwa Chiang <gechiang@microsoft.com>"
-            # check if the workitem already exist
-            az boards work-item update --org https://dev.azure.com/mssonic/ --id $ADO_ID --discussion "$description" -f "Custom Field 1=type_A"
             git merge --abort
             continue
           fi
@@ -88,7 +79,7 @@ steps:
             continue
           fi
           echo "        ==Diff logs==" | tee -a $cur_dir/log
-          git log $prehead..HEAD --graph --pretty=format:'%h -%d %s (%cs) [%aN]' | xargs -i echo "          {}"
+          git log $prehead..HEAD --graph --pretty=format:'%h -%d %s (%cs) [%aN]' | sed 's/^/        /'
           body=$(git log $prehead..HEAD --graph --pretty=format:'%h -%d %s (%cs) [%aN]')
           body='```<br>'$body'<br>```'
           # push code
@@ -108,4 +99,14 @@ steps:
       AZURE_DEVOPS_EXT_PAT: $(MSAZURE-TOKEN)
       RETRY_COUNT: $(RETRY_COUNT)
     displayName: 'code sync'
-  - bash: cat log
+  - bash: |
+      cat log
+      body="
+      https://dev.azure.com/mssonic/build/_build?definitionId=862
+      $(cat log)
+      "
+      if grep -q '==conflict!=='; then
+        curl $URL -H 'Content-Type: application/json' -d "{\"text\": \"$body\"}"
+      fi
+    env:
+      URL: $(TEAMS-MSG-URL)
