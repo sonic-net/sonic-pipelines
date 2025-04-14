@@ -1,7 +1,7 @@
 {
-    "202503": "src/sonic-utilities src/sonic-swss src/sonic-platform-common src/sonic-platform-daemons src/sonic-sairedis",
-    "202412": "src/sonic-utilities src/sonic-swss src/sonic-platform-common src/sonic-platform-daemons src/sonic-sairedis src/sonic-linux-kernel src/sonic-swss-common",
-    "202405": "src/sonic-utilities src/sonic-swss src/sonic-platform-common src/sonic-platform-daemons",
+    "202205": "src/sonic-utilities src/sonic-swss src/sonic-platform-common src/sonic-platform-daemons",
     "202305": "src/sonic-utilities src/sonic-swss src/sonic-platform-common src/sonic-platform-daemons",
-    "202205": "src/sonic-utilities src/sonic-swss src/sonic-platform-common src/sonic-platform-daemons"
+    "202405": "src/sonic-utilities src/sonic-swss src/sonic-platform-common src/sonic-platform-daemons",
+    "202412": "src/sonic-utilities src/sonic-swss src/sonic-platform-common src/sonic-platform-daemons src/sonic-sairedis src/sonic-linux-kernel src/sonic-swss-common",
+    "202503": "src/sonic-utilities src/sonic-swss src/sonic-platform-common src/sonic-platform-daemons src/sonic-sairedis"
 }
