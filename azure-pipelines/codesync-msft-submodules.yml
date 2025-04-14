@@ -107,7 +107,9 @@ steps:
       "
       if grep -q '  - conflict!' log; then
         curl $URL -H 'Content-Type: application/json' -d "{\"text\": \"$body\"}"
+        exit 1
       fi
+      exit 0
     env:
       URL: $(TEAMS-MSG-URL)
     displayName: show result and send alert
