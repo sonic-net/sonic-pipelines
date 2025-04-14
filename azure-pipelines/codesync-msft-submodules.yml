@@ -100,12 +100,13 @@ steps:
       RETRY_COUNT: $(RETRY_COUNT)
     displayName: 'code sync'
   - bash: |
+      set -ex
       cat log
       body="
       https://dev.azure.com/mssonic/build/_build?definitionId=862
       $(cat log)
       "
-      if grep -q '==conflict!=='; then
+      if grep -q '==conflict!==' log; then
         curl $URL -H 'Content-Type: application/json' -d "{\"text\": \"$body\"}"
       fi
     env:
