@@ -41,7 +41,7 @@ steps:
       for repo in $repos; do
         [ -d $cur_dir/$repo ] || continue
         cd $cur_dir/$repo
-        echo "====$repo====" | tee -a $cur_dir/log
+        echo "# $repo" | tee -a $cur_dir/log
         branches=$(cat ../azure-pipelines/codesync.json | jq -r keys[])
         for branch in $branches; do
           if cat ../azure-pipelines/codesync.json | jq -r ".\"$branch\"" | grep -v $repo; then
@@ -52,9 +52,9 @@ steps:
           if [[ $branch == "202412" ]]; then
             branch_head=202411
           fi
-          echo "    ===$branch===" | tee -a $cur_dir/log
-          git ls-remote --exit-code origin refs/heads/$branch_head || { echo "        ==no branch: origin==" | tee -a $cur_dir/log; continue; }
-          git ls-remote --exit-code base refs/heads/$branch_base || { echo "        ==no branch: base==" | tee -a $cur_dir/log; continue; }
+          echo "- $branch" | tee -a $cur_dir/log
+          git ls-remote --exit-code origin refs/heads/$branch_head || { echo "  - no branch: origin" | tee -a $cur_dir/log; continue; }
+          git ls-remote --exit-code base refs/heads/$branch_base || { echo "  - no branch: base" | tee -a $cur_dir/log; continue; }
           head_commit=$(git log -n 1 --format=%H origin/$branch_head)
           git log --format=%H base/$branch_base | grep $head_commit && continue
           git merge --abort || true
@@ -64,21 +64,21 @@ steps:
           git checkout -b $branch_base --track base/$branch_base
           git reset HEAD --hard
           git clean -xdff
-          git status | grep "^nothing to commit, working tree clean" || { echo "        ==git not clean==" | tee -a $cur_dir/log; continue; }
+          git status | grep "^nothing to commit, working tree clean" || { echo "  - git not clean" | tee -a $cur_dir/log; continue; }
           prehead=$(git log -n 1 --pretty=format:'%H')
           git pull origin $branch_head --no-edit || true
           git status
           if git status | grep "You have unmerged paths";then
-            echo "        ==conflict!==" | tee -a $cur_dir/log
+            echo "  - conflict!" | tee -a $cur_dir/log
             git merge --abort
             continue
           fi
           head=$(git log -n 1 --pretty=format:'%H')
           if [[ $prehead == $head ]];then
-            echo "        ==No change after merging==" | tee -a $cur_dir/log
+            echo "  - No change after merging" | tee -a $cur_dir/log
             continue
           fi
-          echo "        ==Diff logs==" | tee -a $cur_dir/log
+          echo "  - Diff logs" | tee -a $cur_dir/log
           git log $prehead..HEAD --graph --pretty=format:'%h -%d %s (%cs) [%aN]' | sed 's/^/        /'
           body=$(git log $prehead..HEAD --graph --pretty=format:'%h -%d %s (%cs) [%aN]')
           body='```<br>'$body'<br>```'
@@ -90,7 +90,7 @@ steps:
           if echo $url_ | grep "already exists:"; then
             gh pr edit $url -b "$body" --add-label automerge
           fi
-          echo "        ==$url==" >> $cur_dir/log
+          echo "  - $url" >> $cur_dir/log
           sleep 10
         done
       done
@@ -104,10 +104,10 @@ steps:
       cat log
       body="
       https://dev.azure.com/mssonic/build/_build?definitionId=862\n
-      $(cat log | sed 's/$/\n/')
+      $(cat log)
       "
-      if grep -q '==conflict!==' log; then
+      if grep -q '  - conflict!' log; then
         curl $URL -H 'Content-Type: application/json' -d "{\"text\": \"$body\"}"
       fi
     env:
-      URL: $(TEAMS-MSG-URL)
+      URL: $(TEAMS-MSG-URL-TEST)
