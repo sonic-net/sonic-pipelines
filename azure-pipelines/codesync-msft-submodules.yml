@@ -110,4 +110,4 @@ steps:
         curl $URL -H 'Content-Type: application/json' -d "{\"text\": \"$body\"}"
       fi
     env:
-      URL: $(TEAMS-MSG-URL-TEST)
+      URL: $(TEAMS-MSG-URL)
