@@ -97,7 +97,6 @@ steps:
     env:
       TOKEN: $(GITHUB-TOKEN)
       AZURE_DEVOPS_EXT_PAT: $(MSAZURE-TOKEN)
-      RETRY_COUNT: $(RETRY_COUNT)
     displayName: 'code sync'
   - bash: |
       set -ex
@@ -111,3 +110,4 @@ steps:
       fi
     env:
       URL: $(TEAMS-MSG-URL)
+    displayName: show result and send alert

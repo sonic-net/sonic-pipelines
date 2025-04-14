@@ -12,7 +12,7 @@ parameters:
     default:
       - vs
       - centec-arm64
-      - marvell-armhf
+      - marvell-prestera-armhf
 
 jobs:
   - job: Build
@@ -50,6 +50,9 @@ jobs:
             if [[ "$i" == debian* ]] || [[ "$i" == ubuntu* ]];then
               source=library/$i
             fi
-            az acr import -n PublicMirror --source docker.io/$source --image $i --force -u $(user1) -p $(pass1)
+            az acr import -n PublicMirror --source docker.io/$source --image $i --force -u $user -p $pass
           done
         displayName: push image to PublicMirror
+        env:
+          user: $(user1)
+          pass: $(pass1)
