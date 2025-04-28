@@ -35,15 +35,17 @@ steps:
       for branch in $branches; do
         branch_base=$branch
         branch_head=$branch
+        remote=head
         if [[ $branch_head == "202412" ]]; then
           branch_head=202411
         fi
         if [[ $branch_head == "202503" ]]; then
           branch_head=202412
+          remote=origin
         fi
         git ls-remote origin refs/heads/$branch_base || continue
-        git ls-remote head refs/heads/$branch_head || continue
-        head_commit=$(git log -n 1 --format=%H head/$branch_head)
+        git ls-remote $remote refs/heads/$branch_head || continue
+        head_commit=$(git log -n 1 --format=%H $remote/$branch_head)
         git log --format=%H origin/$branch_base | grep $head_commit && continue
         subs=$(cat ../azure-pipelines/codesync.json | jq -r ".\"$branch\"")
         [ -z "$subs" ] && continue
@@ -62,7 +64,7 @@ steps:
           [[ $i == 10 ]] && continue 2
         done
         prehead=$(git log -n 1 --pretty=format:'%H')
-        git pull head $branch_head --no-commit || true
+        git pull $remote $branch_head --no-commit || true
         git status
         git submodule
 
