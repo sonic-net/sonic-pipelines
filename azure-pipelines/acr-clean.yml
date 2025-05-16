@@ -24,6 +24,7 @@ jobs:
           set -ex
 
           az login --identity
+          az account set --subscription 9355ef17-3aa2-493a-94ab-a43a9bf8cd70
           az acr show -n sonicdev
           sudo apt-get update
           sudo apt install -y jq
