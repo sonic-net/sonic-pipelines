@@ -53,10 +53,11 @@ steps:
         git clean -xdff && git reset HEAD --hard
         git checkout -b $branch_base --track origin/$branch_base
         rm -rf $subs
+        git submodule deinit -f --all
         git reset HEAD --hard
         git status
 
-        git status | grep "^nothing to commit, working tree clean" || continue
+        git status | grep "^nothing to commit, working tree clean" || { echo "git not clean, exist!"; exit 1; }
         for i in {1..10}; do
           git submodule sync
           git submodule update --init $subs && break
