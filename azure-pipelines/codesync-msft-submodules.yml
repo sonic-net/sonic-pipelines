@@ -49,13 +49,18 @@ steps:
           fi
           branch_base=$branch
           branch_head=$branch
+          origin=origin
           if [[ $branch == "202412" ]]; then
             branch_head=202411
           fi
+          if [[ $branch == "202503" ]]; then
+            branch_head=202412
+            origin=base
+          fi
           echo "- $branch" | tee -a $cur_dir/log
-          git ls-remote --exit-code origin refs/heads/$branch_head || { echo "  - no branch: origin" | tee -a $cur_dir/log; continue; }
+          git ls-remote --exit-code $origin refs/heads/$branch_head || { echo "  - no branch: $origin" | tee -a $cur_dir/log; continue; }
           git ls-remote --exit-code base refs/heads/$branch_base || { echo "  - no branch: base" | tee -a $cur_dir/log; continue; }
-          head_commit=$(git log -n 1 --format=%H origin/$branch_head)
+          head_commit=$(git log -n 1 --format=%H $origin/$branch_head)
           git log --format=%H base/$branch_base | grep $head_commit && continue
           git merge --abort || true
           git branch -D test || true
@@ -66,7 +71,7 @@ steps:
           git clean -xdff
           git status | grep "^nothing to commit, working tree clean" || { echo "  - git not clean" | tee -a $cur_dir/log; continue; }
           prehead=$(git log -n 1 --pretty=format:'%H')
-          git pull origin $branch_head --no-edit || true
+          git pull $origin $branch_head --no-edit || true
           git status
           if git status | grep "You have unmerged paths";then
             echo "  - conflict!" | tee -a $cur_dir/log
