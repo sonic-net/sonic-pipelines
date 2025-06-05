@@ -106,7 +106,7 @@ jobs:
                 opt="--merge"
               fi
               echo "    $url"  >> failure_prs.log
-              if output=$(gh pr merge $opt --admin -R $repo $url -b "$body" 2>&1); then
+              if output=$(gh pr merge $url $opt --admin -d -b "$body" 2>&1); then
                 [ -n "$origin_pr_url" ] && gh pr edit $origin_pr_url --add-label "Included in $base_ref Branch" --remove-label "Created PR to $base_ref Branch,Cherry Pick Conflict_$base_ref"
               else
                 (( ++rc ))
