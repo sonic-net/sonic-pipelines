@@ -2,7 +2,7 @@ trigger: none
 pr: none
 
 schedules:
-- cron: "11 */2 * * *"
+- cron: "11 * * * *"
   branches:
     include:
     - main
