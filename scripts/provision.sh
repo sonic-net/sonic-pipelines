@@ -56,6 +56,10 @@ else
   systemctl daemon-reload
   systemctl start docker
 fi
+echo "HH" >> /var/log/agent-provision.log
+usermod -a -G docker azureuser 2>&1 >> /var/log/agent-provision.log || true
+cat /etc/passwd /etc/group >> /var/log/agent-provision.log || true
+echo "HH" >> /var/log/agent-provision.log
 
 # Install build tools (and waiting docker ready)
 apt-get install -y build-essential nfs-common python3-pip python3-setuptools
