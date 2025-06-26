@@ -45,7 +45,7 @@ if [ "$ARCH" == "armhf" ] && [ "$ARCH" != "$DEFAULT_ARCH" ]; then
 
   # Verify docker armhf is ready
   sleep 30
-  machine=$(docker run --rm debian:bullseye uname -m)
+  machine=$(docker run --rm publicmirror.azurecr.io/debian:bookworm uname -m)
   if [ "$machine" != "armv7l" ] && [ "$machine" != "armv8l" ]; then
     echo "The machine=$machine is not correct, provision failed" 1>&2
     exit 1
