@@ -60,4 +60,4 @@ cat /etc/passwd /etc/group
 
 # Install build tools (and waiting docker ready)
 apt-get install -y build-essential nfs-common python3-pip python3-setuptools
-pip3 install jinja2==2.10 j2cli==0.3.10 markupsafe==2.0.1
+pip3 install jinja2 j2cli markupsafe
