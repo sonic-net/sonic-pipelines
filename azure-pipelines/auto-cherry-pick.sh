@@ -40,7 +40,7 @@ check_conflict(){
     if [[ "$PR_MERGED" == "true" ]];then
         git reset $PR_COMMIT_SHA --hard
         git reset HEAD~
-        git add .
+        git add . -f
     else
         git fetch head +refs/pull/$PR_NUMBER/merge:refs/remotes/pull/$PR_NUMBER/merge
         git merge pull/$PR_NUMBER/merge --squash || { echo "PR is Out of Date!"; return 253; }
