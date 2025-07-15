@@ -57,6 +57,10 @@ steps:
             branch_head=202412
             origin=base
           fi
+          if [[ $branch == "202506" ]]; then
+            # 202506 submodules don't need code sync
+            continue
+          fi
           echo "- $branch" | tee -a $cur_dir/log
           git ls-remote --exit-code $origin refs/heads/$branch_head || { echo "  - no branch: $origin" | tee -a $cur_dir/log; continue; }
           git ls-remote --exit-code base refs/heads/$branch_base || { echo "  - no branch: base" | tee -a $cur_dir/log; continue; }
