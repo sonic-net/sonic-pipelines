@@ -3,5 +3,6 @@
     "202305": "src/sonic-utilities src/sonic-swss src/sonic-platform-common src/sonic-platform-daemons",
     "202405": "src/sonic-utilities src/sonic-swss src/sonic-platform-common src/sonic-platform-daemons",
     "202412": "src/sonic-utilities src/sonic-swss src/sonic-platform-common src/sonic-platform-daemons src/sonic-sairedis src/sonic-linux-kernel src/sonic-swss-common",
-    "202503": "src/sonic-utilities src/sonic-swss src/sonic-platform-common src/sonic-platform-daemons src/sonic-sairedis src/sonic-linux-kernel"
+    "202503": "src/sonic-utilities src/sonic-swss src/sonic-platform-common src/sonic-platform-daemons src/sonic-sairedis src/sonic-linux-kernel",
+    "202506": "src/sonic-swss src/sonic-sairedis src/sonic-swss-common src/sonic-dash-api src/sonic-dash-ha"
 }
