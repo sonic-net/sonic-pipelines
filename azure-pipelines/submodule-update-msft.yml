@@ -75,9 +75,8 @@ steps:
             git status
             result=$(gh pr create -R Azure/sonic-buildimage-msft -H mssonicbld:submodule-$branch-$module_name -B $branch -t "[submodule][$branch] Update submodule $module_name to the latest HEAD automatically" -l "automerge" -b "$body" 2>&1 || true)
             pr_url=$(echo "$result" | grep -Eo "https://github.com/Azure/sonic-buildimage-msft/pull/[0-9]*")
-            if echo $result | grep "already exists:"; then
-              gh pr edit $pr_url -b "$body" --add-label automerge
-            fi
+            sleep 1
+            gh pr comment $pr_url --body "/azp run"
             git reset HEAD~ --hard
             sleep 10
           fi
