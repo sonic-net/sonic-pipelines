@@ -105,9 +105,7 @@ steps:
         url_=$(gh pr create -R Azure/sonic-buildimage-msft -H mssonicbld:sonicbld/$branch_base-merge -B $branch_base -t "[code sync] Merge code from sonic-net/sonic-buildimage:$branch_head to $branch_base" -b "$body" -l automerge 2>&1; rc=$?)
         url=$(echo "$url_" | grep -Eo https://github.com/Azure/sonic-buildimage-msft/pull/[0-9]* )
 
-        if echo $url_ | grep "already exists:"; then
-          gh pr edit $url -b "$body" --add-label automerge
-        fi
+        gh pr comment $url --body "/azp run"
       done
     env:
       TOKEN: $(GITHUB-TOKEN)

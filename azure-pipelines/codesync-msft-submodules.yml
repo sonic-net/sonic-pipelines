@@ -35,6 +35,8 @@ steps:
     displayName: Setup env
   - bash: |
       set -ex
+      # 202506 only code sync these 4 repos.
+      branches_202506="sonic-utilities sonic-host-services sonic-platform-common sonic-platform-daemons"
       repos=$(for i in $(cat azure-pipelines/codesync.json | jq .[] -r); do echo $i | sed 's#src/##'; done | sort -u)
       cur_dir=$(pwd)
       sudo rm -rf $cur_dir/log
@@ -58,8 +60,9 @@ steps:
             origin=base
           fi
           if [[ $branch == "202506" ]]; then
-            # 202506 submodules don't need code sync
             continue
+            echo $branches_202506 | grep $repo || continue
+            branch_head=202505
           fi
           echo "- $branch" | tee -a $cur_dir/log
           git ls-remote --exit-code $origin refs/heads/$branch_head || { echo "  - no branch: $origin" | tee -a $cur_dir/log; continue; }
