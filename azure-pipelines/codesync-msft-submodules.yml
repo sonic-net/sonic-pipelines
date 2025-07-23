@@ -60,7 +60,6 @@ steps:
             origin=base
           fi
           if [[ $branch == "202506" ]]; then
-            continue
             echo $branches_202506 | grep $repo || continue
             branch_head=202505
           fi
