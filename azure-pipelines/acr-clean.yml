@@ -12,12 +12,23 @@ jobs:
 - job: cleanup
   pool: sonic-ubuntu-1c
   timeoutInMinutes: 240
-  variables:
-    - group: sonicbld
 
   steps:
     - checkout: none
     - script: |
+        # Wait for apt lock to be released (timeout after 10 minutes)
+        timeout=600
+        elapsed=0
+        while sudo fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1 || sudo fuser /var/lib/apt/lists/lock >/dev/null 2>&1 || sudo fuser /var/cache/apt/archives/lock >/dev/null 2>&1; do
+          if [ $elapsed -ge $timeout ]; then
+            echo "Timeout waiting for apt lock after 10 minutes"
+            exit 1
+          fi
+          echo "Waiting for apt lock to be released..."
+          sleep 5
+          elapsed=$((elapsed + 5))
+        done
+
         curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
       displayName: install dependencies
     - bash: |
