@@ -16,7 +16,6 @@ steps:
       git config --global user.name "Sonic Automation"
       git config --global pull.rebase false
       echo $TOKEN | gh auth login --with-token
-      echo $AZURE_DEVOPS_EXT_PAT | az devops login
 
       sudo rm -rf sonic-buildimage-msft
       git clone https://github.com/Azure/sonic-buildimage-msft
@@ -25,7 +24,6 @@ steps:
       git fetch head
     env:
       TOKEN: $(GITHUB-TOKEN)
-      AZURE_DEVOPS_EXT_PAT: $(MSAZURE-TOKEN)
     displayName: Setup env
   - bash: |
       set -ex
@@ -84,8 +82,8 @@ steps:
             description="code conflict: sonic-net/sonic-buildimage:$branch_head -> Azure/sonic-buildimage-msft:$branch_base<br>"
             description+=$(git log $prehead..HEAD --merge --pretty=format:'%h -%d %s (%cs) [%aN]')
             assign="Gen-Hwa Chiang <gechiang@microsoft.com>"
-            # update work-item
-            az boards work-item update --org https://dev.azure.com/mssonic/ --id $ADO_ID --discussion "$description" -f "Custom Field 1=type_A"
+            # update work-item, TODO: authenticate and update workitem.
+            # az boards work-item update --org https://dev.azure.com/mssonic/ --id $ADO_ID --discussion "$description" -f "Custom Field 1=type_A"
           fi
         fi
         GIT_EDITOR=true git merge --continue || true
@@ -109,5 +107,4 @@ steps:
       done
     env:
       TOKEN: $(GITHUB-TOKEN)
-      AZURE_DEVOPS_EXT_PAT: $(MSAZURE-TOKEN)
     displayName: 'code merge'
