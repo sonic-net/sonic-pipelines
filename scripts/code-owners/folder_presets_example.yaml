@@ -1,0 +1,11 @@
+/.git: !FolderSettings
+  type: IGNORE
+/tests/dash: !FolderSettings
+  owners:
+  - congh
+  - nikamirrr
+  type: CLOSED_OWNERS
+/tests/ntp: !FolderSettings
+  owners:
+  - nikamirrr
+  type: OPEN_OWNERS
