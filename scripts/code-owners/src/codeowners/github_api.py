@@ -46,7 +46,7 @@ def build_api_headers():
     return headers
 
 
-def send_github_query(url: str) -> Response:
+def send_github_query(url: str, params=None) -> Response:
     """Send a request to the GitHub API with rate limiting handling.
 
     Automatically handles GitHub API rate limiting by sleeping until the
@@ -54,6 +54,7 @@ def send_github_query(url: str) -> Response:
 
     Args:
         url: The GitHub API URL to request.
+        params ():
 
     Returns:
         Response: The HTTP response from the GitHub API.
@@ -61,7 +62,7 @@ def send_github_query(url: str) -> Response:
     # Build headers with randomly selected GitHub API token
     headers = build_api_headers()
     while True:
-        response = requests.get(url, headers=headers)
+        response = requests.get(url, headers=headers, params=params)
         if response.status_code == 403:
             # Handle the rate limit on GitHub
             if int(response.headers["x-ratelimit-remaining"]) > 0:
