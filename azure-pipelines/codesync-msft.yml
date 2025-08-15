@@ -39,10 +39,6 @@ steps:
         if [[ $branch_head == "202412" ]]; then
           branch_head=202411
         fi
-        if [[ $branch_head == "202503" ]]; then
-          branch_head=202412
-          remote=origin
-        fi
         if [[ $branch_head == "202506" ]]; then
           branch_head=202505
         fi
