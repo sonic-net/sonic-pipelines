@@ -1,1 +1,1 @@
-from .async_commit_stream import main
+from .__main__ import main

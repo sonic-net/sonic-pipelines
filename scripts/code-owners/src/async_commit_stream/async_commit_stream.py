@@ -8,16 +8,17 @@ import asyncio
 import os
 import ssl
 import certifi
-from typing import Dict, Any
+from typing import Dict, Any, Set
 from urllib.parse import quote_plus
 
+from async_commit_stream.async_helpers import async_run_cmd, get_commit_stats
 
 logger = logging.getLogger(__name__)
 
 
 class AsyncGitHubRepoSummary:
-    MAX_CONCURRENT_API_REQUESTS = 50
-    PAGES_PER_BATCH = 5
+    MAX_CONCURRENT_API_REQUESTS = 1000
+    PAGES_PER_BATCH = 10
     PAGE_SIZE = 100
 
     GITHUB_API_ENDPOINT = "https://api.github.com/"
@@ -173,15 +174,36 @@ class AsyncGitHubRepoSummary:
                 "id": -1,
                 "name": "Non-found emails bundle",
             }
+        try:
+            return self.gh_id_lookup_cache[github_id]
+        except KeyError:
+            pass
         response = await self.send_github_api_request(
             f"{AsyncGitHubRepoSummary.GITHUB_API_ENDPOINT}user/{int(github_id)}",
         )
-        result = {
+        self.gh_id_lookup_cache[github_id] = result = {
+            k: response[k] for k in ["login", "id", "name", "email", "company"]
+        }
+        return result
+
+    async def github_login_lookup(self, github_login: str) -> Dict[str, Any]:
+        try:
+            return self.gh_login_lookup_cache[github_login]
+        except KeyError:
+            pass
+        response = await self.send_github_api_request(
+            f"{AsyncGitHubRepoSummary.GITHUB_API_ENDPOINT}users/{quote_plus(github_login)}",
+        )
+        self.gh_login_lookup_cache[github_login] = result = {
             k: response[k] for k in ["login", "id", "name", "email", "company"]
         }
         return result
 
     def __init__(self):
+
+        self.gh_login_lookup_cache = dict()
+        self.gh_id_lookup_cache = dict()
+
         self.ssl_context = None
         self.github_api_sem = None
         self.connector = None
@@ -202,8 +224,16 @@ class AsyncGitHubRepoSummary:
             )
 
     async def _initialize(
-        self, repo_path: str, owner: str, repo: str, activity_from: str
+        self,
+        contributors,
+        folder_presets,
+        repo_path: str,
+        owner: str,
+        repo: str,
+        activity_from: str,
     ):
+        self.contributors = contributors
+        self.folder_presets = folder_presets
         # Perform async operations here
         self.ssl_context = ssl.create_default_context(cafile=certifi.where())
         self.github_api_sem = asyncio.Semaphore(
@@ -213,7 +243,7 @@ class AsyncGitHubRepoSummary:
         self.repo_path = repo_path
         self.owner = owner
         self.repo = repo
-        self.activity_from = activity_from
+        self.active_from = activity_from
 
         # API wait params if hitting a rate limit
         self.expo_wait_time = 1  # current wait file
@@ -227,13 +257,22 @@ class AsyncGitHubRepoSummary:
         self.commit_details = dict()
 
     async def process_repository(
-        self, repo_path: str, owner: str, repo: str, activity_from: str
+        self,
+        contributors,
+        folder_presets,
+        repo_path: str,
+        owner: str,
+        repo: str,
+        activity_from: str,
     ):
-        await self._initialize(repo_path, owner, repo, activity_from)
+        await self._initialize(
+            contributors, folder_presets, repo_path, owner, repo, activity_from
+        )
+        logging.info(f"Fetching add commits since {self.active_from}")
         total = 0
         # collect all commits after the cutoff date
         async for commit_page in self.async_page_generator(
-            owner, repo, {"since": self.activity_from}
+            owner, repo, {"since": self.active_from}
         ):
             total += len(commit_page)
             for commit in commit_page:
@@ -245,16 +284,20 @@ class AsyncGitHubRepoSummary:
             len(self.contributors),
             len(self.contributor_commit_emails),
         )
+        logging.info(f"Done fetching add commits since {self.active_from}")
+        logging.info(f"Fetching all other commits before {self.active_from}")
         # process the rest of the commits
         self.first_empty_page = 1 << 63  # reset the last page to max again
         async for commit_page in self.async_page_generator(
-            owner, repo, {"until": self.activity_from}
+            owner, repo, {"until": self.active_from}
         ):
             total += len(commit_page)
             for commit in commit_page:
                 # for every commit pull the contributor
                 await self.process_commit(commit, False)
-
+        logging.info(
+            f"Done fetching all other commits before {self.active_from}"
+        )
         print(
             total,
             len(self.commit_details),
@@ -262,30 +305,27 @@ class AsyncGitHubRepoSummary:
             len(self.contributor_commit_emails),
             sum(map(len, self.contributor_commit_emails.values())),
         )
-        # Collect all contributors
-        for result in asyncio.as_completed(self.contributors.values()):
-            contributor = await result
-            self.contributors[contributor["id"]] = contributor
-        print(self.contributors)
+        logging.info(f"Gathering detailed contributor info from GitHub")
+        await self.gather_contributors()
         # collect all commits
+        logging.info(f"Gathering detailed commit info from local folder")
+        await self.gather_commits()
+        f"Done processing commits"
+
+    async def gather_commits(self):
         counts = 0
         for result in asyncio.as_completed(self.commit_details.values()):
             commit_stats = await result
             if commit_stats is not None:
                 counts += 1
-            # print(commit_stats)
-            # print()
         print(f"Got status for {counts} commits")
 
-    async def get_commit_stats(self, commit_sha: str):
-        cmd = f"git -C {self.repo_path} log {shlex.quote(commit_sha)} --format='%H;%aI;%aE;%aN' --numstat -n 1"
-        proc = await asyncio.create_subprocess_shell(
-            cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
-        )
-        stdout, stderr = await proc.communicate()
-        if proc.returncode != 0:
-            logger.error(f"Unable to get commit stat: {cmd}. Err {stderr}")
-        return stdout
+    async def gather_contributors(self):
+        # Collect all contributors
+        for result in asyncio.as_completed(self.contributors.values()):
+            contributor = await result
+            self.contributors[contributor["id"]] = contributor
+        print(self.contributors)
 
     async def process_commit(self, commit, record_contributor: bool):
         try:
@@ -309,57 +349,36 @@ class AsyncGitHubRepoSummary:
                 self.contributor_commit_emails[github_id].add(
                     commit["commit"]["author"]["email"]
                 )
-            except KeyError:
+            except (KeyError, TypeError):
                 pass
             self.commit_details[commit["sha"]] = asyncio.create_task(
-                self.get_commit_stats(commit["sha"])
+                get_commit_stats(self.repo_path, commit["sha"])
             )
 
+    async def github_info_by_emails(self, emails: Set[str]) -> Dict[str, Any]:
+        """Look up GitHub user information by email addresses.
 
-def main():
-    # asyncio.run(pull_all_detailed_commits("sonic-net", "sonic-mgmt"))
-    repo_summarizer = AsyncGitHubRepoSummary()
-    asyncio.run(
-        repo_summarizer.process_repository(
-            "/Users/nmirin/workspace/repos/sonic-mgmt",
-            "sonic-net",
-            "sonic-mgmt",
-            (
-                datetime.combine(
-                    datetime.fromisoformat("2023-08-15"),
-                    datetime.min.time(),
-                    timezone.utc,
-                )
-            ).isoformat()
-            + "Z",
-        )
-    )
+        Parses GitHub noreply emails
+        (like 29677895+nikamirrr@users.noreply.github.com)
+        to extract GitHub user ID and login information.
 
+        Args:
+            emails: Set of email addresses to search for GitHub information.
 
-# # if pulled before the activity date, need to add the users
-# # and start pulling their commits after that date
-# if len(condition_tuple) == 1:
-#     for commit in commits:
-#         try:
-#             github_id = int(commit["author"]["id"])
-#         except KeyError:
-#             logger.warning(f"Missing author->id in {commit}")
-#             continue
-#         if github_id not in self.contributors:
-#             await self.create_id_lookup_task(int(github_id))
-#             # add the tasks to find earlier commits for that user
-#             for new_page in range(AsyncGitHubRepoSummary.PAGES_PER_BATCH):
-#                 next_batch.append(
-#                     asyncio.create_task(
-#                         self.get_commit_page(
-#                             owner,
-#                             repo,
-#                             (
-#                                 self.activity_from,
-#                                 commit["author"]["login"],
-#                             ),
-#                             new_page,
-#                             AsyncGitHubRepoSummary.PAGE_SIZE,
-#                         )
-#                     )
-#                 )
+        Returns:
+            Dict[str, Any]: Dictionary containing GitHub user information, or
+            empty dict if not found.
+        """
+        for email in emails:
+            local_part, domain = email.split("@")
+            if domain == "users.noreply.github.com":
+                try:
+                    id_str, github_login = local_part.split("+")
+                    return await self.github_id_lookup(int(id_str))
+                except ValueError:
+                    # Try using the entire local part as login
+                    try:
+                        return await self.github_login_lookup(local_part)
+                    except ValueError:
+                        pass
+        return {}
