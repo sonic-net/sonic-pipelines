@@ -40,6 +40,7 @@ steps:
           branch_head=202411
         fi
         if [[ $branch_head == "202503" ]]; then
+          continue # stop code sync for 202503
           branch_head=202412
           remote=origin
         fi
