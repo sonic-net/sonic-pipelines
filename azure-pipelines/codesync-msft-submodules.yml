@@ -57,6 +57,7 @@ steps:
           fi
           if [[ $branch == "202503" ]]; then
             # if 202503 don't use latest 202412 for submodules, please continue here
+            continue
             branch_head=202412
             origin=base
           fi
