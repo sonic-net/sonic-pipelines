@@ -11,7 +11,10 @@ import aiofiles.os
 
 import yaml
 
-from async_commit_stream.async_helpers import async_run_cmd
+from async_commit_stream.async_helpers import (
+    async_run_cmd,
+    async_run_cmd_lines,
+)
 
 
 class FolderType(Enum):
@@ -96,10 +99,12 @@ async def get_repo_folders(repo: str) -> Dict[str, FolderSettings]:
     if repo[-1] != os.sep:
         repo += os.sep
     cmd = f"find -x {shlex.quote(repo)} -type d"
-    stdout = await async_run_cmd(cmd)
-    for folder in stdout.split(os.linesep):
+    async for folder in async_run_cmd_lines(cmd):
+        folder = folder.rstrip(os.linesep)
         if not folder.startswith(repo):
-            raise ValueError(f"Folder: {folder} is outside of repo {repo}")
+            raise ValueError(
+                f"Folder: {folder} is outside of repo_name {repo}"
+            )
         folder = folder[len(repo) - 1 :]
         folder_settings = get_folder_settings(folder)
         if folder_settings.folder_type != FolderType.IGNORE:

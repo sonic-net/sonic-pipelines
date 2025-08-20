@@ -119,13 +119,13 @@ def get_commit_count(repo_path: str) -> int:
 
 
 def get_remote_owner_repo(repo_path: str) -> Tuple[str, str]:
-    """Get the GitHub owner and repo name based on the remote URL
+    """Get the GitHub owner and repo_name name based on the remote URL
 
     Args:
         repo_path: Path to the Git repository.
 
     Returns:
-        tuple of 2 strings: owner and repo
+        tuple of 2 strings: owner and repo_name
     """
     cmd = ["git", "-C", repo_path, "config", "--get", "remote.origin.url"]
     # git@github.com:sonic-net/sonic-mgmt.git

@@ -1,12 +1,14 @@
 import asyncio
 import logging
 import os
-from typing import Tuple
+from typing import Tuple, List
 import shlex
 from datetime import datetime
 from collections import Counter
 
 logger = logging.getLogger(__name__)
+
+COMMIT_HEADER_KEY = "Commit: "
 
 
 class GitCommitLocal:
@@ -21,7 +23,7 @@ class GitCommitLocal:
         commit_hash: The Git commit hash.
     """
 
-    def __init__(self, commit_num_stat: str):
+    def __init__(self, commit_header: str, commit_changes: List[str]):
         """Initialize a GitCommit object.
 
         Args:
@@ -31,13 +33,6 @@ class GitCommitLocal:
                 delete count, and file path for each changed file.
         """
 
-        commit_num_stat_lines = commit_num_stat.split(os.linesep)
-        commit_header = commit_num_stat_lines[0]
-        if len(commit_num_stat_lines) < 2 or commit_num_stat_lines[1]:
-            raise ValueError(
-                "Invalid commit numstat, expecting empty second line"
-            )
-        commit_changes = commit_num_stat_lines[2:]
         # Split the commit header
         commit_hash, ts_iso_str, email, name = commit_header.split(";", 3)
         self.name = name
@@ -70,59 +65,86 @@ class GitCommitLocal:
         )
 
 
-GIT_URL_END = ".git"
-
-
-async def get_remote_owner_repo(repo_path: str) -> Tuple[str, str]:
-    """Get the GitHub owner and repo name based on the remote URL
+async def get_commit_count(repo_path: str) -> int:
+    """Get the total number of commits in a repository.
 
     Args:
         repo_path: Path to the Git repository.
 
     Returns:
-        tuple of 2 strings: owner and repo
+        int: The total number of commits in the repository.
     """
-    cmd = f"git -C {repo_path} config --get remote.origin.url"
+    cmd = f"git -C {shlex.quote(repo_path)} rev-list --count HEAD"
+    result = int(await async_run_cmd(cmd))
+    return result
+
+
+GIT_URL_END = ".git"
+
+
+async def get_remote_owner_repo(repo_path: str) -> Tuple[str, str]:
+    """Get the GitHub owner and repo_name name based on the remote URL
+
+    Args:
+        repo_path: Path to the Git repository.
+
+    Returns:
+        tuple of 2 strings: owner and repo_name
+    """
+    cmd = f"git -C {shlex.quote(repo_path)} config --get remote.origin.url"
     # git@github.com:sonic-net/sonic-mgmt.git
-    stdout = await async_run_cmd(cmd)
-    repo_remote_url = stdout
-    if not repo_remote_url.endswith(GIT_URL_END):
-        raise ValueError(
-            f"Unexpected GitHub URL end: "
-            f"{repo_remote_url}, expected: {GIT_URL_END}"
-        )
-    host, path = repo_remote_url.split(":")
-    repo_owner, repo_name = path.split("/")
-    repo_name = repo_name[: -len(GIT_URL_END)]
+    # https://github.com/sonic-net/sonic-mgmt.git
+    # https://github.com/sonic-net/sonic-mgmt/
+
+    repo_remote_url = (await async_run_cmd(cmd)).strip()
+
+    if repo_remote_url.lower().endswith(GIT_URL_END):
+        repo_remote_url = repo_remote_url[: -len(GIT_URL_END)]
+
+    repo_owner, repo_name = repo_remote_url.split("/")[-2:]
+    repo_owner = repo_owner.split(":")[-1]
     return repo_owner, repo_name
 
 
 async def async_run_cmd(cmd):
+    stdout_lines = []
+    async for line in async_run_cmd_lines(cmd):
+        stdout_lines.append(line)
+    return "".join(stdout_lines)
+
+
+async def async_run_cmd_lines(cmd):
     proc = await asyncio.create_subprocess_shell(
-        cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
+        cmd,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
     )
-    stdout, stderr = await proc.communicate()
-    stdout = stdout.decode().strip()
-    stderr = stderr.decode()
+    while True:
+        line = await proc.stdout.readline()
+        if not line:
+            break
+        yield line.decode()
+    await proc.wait()
     if proc.returncode != 0:
-        msg = f"Unable to run the command {cmd}. {stderr}"
+        stderr = (await proc.stderr.read()).decode()
+        msg = f"Unable to run the command {cmd}. {stderr}, {proc.returncode}"
         logger.error(msg)
         raise RuntimeError(msg)
-    return stdout
 
 
-async def get_commit_stats(repo_path: str, commit_sha: str):
-    cmd = f"git -C {shlex.quote(repo_path)} log {shlex.quote(commit_sha)} --format='%H;%aI;%aE;%aN' --numstat -n 1"
-    try:
-        stdout = await async_run_cmd(cmd)
-        try:
-            return GitCommitLocal(stdout)
-        except ValueError:
-            logger.info(f"Empty of missing {commit_sha} stats. Ignoring")
-            return None
-    except RuntimeError:
-        logger.warning(
-            f"Unable to find commit {commit_sha} locally, ignoring."
-            "Make sure to use the correct and up-to-date repo, branch, path"
-        )
-        return None
+async def get_all_commit_stats(repo_path: str):
+    cmd = f"git -C {shlex.quote(repo_path)} log --format='{COMMIT_HEADER_KEY}%H;%aI;%aE;%aN' --numstat"
+    commit_header = None
+    commit_changes = []
+    async for line in async_run_cmd_lines(cmd):
+        line = line.strip()
+        if line.startswith(COMMIT_HEADER_KEY):
+            if commit_header:
+                yield GitCommitLocal(commit_header, commit_changes)
+
+            commit_header = line[len(COMMIT_HEADER_KEY) :]
+            commit_changes.clear()
+        elif commit_header and line:
+            commit_changes.append(line)
+    if commit_changes:
+        yield GitCommitLocal(commit_header, commit_changes)

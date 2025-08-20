@@ -30,6 +30,7 @@ def main():
     Args:
 
     """
+    main_start_time = time.time()
     args = parse_params()
     contributors = ContributorCollection(args.contributors_file)
     load_folder_metadata(args.folder_presets_file)
@@ -50,7 +51,7 @@ def main():
 
     # Summarize folder statistics
     cutoff_ts = datetime.datetime.combine(
-        args.active_from, datetime.datetime.min.time(), datetime.timezone.utc
+        args.active_after, datetime.datetime.min.time(), datetime.timezone.utc
     )
     for contributor in contributors.contributors:
         # Take only contributors active after the cutoff time
@@ -106,6 +107,8 @@ def main():
     print("CODEOWNERS output:")
     process_folders_recursively("/", repo_folders)
 
+    logger.debug(f"Runtime {time.time() - main_start_time} seconds")
+
 
 LOGGING_LEVELS = {
     "debug": logging.DEBUG,
@@ -124,10 +127,10 @@ def parse_params() -> argparse.Namespace:
     """
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--repo", help="Path to the repo to analyze", required=True
+        "--repo", help="Path to the repo_name to analyze", required=True
     )
     parser.add_argument(
-        "--active_from",
+        "--active_after",
         type=datetime.date.fromisoformat,
         help=(
             "Active user considered committed "

@@ -92,7 +92,9 @@ def get_repo_folders(repo: str) -> Dict[str, FolderSettings]:
         repo += os.sep
     for folder, _, _ in os.walk(repo):
         if not folder.startswith(repo):
-            raise ValueError(f"Folder: {folder} is outside of repo {repo}")
+            raise ValueError(
+                f"Folder: {folder} is outside of repo_name {repo}"
+            )
         folder = folder[len(repo) - 1 :]
         folder_settings = get_folder_settings(folder)
         if folder_settings.folder_type != FolderType.IGNORE:

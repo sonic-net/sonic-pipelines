@@ -1,16 +1,13 @@
 """Module for managing contributor information and collections."""
 
 import logging
-from typing import Optional, Dict, List
+from typing import Optional, Dict, List, Set
 import yaml
 from yaml import MappingNode
 import aiofiles
 
-from .organization import (
-    organization_by_emails,
-    ORGANIZATION,
-    organization_by_company,
-)
+from codeowners.organization import organization_by_company
+from .organization import organization_by_emails, ORGANIZATION
 
 logger = logging.getLogger(__name__)
 
@@ -25,13 +22,13 @@ class Contributor:
         github_login: The contributor's GitHub username.
         github_id: The contributor's GitHub user ID.
         last_commit_ts: Timestamp of the contributor's most recent commit.
-        commits: List of GitCommit objects made by this contributor.
+        commit_count: Count of GitCommit objects made by this contributor.
     """
 
     def __init__(
         self,
         name: str,
-        emails: List[str],
+        emails: Set[str],
         organization: ORGANIZATION = None,
         github_login: str = None,
         github_id: int = None,
@@ -46,32 +43,16 @@ class Contributor:
             github_id: The contributor's GitHub user ID.
         """
         self.name = name
-        self.emails = {email.lower() for email in emails}
+        self.emails = emails
         if organization is None:
-            self.organization = organization_by_emails(self.emails)
-        else:
-            self.organization = organization
+            organization = organization_by_emails(self.emails)
+            if organization == ORGANIZATION.OTHER:
+                organization = organization_by_company(github_login)
+
+        self.organization = organization
 
         self.github_login = github_login
         self.github_id = github_id
-
-        if github_login is None or github_id is None:
-            github_info = github_info_by_emails(self.emails)
-            if github_info:
-                self.github_login = github_info["login"]
-                self.github_id = github_info["id"]
-                if github_info["email"]:
-                    self.emails.add(github_info["email"].lower())
-                if self.organization == ORGANIZATION.OTHER:
-                    self.organization = organization_by_company(
-                        str(github_info.get("company"))
-                        + "_"
-                        + github_info["login"]
-                    )
-                if github_info["name"]:
-                    self.name = github_info["name"]
-                elif not self.name:
-                    self.name = github_info["login"]
 
         # The last commit TS as per git log
         self.last_commit_ts = None
@@ -196,47 +177,32 @@ class ContributorCollection:
 
         self.db_filename = db_filename
 
-    def get_contributor(
-        self, contributor: Contributor, add_missing: bool = False
+    def add_update_contributor(
+        self, contributor: Contributor
     ) -> Optional[Contributor]:
-        """Get a contributor from the collection.
-
-        Searches for the contributor by GitHub ID first,
-        then by email addresses.
-        If not found and add_missing is True,
-        adds the contributor to the collection.
-
-        Args:
-            contributor: The Contributor object to search for.
-            add_missing: If True, add the contributor
-                         to the collection if not found.
-
-        Returns:
-            Optional[Contributor]: The found contributor or None if not found.
-        """
-        if contributor.github_id is not None:
-            try:
-                return self.by_github_id[contributor.github_id]
-            except KeyError:
-                pass
-
-        for email in contributor.emails:
-            try:
-                return self.by_email[email]
-            except KeyError:
-                pass
-
-        if add_missing:
-            # Not found, add the contributor to the collection
-            self.contributors.append(contributor)
-
-            # Update collection indexes
-            if contributor.github_id is not None:
-                self.by_github_id[contributor.github_id] = contributor
+        if contributor.github_id is None:
+            raise ValueError("Need to have the GitHub id to update")
+        try:
+            existing_contributor = self.by_github_id[contributor.github_id]
+            existing_contributor.name = contributor.name
+            existing_contributor.organization = contributor.organization
             for email in contributor.emails:
-                self.by_email[email] = contributor
+                if email not in existing_contributor.emails:
+                    if email in self.by_email:
+                        raise ValueError(f"Duplicate email {email}")
+                    else:
+                        existing_contributor.emails.add(email)
+                        self.by_email[email] = existing_contributor
+            return existing_contributor
+        except KeyError:
+            self.contributors.append(contributor)
+            self.by_github_id[contributor.github_id] = contributor
+            for email in contributor.emails:
+                if email in self.by_email:
+                    raise ValueError(f"Duplicate email {email}")
+                else:
+                    self.by_email[email] = contributor
             return contributor
-        return None
 
     async def save_to_file(self):
         """Save all contributors to the YAML file."""
@@ -255,43 +221,10 @@ class ContributorCollection:
             async with aiofiles.open(self.db_filename, "r") as in_file:
                 contents = await in_file.read()
             for item in yaml.safe_load_all(contents):
-                self.get_contributor(item, add_missing=True)
+                self.add_update_contributor(item)
         except FileNotFoundError:
             pass
 
     def __repr__(self):
         """Return a string representation of the ContributorCollection."""
         return f"{__class__.__name__}({repr(self.contributors)})"
-
-    def update_contributor_emails(self, contributor, email: str):
-        """Add an email address to a contributor.
-
-        Args:
-            contributor: The Contributor object to update.
-            email: The email address to add.
-
-        Raises:
-            ValueError: If the email is already associated
-            with another contributor.
-        """
-        if email not in contributor.emails:
-            if email in self.by_email:
-                logger.error(
-                    f"Duplicate email for new: {contributor}, "
-                    f"existing: {self.by_email[email]}"
-                )
-                raise ValueError(f"Duplicate email: {email}")
-            self.by_email[email] = contributor
-            contributor.emails.add(email)
-
-    def get_contributor_by_email(self, email: str) -> Contributor:
-        """Get a contributor by their email address.
-
-        Args:
-            email: The email address to search for.
-
-        Returns:
-            Contributor: The contributor with the given email,
-            or None if not found.
-        """
-        return self.by_email.get(email)

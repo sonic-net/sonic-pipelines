@@ -4,8 +4,13 @@ from datetime import datetime, timezone, date, timedelta
 import logging
 import time
 
-from async_commit_stream.async_commit_stream import AsyncGitHubRepoSummary
-from async_commit_stream.async_helpers import get_remote_owner_repo
+from async_commit_stream.async_github_repo_summary import (
+    AsyncGitHubRepoSummary,
+)
+from async_commit_stream.async_helpers import (
+    get_remote_owner_repo,
+    get_commit_count,
+)
 from async_commit_stream.contributor import ContributorCollection
 from async_commit_stream.folders import load_folder_metadata, PRESET_FOLDERS
 
@@ -26,10 +31,10 @@ def parse_params() -> argparse.Namespace:
     """
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--repo", help="Path to the repo to analyze", required=True
+        "--repo", help="Path to the repo_name to analyze", required=True
     )
     parser.add_argument(
-        "--active_from",
+        "--active_after",
         type=date.fromisoformat,
         help=(
             "Active user considered committed "
@@ -84,10 +89,13 @@ async def async_loop(args: argparse.Namespace):
     repo_summarizer = AsyncGitHubRepoSummary()
     contributor_collection = ContributorCollection(args.contributors_file)
 
-    (owner, repo), repo_folders, _ = await asyncio.gather(
-        get_remote_owner_repo(args.repo),
-        load_folder_metadata(args.folder_presets_file, args.repo),
-        contributor_collection.load_from_file(),
+    (owner, repo_name), repo_folders, _, total_commit_count = (
+        await asyncio.gather(
+            get_remote_owner_repo(args.repo),
+            load_folder_metadata(args.folder_presets_file, args.repo),
+            contributor_collection.load_from_file(),
+            get_commit_count(args.repo),
+        )
     )
     logging.info("Loaded all folder presets and contributors if any")
 
@@ -95,11 +103,12 @@ async def async_loop(args: argparse.Namespace):
         contributor_collection,
         PRESET_FOLDERS,
         args.repo,
+        total_commit_count,
         owner,
-        repo,
+        repo_name,
         (
             datetime.combine(
-                args.active_from,
+                args.active_after,
                 datetime.min.time(),
                 timezone.utc,
             )

@@ -195,7 +195,7 @@ def github_commit_author_id_lookup(
     )
     if response.status_code == 404:
         raise ValueError(
-            f"Commit {commit_hash} is not found in repo "
+            f"Commit {commit_hash} is not found in repo_name "
             f"{repo}, owned by {owner}"
         )
     if response.status_code == 200:
