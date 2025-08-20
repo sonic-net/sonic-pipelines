@@ -22,7 +22,7 @@ dependencies = [
 
 [project.scripts]
 codeowners-cli = "codeowners:main"
-codeowners-async-cli = "codeowners-async:main"
+codeowners-async-cli = "codeowners_async:main"
 
 
 [tool.setuptools.dynamic]

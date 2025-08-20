@@ -57,7 +57,7 @@ class Contributor:
         # The last commit TS as per git log
         self.last_commit_ts = None
         # Commits made by the contributor
-        self.commit_count = 0
+        self.commits = []
 
     def __hash__(self):
         """Hash by GitHub ID.
@@ -119,7 +119,7 @@ def contributor_representer(
             "github_login": data.github_login,
             "github_id": data.github_id,
             "last_commit_ts": data.last_commit_ts,
-            "commit_count": data.commit_count,
+            "commit_count": len(data.commits),
         },
     )
 

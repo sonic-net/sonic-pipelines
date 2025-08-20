@@ -264,7 +264,7 @@ class AsyncGitHubRepoSummary:
         ]
         async for commit in get_all_commit_stats(repo_path):
             while not self.resolved_commit_queue.empty():
-                commit, contributor = await self.resolved_commit_queue.get()
+                _, _ = await self.resolved_commit_queue.get()
                 self.resolved_commit_queue.task_done()
                 cnt += 1
                 if cnt % 100 == 0:
@@ -282,7 +282,7 @@ class AsyncGitHubRepoSummary:
 
         # Collect the remaining commits
         while not self.resolved_commit_queue.empty():
-            commit, contributor = await self.resolved_commit_queue.get()
+            _, _ = await self.resolved_commit_queue.get()
             self.resolved_commit_queue.task_done()
             cnt += 1
             if cnt % 100 == 0:
@@ -291,6 +291,36 @@ class AsyncGitHubRepoSummary:
                 )
             if cnt % 1000 == 0:
                 await self.contributors.save_to_file()
+
+        # process the active contributors
+        for contributor in self.contributors.contributors:
+            if (
+                contributor.last_commit_ts is not None
+                and contributor.last_commit_ts >= self.active_after
+            ):
+                # if the contributor's last commit was after the cutoff date, add the commit stats to the
+                # repo folders
+                for commit in contributor.commits:
+                    for folder, change_count in commit.changes.items():
+                        folder = os.sep + folder
+                        # Apply the changes from the folder up
+                        while True:
+                            try:
+                                if (
+                                    self.repo_folders[folder].folder_type
+                                    != FolderType.CLOSED_OWNERS
+                                ):
+                                    # Unless the owners are already defined,
+                                    # count the statistics
+                                    self.repo_folders_stats[folder][
+                                        contributor
+                                    ] += change_count
+                            except KeyError:
+                                # Ignore non-existent folders
+                                pass
+                            if folder == os.sep:
+                                break
+                            folder = os.path.dirname(folder)
 
         # select contributors for each folder
         for folder, contributor_stat in sorted(
@@ -312,7 +342,6 @@ class AsyncGitHubRepoSummary:
                         folder_settings.owners.add(contributor.github_login)
                         if len(folder_settings.owners) >= self.max_owners:
                             break
-        print(self.repo_folders)
 
     async def resolve_commit(self):
         while True:
@@ -324,35 +353,12 @@ class AsyncGitHubRepoSummary:
             contributor = self.contributors.by_email.get(commit.email)
             if not contributor:
                 contributor = await self.build_contributor(commit)
-            contributor.commit_count += 1
+            contributor.commits.append(commit)
             if (
                 contributor.last_commit_ts is None
                 or contributor.last_commit_ts < commit.ts
             ):
                 contributor.last_commit_ts = commit.ts
-            # if the contributor's last commit was after the cutoff date, add the commit stats to the
-            # repo folders
-            if contributor.last_commit_ts >= self.active_after:
-                for folder, change_count in commit.changes.items():
-                    folder = os.sep + folder
-                    # Apply the changes from the folder up
-                    while True:
-                        try:
-                            if (
-                                self.repo_folders[folder].folder_type
-                                != FolderType.CLOSED_OWNERS
-                            ):
-                                # Unless the owners are already defined,
-                                # count the statistics
-                                self.repo_folders_stats[folder][
-                                    contributor
-                                ] += change_count
-                        except KeyError:
-                            # Ignore non-existent folders
-                            pass
-                        if folder == os.sep:
-                            break
-                        folder = os.path.dirname(folder)
 
             await self.resolved_commit_queue.put((commit, contributor))
 

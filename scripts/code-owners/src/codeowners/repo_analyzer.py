@@ -52,7 +52,7 @@ def process_folders_recursively(start_folder: str, repo_folders):
         else:
             print(
                 start_folder + os.sep,
-                " ".join(f"@{owner}" for owner in owners),
+                " ".join(f"@{owner}" for owner in sorted(owners)),
             )
 
 

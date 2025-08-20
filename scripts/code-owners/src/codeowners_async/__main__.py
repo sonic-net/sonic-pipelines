@@ -123,7 +123,7 @@ def process_folders_recursively(start_folder: str, repo_folders):
         else:
             print(
                 start_folder + os.sep,
-                " ".join(f"@{owner}" for owner in owners),
+                " ".join(f"@{owner}" for owner in sorted(owners)),
             )
 
 
@@ -157,8 +157,6 @@ async def async_loop(args: argparse.Namespace):
     print()
     print("CODEOWNERS output:")
     process_folders_recursively("/", repo_folders)
-
-    logger.debug(f"Runtime {time.time() - main_start_time} seconds")
 
 
 if __name__ == "__main__":
