@@ -63,7 +63,11 @@ def send_github_query(url: str, params=None) -> Response:
     headers = build_api_headers()
     while True:
         response = requests.get(url, headers=headers, params=params)
-        if response.status_code == 403:
+        if response.status_code == 429:
+            logger.warning("Got 429 error, too many requests")
+        if response.headers.get("retry-after"):
+            sleep_duration = int(response.headers["retry-after"])
+        elif response.status_code == 403:
             # Handle the rate limit on GitHub
             if int(response.headers["x-ratelimit-remaining"]) > 0:
                 # Error when the remaining limit is not 0,
@@ -75,17 +79,17 @@ def send_github_query(url: str, params=None) -> Response:
             sleep_duration = (
                 max(reset_time_utc_epoch - ts_now_utc_epoch, 0) + 2.0
             )
-            wake_time = datetime.datetime.now() + datetime.timedelta(
-                seconds=sleep_duration
-            )
-            logger.warning(
-                "GitHub rate limit exceeded, sleeping for "
-                f"{int(sleep_duration)} seconds until "
-                f"{wake_time}",
-            )
-            time.sleep(sleep_duration)
         else:
             return response
+        wake_time = datetime.datetime.now() + datetime.timedelta(
+            seconds=sleep_duration
+        )
+        logger.warning(
+            "GitHub rate limit exceeded, sleeping for "
+            f"{int(sleep_duration)} seconds until "
+            f"{wake_time}",
+        )
+        time.sleep(sleep_duration)
 
 
 gh_login_lookup_cache = dict()

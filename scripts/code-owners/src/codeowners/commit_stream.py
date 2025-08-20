@@ -9,6 +9,7 @@ from typing import List, Tuple
 
 COMMIT_HEADER_KEY = "Commit: "
 GIT_URL_END = ".git"
+HTTPS_URL_START = "https://"
 
 
 class GitCommit:
@@ -129,13 +130,13 @@ def get_remote_owner_repo(repo_path: str) -> Tuple[str, str]:
     """
     cmd = ["git", "-C", repo_path, "config", "--get", "remote.origin.url"]
     # git@github.com:sonic-net/sonic-mgmt.git
+    # https://github.com/sonic-net/sonic-mgmt.git
+    # https://github.com/sonic-net/sonic-mgmt/
     repo_remote_url = subprocess.check_output(cmd, text=True).strip()
-    if not repo_remote_url.endswith(GIT_URL_END):
-        raise ValueError(
-            f"Unexpected GitHub URL end: "
-            f"{repo_remote_url}, expected: {GIT_URL_END}"
-        )
-    host, path = repo_remote_url.split(":")
-    repo_owner, repo_name = path.split("/")
-    repo_name = repo_name[: -len(GIT_URL_END)]
+    repo_remote_url.rstrip("/")
+    if repo_remote_url.lower().endswith(GIT_URL_END):
+        repo_remote_url = repo_remote_url[: -len(GIT_URL_END)]
+
+    repo_owner, repo_name = repo_remote_url.split("/")[-2:]
+    repo_owner = repo_owner.split(":")[-1]
     return repo_owner, repo_name

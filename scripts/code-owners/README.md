@@ -1,7 +1,7 @@
 # CodeOwners Generator
 
 The script to run over the local copy of the GitHub repo, validate all contributors against
-the GitHub and list the top contributors per folder in the CODEOWNERS per folder.
+the GitHub and list the top contributors per folder in the CODEOWNERS format.
 
 ## Building the Wheel Package
 
