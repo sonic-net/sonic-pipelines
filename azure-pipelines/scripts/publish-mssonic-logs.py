@@ -95,7 +95,6 @@ def get_response(url):
         # Get token for Azure DevOps - using the resource ID directly
         token_result = credential.get_token("499b84ac-1321-427f-aa17-267ca6975798")
         headers = {"Authorization": f"Bearer {token_result.token}"}
-        print("Using managed identity for Azure DevOps authentication")
     except Exception as e:
         print(f"Failed to get managed identity token for Azure DevOps: {e}")
         raise Exception(f"Unable to authenticate with Azure DevOps: {e}")
@@ -122,7 +121,6 @@ def get_coverage(build_info):
     try:
         base_url = re.sub('/_apis/.*', '/_apis', build_info['url'])
         url = '{0}/test/codecoverage?buildId={1}&api-version=6.0-preview.1'.format(base_url, build_info['id'])
-        print(f"Coverage URL: {url}")
 
         coverage_content = get_response(url)
         info = json.loads(json.dumps(build_info))
@@ -130,11 +128,8 @@ def get_coverage(build_info):
         results = []
 
         if 'coverageData' in coverage and len(coverage['coverageData']) > 0:
-            print(f"Found coverage data with {len(coverage['coverageData'])} entries")
             info['coverage'] = coverage_content
             results.append(json.dumps(info))
-        else:
-            print("No coverage data found")
 
         print(f"Coverage processing completed, returning {len(results)} results")
         return results
@@ -145,8 +140,7 @@ def get_coverage(build_info):
 
 # Get the build logs
 def get_build_logs(timeline_url, build_info):
-    print(f"Getting build logs for build ID: {build_info.get('id', 'Unknown')}")
-    print(f"Timeline URL: {timeline_url}")
+    print(f"Getting build logs for build ID: {build_info.get('id', 'Unknown')}.")
 
     try:
         timeline_content = get_response(timeline_url)
@@ -173,7 +167,6 @@ def get_build_logs(timeline_url, build_info):
 
             if record.get('log'):
                 log_url = record['log']['url']
-                print(f"Getting log content from: {log_url}")
                 try:
                     log = get_response(log_url)
                     lines = []
@@ -290,13 +283,11 @@ def main():
                         build_messages.append(content)
 
                         build_url = build['resource']['url']
-                        print(f"Build URL: {build_url}")
 
                         if 'dev.azure.com' not in build_url and 'msazure.visualstudio.com' not in build_url:
                             print(f"Skipped URL (not Azure DevOps): {build_url}")
                             continue
 
-                        print("Getting build content...")
                         build_content = get_response(build_url)
                         if not build_content:
                             print(f"Skipped message for no build content, build_url: {build_url}")
