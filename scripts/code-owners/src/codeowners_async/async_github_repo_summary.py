@@ -10,12 +10,12 @@ import certifi
 from typing import Dict, Any
 from urllib.parse import quote_plus
 
-from async_commit_stream.async_helpers import (
+from codeowners_async.async_helpers import (
     get_all_commit_stats,
     GitCommitLocal,
 )
-from async_commit_stream.contributor import Contributor
-from async_commit_stream.organization import (
+from codeowners_async.contributor import Contributor
+from codeowners_async.organization import (
     ORGANIZATION,
     organization_by_company,
 )

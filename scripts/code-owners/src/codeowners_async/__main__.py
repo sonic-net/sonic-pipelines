@@ -4,15 +4,17 @@ from datetime import datetime, timezone, date, timedelta
 import logging
 import time
 
-from async_commit_stream.async_github_repo_summary import (
+from codeowners_async.async_github_repo_summary import (
     AsyncGitHubRepoSummary,
 )
-from async_commit_stream.async_helpers import (
+from codeowners_async.async_helpers import (
     get_remote_owner_repo,
     get_commit_count,
 )
-from async_commit_stream.contributor import ContributorCollection
-from async_commit_stream.folders import load_folder_metadata, PRESET_FOLDERS
+from codeowners_async.contributor import ContributorCollection
+from codeowners_async.folders import load_folder_metadata, PRESET_FOLDERS
+
+logger = logging.getLogger(__name__)
 
 LOGGING_LEVELS = {
     "debug": logging.DEBUG,
@@ -72,6 +74,7 @@ def parse_params() -> argparse.Namespace:
 
 
 def main():
+    main_start_time = time.time()
     args = parse_params()
     logging.Formatter.converter = time.gmtime
     logging.basicConfig(
@@ -83,6 +86,7 @@ def main():
         datefmt="%Y-%m-%dT%H:%M:%SZ",
     )
     asyncio.run(async_loop(args))
+    logger.debug(f"Runtime {time.time() - main_start_time} seconds")
 
 
 async def async_loop(args: argparse.Namespace):

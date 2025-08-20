@@ -11,7 +11,7 @@ import aiofiles.os
 
 import yaml
 
-from async_commit_stream.async_helpers import (
+from codeowners_async.async_helpers import (
     async_run_cmd,
     async_run_cmd_lines,
 )
