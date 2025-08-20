@@ -49,12 +49,7 @@ class GitCommitLocal:
             del_count = 1 if del_count_str == "-" else int(del_count_str)
             total_count = add_count + del_count
 
-            if (not change_path) or (change_path[0] != os.sep):
-                change_path = os.sep + change_path
-            change_path = os.path.dirname(change_path)
-            while change_path != os.sep:
-                self.changes[change_path] += total_count
-                change_path = os.path.dirname(change_path)
+            self.changes[os.path.dirname(change_path)] += total_count
 
     def __repr__(self):
         """Return a string representation of the GitCommit object."""

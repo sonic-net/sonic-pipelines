@@ -1,5 +1,6 @@
 import argparse
 import asyncio
+import os
 from datetime import datetime, timezone, date, timedelta
 import logging
 import time
@@ -89,6 +90,43 @@ def main():
     logger.debug(f"Runtime {time.time() - main_start_time} seconds")
 
 
+def process_folders_recursively(start_folder: str, repo_folders):
+    """Process the folders with counted contributors top to bottom
+    If all subfolders have contributors as the subset of a folder
+    then do not descend.
+
+    Iterates with DFS using recursion
+
+    Args:
+        start_folder: A folder to start with
+        repo_folders: A collection of folders with children and owners
+    """
+    owners = repo_folders[start_folder].owners
+    if owners:
+        # only proceed to the folders with owners
+        subfolders = repo_folders[start_folder].children
+        subfolder_full_names = []
+        owners_match = True
+        for subfolder in sorted(subfolders):
+            subfolder_full_name = os.path.join(start_folder, subfolder)
+            subfolder_full_names.append(subfolder_full_name)
+            # make sure that subfolder owners
+            # are the subset of the current folder owners
+            owners_match = owners_match and (
+                repo_folders[subfolder_full_name].owners <= owners
+            )
+
+        if not owners_match:
+            # proceed to lower levels if there is a mismatched owner there
+            for subfolder_full_name in subfolder_full_names:
+                process_folders_recursively(subfolder_full_name, repo_folders)
+        else:
+            print(
+                start_folder + os.sep,
+                " ".join(f"@{owner}" for owner in owners),
+            )
+
+
 async def async_loop(args: argparse.Namespace):
     repo_summarizer = AsyncGitHubRepoSummary()
     contributor_collection = ContributorCollection(args.contributors_file)
@@ -105,21 +143,22 @@ async def async_loop(args: argparse.Namespace):
 
     await repo_summarizer.process_repository(
         contributor_collection,
-        PRESET_FOLDERS,
+        repo_folders,
         args.repo,
         total_commit_count,
         owner,
         repo_name,
-        (
-            datetime.combine(
-                args.active_after,
-                datetime.min.time(),
-                timezone.utc,
-            )
-        ).isoformat()
-        + "Z",
+        datetime.combine(args.active_after, datetime.min.time(), timezone.utc),
+        args.max_owners,
     )
+    logging.info(f"Processed {total_commit_count} commits")
     await contributor_collection.save_to_file()
+
+    print()
+    print("CODEOWNERS output:")
+    process_folders_recursively("/", repo_folders)
+
+    logger.debug(f"Runtime {time.time() - main_start_time} seconds")
 
 
 if __name__ == "__main__":

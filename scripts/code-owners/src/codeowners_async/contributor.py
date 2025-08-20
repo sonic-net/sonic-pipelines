@@ -145,7 +145,7 @@ def contributor_constructor(loader: yaml.SafeLoader, node) -> Contributor:
         raise ValueError(f"Missing github id in YAML data {value}")
     return Contributor(
         name=value["name"],
-        emails=value["emails"],
+        emails=set(value["emails"]),
         organization=(ORGANIZATION[value["organization"]]),
         github_login=value["github_login"],
         github_id=value["github_id"],
