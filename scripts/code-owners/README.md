@@ -90,11 +90,14 @@ codeowners-cli --help
 
 # Example: Analyze a repository
 codeowners-cli --repo_name /path/to/your/repo_name --contributors-file contributors.yaml
+
+# For asynchronous (asyncio) version also available
+codeowners-async-cli 
 ```
 
 ## CLI Options
 
-The `codeowners-cli` command supports various options:
+The `codeowners-cli` and `codeowners-async-cli` commands supports various options:
 
 - `--repo`: Path to the local Git repository
 - `--contributors_file`: Path to the contributors YAML file
@@ -122,3 +125,7 @@ __Be careful not to duplicate emails.__
 
 - requests >= 2.3.4
 - PyYAML >= 6.0.2
+- aiofiles >= 24.1.0
+- aiohttp >= 3.10.11
+- Brotli >= 1.1.0 (optional)
+- aiodns >= 3.2.0 (optional)
