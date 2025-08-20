@@ -98,7 +98,7 @@ async def get_repo_folders(repo: str) -> Dict[str, FolderSettings]:
     result = {}
     if repo[-1] != os.sep:
         repo += os.sep
-    cmd = f"find -x {shlex.quote(repo)} -type d"
+    cmd = f"find {shlex.quote(repo)} -mount -type d"
     async for folder in async_run_cmd_lines(cmd):
         folder = folder.rstrip(os.linesep)
         if not folder.startswith(repo):
