@@ -1,19 +1,19 @@
-"""Module for processing Git commit streams
-   and extracting commit information."""
-
-import datetime
+import asyncio
+import logging
 import os
-import subprocess
+from typing import Tuple, List
+import shlex
+from datetime import datetime
 from collections import Counter
-from typing import List, Tuple
+
+logger = logging.getLogger(__name__)
 
 COMMIT_HEADER_KEY = "Commit: "
-GIT_URL_END = ".git"
-HTTPS_URL_START = "https://"
 
 
-class GitCommit:
-    """Represents a Git commit with metadata and file changes.
+class GitCommitLocal:
+    """Represents a Git commit in local file system
+     with metadata and file changes.
 
     Attributes:
         name: The author name.
@@ -32,11 +32,12 @@ class GitCommit:
             commit_changes: List of tab-separated strings containing add count,
                 delete count, and file path for each changed file.
         """
+
         # Split the commit header
         commit_hash, ts_iso_str, email, name = commit_header.split(";", 3)
         self.name = name
         self.email = email.lower()
-        self.ts = datetime.datetime.fromisoformat(ts_iso_str)
+        self.ts = datetime.fromisoformat(ts_iso_str)
         self.changes = Counter()
         self.commit_hash = commit_hash
 
@@ -46,7 +47,9 @@ class GitCommit:
             # Mark non-numeric/binary changes as 1
             add_count = 1 if add_count_str == "-" else int(add_count_str)
             del_count = 1 if del_count_str == "-" else int(del_count_str)
-            self.changes[os.path.dirname(change_path)] += add_count + del_count
+            total_count = add_count + del_count
+
+            self.changes[os.path.dirname(change_path)] += total_count
 
     def __repr__(self):
         """Return a string representation of the GitCommit object."""
@@ -57,55 +60,7 @@ class GitCommit:
         )
 
 
-def get_commit_stream(repo_path: str):
-    """Generate GitCommit objects from a repository's commit history.
-
-    Parses the git log output to extract commit information and file changes.
-    Each commit is represented as a GitCommit object containing metadata and
-    a summary of changes by folder.
-
-    Args:
-        repo_path: Path to the Git repository to analyze.
-
-    Yields:
-        GitCommit: Objects representing each commit in the repository history.
-
-    Example:
-        The git log format expected:
-        Commit: 2022-09-07T08:13:09+08:00;\
-        66248323+bingwang-ms@users.noreply.github.com;\
-        bingwang-ms
-                9	0	ansible/subfolder/config_sonic_basedon_testbed.yml
-                7	0	ansible/templates/minigraph_meta.j2
-    """
-    command = [
-        "git",
-        "-C",
-        repo_path,
-        "log",
-        f"--format={COMMIT_HEADER_KEY}%H;%aI;%aE;%aN",
-        "--numstat",
-    ]
-    process = subprocess.Popen(command, stdout=subprocess.PIPE, text=True)
-
-    commit_header = None
-    commit_changes = []
-    for line in process.stdout:
-        line = line.strip()
-        if line.startswith(COMMIT_HEADER_KEY):
-            if commit_changes:
-                yield GitCommit(commit_header, commit_changes)
-
-            commit_header = line[len(COMMIT_HEADER_KEY) :]
-            commit_changes.clear()
-        elif commit_header and line:
-            commit_changes.append(line)
-    if commit_changes:
-        yield GitCommit(commit_header, commit_changes)
-    process.wait()
-
-
-def get_commit_count(repo_path: str) -> int:
+async def get_commit_count(repo_path: str) -> int:
     """Get the total number of commits in a repository.
 
     Args:
@@ -114,12 +69,15 @@ def get_commit_count(repo_path: str) -> int:
     Returns:
         int: The total number of commits in the repository.
     """
-    cmd = ["git", "-C", repo_path, "rev-list", "--count", "HEAD"]
-    result = int(subprocess.check_output(cmd, text=True))
+    cmd = f"git -C {shlex.quote(repo_path)} rev-list --count HEAD"
+    result = int(await async_run_cmd(cmd))
     return result
 
 
-def get_remote_owner_repo(repo_path: str) -> Tuple[str, str]:
+GIT_URL_END = ".git"
+
+
+async def get_remote_owner_repo(repo_path: str) -> Tuple[str, str]:
     """Get the GitHub owner and repo_name name based on the remote URL
 
     Args:
@@ -128,15 +86,60 @@ def get_remote_owner_repo(repo_path: str) -> Tuple[str, str]:
     Returns:
         tuple of 2 strings: owner and repo_name
     """
-    cmd = ["git", "-C", repo_path, "config", "--get", "remote.origin.url"]
+    cmd = f"git -C {shlex.quote(repo_path)} config --get remote.origin.url"
     # git@github.com:sonic-net/sonic-mgmt.git
     # https://github.com/sonic-net/sonic-mgmt.git
     # https://github.com/sonic-net/sonic-mgmt/
-    repo_remote_url = subprocess.check_output(cmd, text=True).strip()
-    repo_remote_url.rstrip("/")
+
+    repo_remote_url = (await async_run_cmd(cmd)).strip()
+
     if repo_remote_url.lower().endswith(GIT_URL_END):
         repo_remote_url = repo_remote_url[: -len(GIT_URL_END)]
 
     repo_owner, repo_name = repo_remote_url.split("/")[-2:]
     repo_owner = repo_owner.split(":")[-1]
     return repo_owner, repo_name
+
+
+async def async_run_cmd(cmd):
+    stdout_lines = []
+    async for line in async_run_cmd_lines(cmd):
+        stdout_lines.append(line)
+    return "".join(stdout_lines)
+
+
+async def async_run_cmd_lines(cmd):
+    proc = await asyncio.create_subprocess_shell(
+        cmd,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+    )
+    while True:
+        line = await proc.stdout.readline()
+        if not line:
+            break
+        yield line.decode()
+    await proc.wait()
+    if proc.returncode != 0:
+        stderr = (await proc.stderr.read()).decode()
+        msg = f"Unable to run the command {cmd}. {stderr}, {proc.returncode}"
+        logger.error(msg)
+        raise RuntimeError(msg)
+
+
+async def get_all_commit_stats(repo_path: str):
+    cmd = f"git -C {shlex.quote(repo_path)} log --format='{COMMIT_HEADER_KEY}%H;%aI;%aE;%aN' --numstat"
+    commit_header = None
+    commit_changes = []
+    async for line in async_run_cmd_lines(cmd):
+        line = line.strip()
+        if line.startswith(COMMIT_HEADER_KEY):
+            if commit_header:
+                yield GitCommitLocal(commit_header, commit_changes)
+
+            commit_header = line[len(COMMIT_HEADER_KEY) :]
+            commit_changes.clear()
+        elif commit_header and line:
+            commit_changes.append(line)
+    if commit_changes:
+        yield GitCommitLocal(commit_header, commit_changes)

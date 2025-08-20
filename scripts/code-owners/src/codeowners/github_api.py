@@ -46,7 +46,7 @@ def build_api_headers():
     return headers
 
 
-def send_github_query(url: str) -> Response:
+def send_github_query(url: str, params=None) -> Response:
     """Send a request to the GitHub API with rate limiting handling.
 
     Automatically handles GitHub API rate limiting by sleeping until the
@@ -54,6 +54,7 @@ def send_github_query(url: str) -> Response:
 
     Args:
         url: The GitHub API URL to request.
+        params ():
 
     Returns:
         Response: The HTTP response from the GitHub API.
@@ -61,7 +62,7 @@ def send_github_query(url: str) -> Response:
     # Build headers with randomly selected GitHub API token
     headers = build_api_headers()
     while True:
-        response = requests.get(url, headers=headers)
+        response = requests.get(url, headers=headers, params=params)
         if response.status_code == 429:
             logger.warning("Got 429 error, too many requests")
         if response.headers.get("retry-after"):
@@ -198,7 +199,7 @@ def github_commit_author_id_lookup(
     )
     if response.status_code == 404:
         raise ValueError(
-            f"Commit {commit_hash} is not found in repo "
+            f"Commit {commit_hash} is not found in repo_name "
             f"{repo}, owned by {owner}"
         )
     if response.status_code == 200:

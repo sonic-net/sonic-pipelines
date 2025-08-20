@@ -52,7 +52,7 @@ def process_folders_recursively(start_folder: str, repo_folders):
         else:
             print(
                 start_folder + os.sep,
-                " ".join(f"@{owner}" for owner in owners),
+                " ".join(f"@{owner}" for owner in sorted(owners)),
             )
 
 
@@ -169,7 +169,7 @@ def process_repo_commits(args, contributors):
     logger.info(f"Processed total commits {counter}")
     logger.info(f"Found contributors for: {found_commits}")
     logger.info(
-        f"Expected commits by repo: {total_commits}",
+        f"Expected commits by repo_name: {total_commits}",
     )
 
 
@@ -182,8 +182,8 @@ def build_candidate_contributor(
 
     Args:
         commit ():  GitCommit instance with local commit info
-        repo_owner ():  GitHub repo owner inferred from the origin
-        repo_name ():  GitHub repo name inferred from the origin
+        repo_owner ():  GitHub repo_name owner inferred from the origin
+        repo_name ():  GitHub repo_name name inferred from the origin
 
     Returns:
         Contributor instance
@@ -231,8 +231,8 @@ def build_candidate_contributor_worker(
     Args:
         input_queue (): import queue for commits
         output_queue (): output queue for the resolved Contributors
-        repo_owner ():  GitHub repo owner inferred from the origin
-        repo_name ():  GitHub repo name inferred from the origin
+        repo_owner ():  GitHub repo_name owner inferred from the origin
+        repo_name ():  GitHub repo_name name inferred from the origin
         contributors (): Contributors collection for checking before lookup
 
     Returns:

@@ -4,9 +4,17 @@
 import os
 from collections import namedtuple
 from enum import Enum
+import shlex
 from typing import Dict
+import aiofiles
+import aiofiles.os
 
 import yaml
+
+from codeowners_async.async_helpers import (
+    async_run_cmd,
+    async_run_cmd_lines,
+)
 
 
 class FolderType(Enum):
@@ -70,7 +78,7 @@ def get_folder_settings(folder: str):
     return FolderSettings(FolderType.REGULAR, set(), [])
 
 
-def get_repo_folders(repo: str) -> Dict[str, FolderSettings]:
+async def get_repo_folders(repo: str) -> Dict[str, FolderSettings]:
     """Get all folders in a repository with their settings.
 
     Walks through the repository directory tree and returns a dictionary
@@ -90,7 +98,9 @@ def get_repo_folders(repo: str) -> Dict[str, FolderSettings]:
     result = {}
     if repo[-1] != os.sep:
         repo += os.sep
-    for folder, _, _ in os.walk(repo):
+    cmd = f"find -x {shlex.quote(repo)} -type d"
+    async for folder in async_run_cmd_lines(cmd):
+        folder = folder.rstrip(os.linesep)
         if not folder.startswith(repo):
             raise ValueError(
                 f"Folder: {folder} is outside of repo_name {repo}"
@@ -134,7 +144,9 @@ def folder_settings_constructor(
 yaml.SafeLoader.add_constructor("!FolderSettings", folder_settings_constructor)
 
 
-def load_folder_metadata(filename: str):
+async def load_folder_metadata(filename: str, repo: str):
     if filename:
-        with open(filename, "r") as folder_file:
-            PRESET_FOLDERS.update(yaml.safe_load(folder_file))
+        async with aiofiles.open(filename, "r") as folder_file:
+            contents = await folder_file.read()
+        PRESET_FOLDERS.update(yaml.safe_load(contents))
+    return await get_repo_folders(repo)

@@ -89,17 +89,20 @@ After installation, you can use the `codeowners-cli` command:
 codeowners-cli --help
 
 # Example: Analyze a repository
-codeowners-cli --repo /path/to/your/repo --contributors-file contributors.yaml
+codeowners-cli --repo_name /path/to/your/repo_name --contributors-file contributors.yaml
+
+# For asynchronous (asyncio) version also available
+codeowners-async-cli 
 ```
 
 ## CLI Options
 
-The `codeowners-cli` command supports various options:
+The `codeowners-cli` and `codeowners-async-cli` commands supports various options:
 
 - `--repo`: Path to the local Git repository
 - `--contributors_file`: Path to the contributors YAML file
 - `--folder_presets_file`: YAML file with the preset folder information
-- `--active_from`: Date from which to consider contributors active (YYYY-MM-DD)
+- `--active_after`: Date from which to consider contributors active (YYYY-MM-DD)
 - `--max_owners`: Maximum number of owners per folder
 - `--log_level`: Log level of the output
 
@@ -122,3 +125,7 @@ __Be careful not to duplicate emails.__
 
 - requests >= 2.3.4
 - PyYAML >= 6.0.2
+- aiofiles >= 24.1.0
+- aiohttp >= 3.10.11
+- Brotli >= 1.1.0 (optional)
+- aiodns >= 3.2.0 (optional)
