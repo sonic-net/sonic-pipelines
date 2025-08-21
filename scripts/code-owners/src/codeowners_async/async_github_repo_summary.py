@@ -18,7 +18,7 @@ from codeowners_async.async_helpers import (
     GitCommitLocal,
 )
 from codeowners_async.contributor import Contributor, ContributorCollection
-from codeowners_async.folders import FolderType, FolderSettings
+from codeowners_async.folders import FolderType, FolderSettings, PRESET_FOLDERS
 from codeowners_async.organization import (
     ORGANIZATION,
     organization_by_company,
@@ -29,20 +29,22 @@ logger = logging.getLogger(__name__)
 
 class AsyncGitHubRepoSummary:
     """Asynchronous GitHub repository analyzer for code ownership generation.
-    
-    This class handles the analysis of GitHub repositories to determine code ownership
-    based on commit history and contributor activity. It uses the GitHub API to
-    gather information about contributors and their commit patterns.
-    
+
+    This class handles the analysis of GitHub repositories to determine code
+    ownership based on commit history and contributor activity. It uses the
+    GitHub API to gather information about contributors and their commit
+    patterns.
+
     Attributes:
-        MAX_CONCURRENT_API_REQUESTS: Maximum number of concurrent API requests.
-        MAX_UNRESOLVED_COMMITS: Maximum number of commits to queue for resolution.
+        MAX_CONCURRENT_API_REQUESTS: Maximum number of concurrent API
+        requests. MAX_UNRESOLVED_COMMITS: Maximum number of commits to queue
+        for resolution.
         COMMIT_RESOLVE_WORKERS: Number of worker tasks for commit resolution.
         GITHUB_API_ENDPOINT: Base URL for GitHub API.
         GITHUB_API_TOKENS_ENV_VAR: Environment variable name for GitHub tokens.
         GITHUB_API_TOKENS: List of GitHub API tokens for authentication.
     """
-    
+
     MAX_CONCURRENT_API_REQUESTS = 1000
     MAX_UNRESOLVED_COMMITS = 1000
     COMMIT_RESOLVE_WORKERS = 64
@@ -59,9 +61,10 @@ class AsyncGitHubRepoSummary:
 
     def build_api_headers(self) -> Dict[str, str]:
         """Build HTTP headers for GitHub API requests.
-        
+
         Returns:
-            Dict[str, str]: Headers dictionary with authentication and API version.
+            Dict[str, str]: Headers dictionary with authentication and API
+            version.
         """
         headers = {
             "Accept": "application/vnd.github+json",
@@ -74,10 +77,10 @@ class AsyncGitHubRepoSummary:
 
     async def check_api_rate(self, response: ClientResponse):
         """Check and handle GitHub API rate limiting.
-        
+
         Implements exponential backoff for rate limit handling. If rate limit
         is exceeded, waits for the appropriate time before retrying.
-        
+
         Args:
             response: The HTTP response from GitHub API.
         """
@@ -126,14 +129,14 @@ class AsyncGitHubRepoSummary:
         self, url: str, params: Dict[str, str] = None
     ) -> Optional[Any]:
         """Send a request to the GitHub API with rate limiting and retry logic.
-        
+
         Args:
             url: The GitHub API URL to request.
             params: Optional query parameters for the request.
-            
+
         Returns:
             Optional[Any]: JSON response from the API, or None if failed.
-            
+
         Raises:
             ValueError: If the API returns a non-200 status code.
         """
@@ -167,10 +170,10 @@ class AsyncGitHubRepoSummary:
 
     async def github_id_lookup(self, github_id: int) -> Dict[str, Any]:
         """Look up GitHub user information by user ID.
-        
+
         Args:
             github_id: The GitHub user ID to look up.
-            
+
         Returns:
             Dict[str, Any]: Dictionary containing user information with keys:
                 login, id, name, email, company.
@@ -198,10 +201,10 @@ class AsyncGitHubRepoSummary:
 
     async def github_login_lookup(self, github_login: str) -> Dict[str, Any]:
         """Look up GitHub user information by username.
-        
+
         Args:
             github_login: The GitHub username to look up.
-            
+
         Returns:
             Dict[str, Any]: Dictionary containing user information with keys:
                 login, id, name, email, company.
@@ -245,7 +248,7 @@ class AsyncGitHubRepoSummary:
 
     def __init__(self):
         """Initialize the AsyncGitHubRepoSummary instance.
-        
+
         Sets up caches, SSL context, and rate limiting parameters.
         """
         self.gh_login_lookup_cache = dict()
@@ -282,7 +285,7 @@ class AsyncGitHubRepoSummary:
         max_owners: int,
     ):
         """Initialize the repository analysis with configuration parameters.
-        
+
         Args:
             contributors: Collection of contributors to analyze.
             repo_folders: Dictionary mapping folder paths to their settings.
@@ -331,10 +334,11 @@ class AsyncGitHubRepoSummary:
         max_owners: int,
     ):
         """Process a repository to determine code ownership.
-        
-        Analyzes all commits in the repository, resolves contributor information,
-        and assigns owners to folders based on commit activity.
-        
+
+        Analyzes all commits in the repository, resolves contributor
+        information, and assigns owners to folders based on commit
+        activity.
+
         Args:
             contributors: Collection of contributors to analyze.
             repo_folders: Dictionary mapping folder paths to their settings.
@@ -405,6 +409,16 @@ class AsyncGitHubRepoSummary:
                         while True:
                             try:
                                 if (
+                                    PRESET_FOLDERS[folder].folder_type
+                                    == FolderType.IGNORE
+                                ):
+                                    # do not account for the data in the Ignore subfolders
+                                    break
+                            except KeyError:
+                                # Ignore non-existent folders
+                                pass
+                            try:
+                                if (
                                     self.repo_folders[folder].folder_type
                                     != FolderType.CLOSED_OWNERS
                                 ):
@@ -433,9 +447,10 @@ class AsyncGitHubRepoSummary:
                     0, (self.max_owners - len(folder_settings.owners))
                 )
                 if need_extra_owners > 0:
-                    # try to get double of the owners in case of the reps
+                    # try to get the full number of the owners in case of the
+                    # overlay with the pre-defined owners
                     for contributor, _ in contributor_stat.most_common(
-                        need_extra_owners << 1
+                        self.max_owners
                     ):
                         folder_settings.owners.add(contributor.github_login)
                         if len(folder_settings.owners) >= self.max_owners:
@@ -443,7 +458,7 @@ class AsyncGitHubRepoSummary:
 
     async def resolve_commit(self):
         """Worker task to resolve commit information and update contributors.
-        
+
         Processes commits from the queue, looks up contributor information,
         and updates the contributor collection with new commit data.
         """
@@ -467,9 +482,10 @@ class AsyncGitHubRepoSummary:
 
     async def build_contributor(self, commit: GitCommitLocal) -> Contributor:
         """Build a contributor object from commit information.
-        
+
         Tries to look for the commit information in GitHub and build the
-        candidate contributor object for later adding to the contributor collection.
+        candidate contributor object for later adding to the contributor
+        collection.
 
         Args:
             commit: GitCommit instance with local commit info.

@@ -141,19 +141,23 @@ def folder_settings_constructor(
 yaml.SafeLoader.add_constructor("!FolderSettings", folder_settings_constructor)
 
 
-async def load_folder_metadata(filename: str, repo: str) -> Dict[str, FolderSettings]:
-    """Load folder metadata from a YAML file and get repository folder structure.
-    
+async def load_folder_metadata(
+    filename: str, repo: str
+) -> Dict[str, FolderSettings]:
+    """Load folder metadata from a YAML file and get repository folder
+    structure.
+
     Loads preset folder configurations from a YAML file and then scans the
     repository to build a complete folder structure with settings.
-    
+
     Args:
         filename: Path to the YAML file containing folder presets.
         repo: Path to the repository root directory.
-        
+
     Returns:
-        Dict[str, FolderSettings]: Dictionary mapping folder paths to their settings.
-        
+        Dict[str, FolderSettings]: Dictionary mapping folder paths to their
+        settings.
+
     Raises:
         ValueError: If a folder is found outside the repository path.
     """

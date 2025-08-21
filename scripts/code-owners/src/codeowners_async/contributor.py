@@ -101,7 +101,7 @@ class Contributor:
 
     def __repr__(self):
         """Return a string representation of the Contributor object.
-        
+
         Returns:
             str: String representation of the Contributor.
         """
@@ -195,17 +195,18 @@ class ContributorCollection:
         self, contributor: Contributor
     ) -> Optional[Contributor]:
         """Add or update a contributor in the collection.
-        
+
         If a contributor with the same GitHub ID already exists, updates
         the existing contributor's information. Otherwise, adds the new
         contributor to the collection.
-        
+
         Args:
             contributor: The Contributor object to add or update.
-            
+
         Returns:
-            Optional[Contributor]: The added/updated contributor, or None if failed.
-            
+            Optional[Contributor]: The added/updated contributor, or None if
+            failed.
+
         Raises:
             ValueError: If GitHub ID is missing or email conflicts exist.
         """
@@ -235,7 +236,7 @@ class ContributorCollection:
 
     async def save_to_file(self):
         """Save all contributors to the YAML file.
-        
+
         Serializes all contributors in the collection to the configured
         YAML file using the custom YAML representer.
         """
@@ -250,7 +251,7 @@ class ContributorCollection:
 
     async def load_from_file(self):
         """Load contributors from the YAML file.
-        
+
         Deserializes contributors from the configured YAML file using
         the custom YAML constructor. If the file doesn't exist, does nothing.
         """
@@ -264,7 +265,7 @@ class ContributorCollection:
 
     def __repr__(self):
         """Return a string representation of the ContributorCollection.
-        
+
         Returns:
             str: String representation of the ContributorCollection.
         """
