@@ -152,10 +152,11 @@ def contributor_constructor(loader: yaml.SafeLoader, node) -> Contributor:
     value = loader.construct_mapping(node, deep=True)
     if value["github_id"] is None:
         raise ValueError(f"Missing github id in YAML data {value}")
+    org = ORGANIZATION[value["organization"]]
     return Contributor(
         name=value["name"],
         emails=set(value["emails"]),
-        organization=ORGANIZATION[value["organization"]],
+        organization=org,
         github_login=value["github_login"],
         github_id=value["github_id"],
     )

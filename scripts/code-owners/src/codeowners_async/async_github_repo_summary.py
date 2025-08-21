@@ -95,7 +95,7 @@ class AsyncGitHubRepoSummary:
         await asyncio.sleep(sleep_duration)
 
     async def send_github_api_request(
-        self, url: str, params=Dict[str, str]
+        self, url: str, params: Dict[str, str] = None
     ) -> Optional[Any]:
         # limit the number of requests
         headers = self.build_api_headers()
