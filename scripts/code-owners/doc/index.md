@@ -40,7 +40,8 @@ graph TD
     
     G[Folder Presets] --> E
     I[Configuration] --> A
-    H[Contributors YAML] --> B
+    H[Contributors YAML] --> C
+     D[GitHub API Lookup] --> C
 ```
 
 ### Core Components
