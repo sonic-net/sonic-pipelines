@@ -28,6 +28,21 @@ logger = logging.getLogger(__name__)
 
 
 class AsyncGitHubRepoSummary:
+    """Asynchronous GitHub repository analyzer for code ownership generation.
+    
+    This class handles the analysis of GitHub repositories to determine code ownership
+    based on commit history and contributor activity. It uses the GitHub API to
+    gather information about contributors and their commit patterns.
+    
+    Attributes:
+        MAX_CONCURRENT_API_REQUESTS: Maximum number of concurrent API requests.
+        MAX_UNRESOLVED_COMMITS: Maximum number of commits to queue for resolution.
+        COMMIT_RESOLVE_WORKERS: Number of worker tasks for commit resolution.
+        GITHUB_API_ENDPOINT: Base URL for GitHub API.
+        GITHUB_API_TOKENS_ENV_VAR: Environment variable name for GitHub tokens.
+        GITHUB_API_TOKENS: List of GitHub API tokens for authentication.
+    """
+    
     MAX_CONCURRENT_API_REQUESTS = 1000
     MAX_UNRESOLVED_COMMITS = 1000
     COMMIT_RESOLVE_WORKERS = 64
@@ -42,7 +57,12 @@ class AsyncGitHubRepoSummary:
         if token
     ]
 
-    def build_api_headers(self):
+    def build_api_headers(self) -> Dict[str, str]:
+        """Build HTTP headers for GitHub API requests.
+        
+        Returns:
+            Dict[str, str]: Headers dictionary with authentication and API version.
+        """
         headers = {
             "Accept": "application/vnd.github+json",
             "X-GitHub-Api-Version": "2022-11-28",
@@ -53,6 +73,14 @@ class AsyncGitHubRepoSummary:
         return headers
 
     async def check_api_rate(self, response: ClientResponse):
+        """Check and handle GitHub API rate limiting.
+        
+        Implements exponential backoff for rate limit handling. If rate limit
+        is exceeded, waits for the appropriate time before retrying.
+        
+        Args:
+            response: The HTTP response from GitHub API.
+        """
         # exponentiate the time at every request
         if (
             datetime.now(timezone.utc).timestamp() - self.expo_wait_last_update
@@ -97,6 +125,18 @@ class AsyncGitHubRepoSummary:
     async def send_github_api_request(
         self, url: str, params: Dict[str, str] = None
     ) -> Optional[Any]:
+        """Send a request to the GitHub API with rate limiting and retry logic.
+        
+        Args:
+            url: The GitHub API URL to request.
+            params: Optional query parameters for the request.
+            
+        Returns:
+            Optional[Any]: JSON response from the API, or None if failed.
+            
+        Raises:
+            ValueError: If the API returns a non-200 status code.
+        """
         # limit the number of requests
         headers = self.build_api_headers()
         async with aiohttp.ClientSession(
@@ -126,6 +166,15 @@ class AsyncGitHubRepoSummary:
                         return await response.json()
 
     async def github_id_lookup(self, github_id: int) -> Dict[str, Any]:
+        """Look up GitHub user information by user ID.
+        
+        Args:
+            github_id: The GitHub user ID to look up.
+            
+        Returns:
+            Dict[str, Any]: Dictionary containing user information with keys:
+                login, id, name, email, company.
+        """
         if github_id == -1:
             return {
                 "login": "non-github-bundle",
@@ -148,6 +197,15 @@ class AsyncGitHubRepoSummary:
         return result
 
     async def github_login_lookup(self, github_login: str) -> Dict[str, Any]:
+        """Look up GitHub user information by username.
+        
+        Args:
+            github_login: The GitHub username to look up.
+            
+        Returns:
+            Dict[str, Any]: Dictionary containing user information with keys:
+                login, id, name, email, company.
+        """
         try:
             return self.gh_login_lookup_cache[github_login]
         except KeyError:
@@ -186,7 +244,10 @@ class AsyncGitHubRepoSummary:
             return -1
 
     def __init__(self):
-
+        """Initialize the AsyncGitHubRepoSummary instance.
+        
+        Sets up caches, SSL context, and rate limiting parameters.
+        """
         self.gh_login_lookup_cache = dict()
         self.gh_id_lookup_cache = dict()
 
@@ -220,6 +281,17 @@ class AsyncGitHubRepoSummary:
         active_after: datetime,
         max_owners: int,
     ):
+        """Initialize the repository analysis with configuration parameters.
+        
+        Args:
+            contributors: Collection of contributors to analyze.
+            repo_folders: Dictionary mapping folder paths to their settings.
+            repo_path: Path to the local repository.
+            owner: GitHub repository owner.
+            repo: GitHub repository name.
+            active_after: Cutoff date for considering contributors active.
+            max_owners: Maximum number of owners per folder.
+        """
         self.contributors = contributors
         self.repo_folders = repo_folders
         self.repo_folders_stats = {
@@ -258,6 +330,21 @@ class AsyncGitHubRepoSummary:
         active_after: datetime,
         max_owners: int,
     ):
+        """Process a repository to determine code ownership.
+        
+        Analyzes all commits in the repository, resolves contributor information,
+        and assigns owners to folders based on commit activity.
+        
+        Args:
+            contributors: Collection of contributors to analyze.
+            repo_folders: Dictionary mapping folder paths to their settings.
+            repo_path: Path to the local repository.
+            total_commit_count: Total number of commits in the repository.
+            owner: GitHub repository owner.
+            repo_name: GitHub repository name.
+            active_after: Cutoff date for considering contributors active.
+            max_owners: Maximum number of owners per folder.
+        """
         await self._initialize(
             contributors,
             repo_folders,
@@ -355,6 +442,11 @@ class AsyncGitHubRepoSummary:
                             break
 
     async def resolve_commit(self):
+        """Worker task to resolve commit information and update contributors.
+        
+        Processes commits from the queue, looks up contributor information,
+        and updates the contributor collection with new commit data.
+        """
         while True:
             commit = await self.to_resolve_commit_queue.get()
             self.to_resolve_commit_queue.task_done()
@@ -374,15 +466,16 @@ class AsyncGitHubRepoSummary:
             await self.resolved_commit_queue.put((commit, contributor))
 
     async def build_contributor(self, commit: GitCommitLocal) -> Contributor:
-        """Tries to look for the commit information in GitHub
-        and build the candidate contributor object
-        for later adding to the contributor collection
+        """Build a contributor object from commit information.
+        
+        Tries to look for the commit information in GitHub and build the
+        candidate contributor object for later adding to the contributor collection.
 
         Args:
-            commit ():  GitCommit instance with local commit info
+            commit: GitCommit instance with local commit info.
 
         Returns:
-            Contributor instance
+            Contributor: The built contributor instance.
         """
         author_id = await self.github_commit_author_id_lookup(
             commit.commit_hash
@@ -429,7 +522,7 @@ class AsyncGitHubRepoSummary:
         to extract GitHub user ID and login information.
 
         Args:
-            email: email address to search for GitHub information.
+            email: Email address to search for GitHub information.
 
         Returns:
             Dict[str, Any]: Dictionary containing GitHub user information, or

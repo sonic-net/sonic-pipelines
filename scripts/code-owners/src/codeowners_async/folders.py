@@ -1,5 +1,4 @@
-"""Module for managing folder settings
-   and repository folder analysis."""
+"""Module for managing folder settings and repository folder analysis."""
 
 import os
 from collections import namedtuple
@@ -51,7 +50,7 @@ def is_subfolder(prefix: str, folder: str) -> bool:
     )
 
 
-def get_folder_settings(folder: str):
+def get_folder_settings(folder: str) -> FolderSettings:
     """Get the settings for a specific folder.
 
     Checks for explicitly defined folders first, then checks if the folder
@@ -130,7 +129,6 @@ def folder_settings_constructor(
 
     Returns:
         FolderSettings: The reconstructed FolderSettings object.
-
     """
     value = loader.construct_mapping(node, deep=True)
     return FolderSettings(
@@ -143,7 +141,22 @@ def folder_settings_constructor(
 yaml.SafeLoader.add_constructor("!FolderSettings", folder_settings_constructor)
 
 
-async def load_folder_metadata(filename: str, repo: str):
+async def load_folder_metadata(filename: str, repo: str) -> Dict[str, FolderSettings]:
+    """Load folder metadata from a YAML file and get repository folder structure.
+    
+    Loads preset folder configurations from a YAML file and then scans the
+    repository to build a complete folder structure with settings.
+    
+    Args:
+        filename: Path to the YAML file containing folder presets.
+        repo: Path to the repository root directory.
+        
+    Returns:
+        Dict[str, FolderSettings]: Dictionary mapping folder paths to their settings.
+        
+    Raises:
+        ValueError: If a folder is found outside the repository path.
+    """
     if filename:
         async with aiofiles.open(filename, "r") as folder_file:
             contents = await folder_file.read()

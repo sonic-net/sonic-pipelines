@@ -12,8 +12,7 @@ COMMIT_HEADER_KEY = "Commit: "
 
 
 class GitCommitLocal:
-    """Represents a Git commit in local file system
-     with metadata and file changes.
+    """Represents a Git commit in local file system with metadata and file changes.
 
     Attributes:
         name: The author name.
@@ -52,7 +51,11 @@ class GitCommitLocal:
             self.changes[os.path.dirname(change_path)] += total_count
 
     def __repr__(self):
-        """Return a string representation of the GitCommit object."""
+        """Return a string representation of the GitCommit object.
+        
+        Returns:
+            str: String representation of the GitCommit.
+        """
         return (
             f"GitCommit(name={self.name}, email={self.email}, "
             f"ts={self.ts}, changes={self.changes}, "
@@ -68,6 +71,9 @@ async def get_commit_count(repo_path: str) -> int:
 
     Returns:
         int: The total number of commits in the repository.
+        
+    Raises:
+        RuntimeError: If the git command fails to execute.
     """
     cmd = f"git -C {shlex.quote(repo_path)} rev-list --count HEAD"
     result = int(await async_run_cmd(cmd))
@@ -78,13 +84,16 @@ GIT_URL_END = ".git"
 
 
 async def get_remote_owner_repo(repo_path: str) -> Tuple[str, str]:
-    """Get the GitHub owner and repo_name name based on the remote URL
+    """Get the GitHub owner and repository name based on the remote URL.
 
     Args:
         repo_path: Path to the Git repository.
 
     Returns:
-        tuple of 2 strings: owner and repo_name
+        Tuple[str, str]: A tuple containing (owner, repository_name).
+        
+    Raises:
+        RuntimeError: If the git command fails to execute.
     """
     cmd = f"git -C {shlex.quote(repo_path)} config --get remote.origin.url"
     # git@github.com:sonic-net/sonic-mgmt.git
@@ -101,7 +110,18 @@ async def get_remote_owner_repo(repo_path: str) -> Tuple[str, str]:
     return repo_owner, repo_name
 
 
-async def async_run_cmd(cmd: str):
+async def async_run_cmd(cmd: str) -> str:
+    """Execute a shell command asynchronously and return the output.
+    
+    Args:
+        cmd: The shell command to execute.
+        
+    Returns:
+        str: The command output as a string.
+        
+    Raises:
+        RuntimeError: If the command fails to execute or returns non-zero exit code.
+    """
     stdout_lines = []
     async for line in async_run_cmd_lines(cmd):
         stdout_lines.append(line)
@@ -109,6 +129,17 @@ async def async_run_cmd(cmd: str):
 
 
 async def async_run_cmd_lines(cmd: str):
+    """Execute a shell command asynchronously and yield output lines.
+    
+    Args:
+        cmd: The shell command to execute.
+        
+    Yields:
+        str: Lines of output from the command.
+        
+    Raises:
+        RuntimeError: If the command fails to execute or returns non-zero exit code.
+    """
     proc = await asyncio.create_subprocess_shell(
         cmd,
         stdout=asyncio.subprocess.PIPE,
@@ -128,6 +159,20 @@ async def async_run_cmd_lines(cmd: str):
 
 
 async def get_all_commit_stats(repo_path: str):
+    """Get all commit statistics from a Git repository.
+    
+    Executes git log to retrieve commit information and file change statistics.
+    Yields GitCommitLocal objects for each commit in the repository.
+    
+    Args:
+        repo_path: Path to the Git repository.
+        
+    Yields:
+        GitCommitLocal: Commit objects with metadata and change statistics.
+        
+    Raises:
+        RuntimeError: If the git command fails to execute.
+    """
     cmd = (
         f"git -C {shlex.quote(repo_path)} log "
         f"--format='{COMMIT_HEADER_KEY}%H;%aI;%aE;%aN' --numstat"

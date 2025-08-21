@@ -25,7 +25,7 @@ class Contributor:
         github_login: The contributor's GitHub username.
         github_id: The contributor's GitHub user ID.
         last_commit_ts: Timestamp of the contributor's most recent commit.
-        commits: Count of GitCommit objects made by this contributor.
+        commits: List of GitCommit objects made by this contributor.
     """
 
     def __init__(
@@ -40,7 +40,7 @@ class Contributor:
 
         Args:
             name: The contributor's display name.
-            emails: List of email addresses associated with the contributor.
+            emails: Set of email addresses associated with the contributor.
             organization: The organization the contributor belongs to.
             github_login: The contributor's GitHub username.
             github_id: The contributor's GitHub user ID.
@@ -100,7 +100,11 @@ class Contributor:
         return self.github_id == other.github_id
 
     def __repr__(self):
-        """Return a string representation of the Contributor object."""
+        """Return a string representation of the Contributor object.
+        
+        Returns:
+            str: String representation of the Contributor.
+        """
         return (
             f"{__class__.__name__}({repr(self.name)}, {self.emails}, "
             f"{self.organization}, {repr(self.github_login)})"
@@ -190,6 +194,21 @@ class ContributorCollection:
     def add_update_contributor(
         self, contributor: Contributor
     ) -> Optional[Contributor]:
+        """Add or update a contributor in the collection.
+        
+        If a contributor with the same GitHub ID already exists, updates
+        the existing contributor's information. Otherwise, adds the new
+        contributor to the collection.
+        
+        Args:
+            contributor: The Contributor object to add or update.
+            
+        Returns:
+            Optional[Contributor]: The added/updated contributor, or None if failed.
+            
+        Raises:
+            ValueError: If GitHub ID is missing or email conflicts exist.
+        """
         if contributor.github_id is None:
             raise ValueError("Need to have the GitHub id to update")
         try:
@@ -215,7 +234,11 @@ class ContributorCollection:
             return contributor
 
     async def save_to_file(self):
-        """Save all contributors to the YAML file."""
+        """Save all contributors to the YAML file.
+        
+        Serializes all contributors in the collection to the configured
+        YAML file using the custom YAML representer.
+        """
         contents = yaml.safe_dump_all(
             self.contributors,
             indent=2,
@@ -226,7 +249,11 @@ class ContributorCollection:
             await out_file.write(contents)
 
     async def load_from_file(self):
-        """Load contributors from the YAML file."""
+        """Load contributors from the YAML file.
+        
+        Deserializes contributors from the configured YAML file using
+        the custom YAML constructor. If the file doesn't exist, does nothing.
+        """
         try:
             async with aiofiles.open(self.db_filename, "r") as in_file:
                 contents = await in_file.read()
@@ -236,5 +263,9 @@ class ContributorCollection:
             pass
 
     def __repr__(self):
-        """Return a string representation of the ContributorCollection."""
+        """Return a string representation of the ContributorCollection.
+        
+        Returns:
+            str: String representation of the ContributorCollection.
+        """
         return f"{__class__.__name__}({repr(self.contributors)})"

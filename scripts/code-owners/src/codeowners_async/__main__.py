@@ -75,6 +75,10 @@ def parse_params() -> argparse.Namespace:
 
 
 def main():
+    """Main entry point for the codeowners generation script.
+    
+    Parses command line arguments, sets up logging, and runs the async processing loop.
+    """
     main_start_time = time.time()
     args = parse_params()
     logging.Formatter.converter = time.gmtime
@@ -91,15 +95,14 @@ def main():
 
 
 def process_folders_recursively(start_folder: str, repo_folders):
-    """Process the folders with counted contributors top to bottom
+    """Process the folders with counted contributors top to bottom.
+    
     If all subfolders have contributors as the subset of a folder
-    then do not descend.
-
-    Iterates with DFS using recursion
+    then do not descend. Iterates with DFS using recursion.
 
     Args:
-        start_folder: A folder to start with
-        repo_folders: A collection of folders with children and owners
+        start_folder: A folder to start with.
+        repo_folders: A collection of folders with children and owners.
     """
     owners = repo_folders[start_folder].owners
     if owners:
@@ -128,6 +131,11 @@ def process_folders_recursively(start_folder: str, repo_folders):
 
 
 async def async_loop(args: argparse.Namespace):
+    """Main async processing loop for repository analysis.
+    
+    Args:
+        args: Parsed command line arguments containing repository path and settings.
+    """
     repo_summarizer = AsyncGitHubRepoSummary()
     contributor_collection = ContributorCollection(args.contributors_file)
 

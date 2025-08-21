@@ -128,6 +128,18 @@ def organization_by_company(company: str) -> ORGANIZATION:
 
 
 def organization_by_suffix(github_login: str) -> ORGANIZATION:
+    """Determine organization based on GitHub username suffix.
+    
+    Checks if the GitHub username ends with a known organization suffix
+    and returns the corresponding organization. The suffix must be separated
+    by case change or punctuation.
+    
+    Args:
+        github_login: The GitHub username to check.
+        
+    Returns:
+        ORGANIZATION: The organization associated with the username suffix.
+    """
     for suffix, org in ORGANIZATION_SUFFIXES.items():
         # check if the login ends with the suffix
         if (
