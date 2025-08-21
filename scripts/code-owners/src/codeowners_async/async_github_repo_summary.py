@@ -85,7 +85,8 @@ class AsyncGitHubRepoSummary:
         wake_time = datetime.now() + timedelta(seconds=sleep_duration)
 
         logger.warning(
-            f"{asyncio.current_task().get_name()} GitHub rate limit exceeded, sleeping for "
+            f"{asyncio.current_task().get_name()} "
+            "GitHub rate limit exceeded, sleeping for "
             f"{int(sleep_duration)} seconds until "
             f"{wake_time}",
         )
@@ -114,7 +115,8 @@ class AsyncGitHubRepoSummary:
                             continue
                         if response.status != 200:
                             raise ValueError(
-                                f"Bad API response: {response} for {url} {params}"
+                                f"Bad API response: {response} "
+                                f"for {url} {params}"
                             )
                         self.expo_wait_time = 1
                         return await response.json()
@@ -133,7 +135,8 @@ class AsyncGitHubRepoSummary:
         except KeyError:
             pass
         response = await self.send_github_api_request(
-            f"{AsyncGitHubRepoSummary.GITHUB_API_ENDPOINT}user/{int(github_id)}",
+            f"{AsyncGitHubRepoSummary.GITHUB_API_ENDPOINT}"
+            f"user/{int(github_id)}",
         )
         self.gh_id_lookup_cache[github_id] = result = {
             k: response[k] for k in ["login", "id", "name", "email", "company"]
@@ -146,7 +149,8 @@ class AsyncGitHubRepoSummary:
         except KeyError:
             pass
         response = await self.send_github_api_request(
-            f"{AsyncGitHubRepoSummary.GITHUB_API_ENDPOINT}users/{quote_plus(github_login)}",
+            f"{AsyncGitHubRepoSummary.GITHUB_API_ENDPOINT}"
+            f"users/{quote_plus(github_login)}",
         )
         self.gh_login_lookup_cache[github_login] = result = {
             k: response[k] for k in ["login", "id", "name", "email", "company"]
@@ -169,7 +173,8 @@ class AsyncGitHubRepoSummary:
         try:
             return (
                 await self.send_github_api_request(
-                    f"{AsyncGitHubRepoSummary.GITHUB_API_ENDPOINT}repos/{quote_plus(self.owner)}/{quote_plus(self.repo)}"
+                    f"{AsyncGitHubRepoSummary.GITHUB_API_ENDPOINT}"
+                    f"repos/{quote_plus(self.owner)}/{quote_plus(self.repo)}"
                     f"/commits/{quote_plus(commit_hash)}"
                 )
             )["author"]["id"]
@@ -194,7 +199,8 @@ class AsyncGitHubRepoSummary:
 
         if not self.GITHUB_API_TOKENS:
             warnings.warn(
-                f"No GitHub tokens passed in {self.GITHUB_API_TOKENS_ENV_VAR} env var. "
+                "No GitHub tokens passed in "
+                f"{self.GITHUB_API_TOKENS_ENV_VAR} env var. "
                 "Only 60 GitHub requests per hour allowed: "
                 "https://docs.github.com/en/rest/using-the-rest-api/"
                 "rate-limits-for-the-rest-api?apiVersion=2022-11-28"
@@ -298,7 +304,8 @@ class AsyncGitHubRepoSummary:
                 contributor.last_commit_ts is not None
                 and contributor.last_commit_ts >= self.active_after
             ):
-                # if the contributor's last commit was after the cutoff date, add the commit stats to the
+                # if the contributor's last commit was after
+                # the cutoff date, add the commit stats to the
                 # repo folders
                 for commit in contributor.commits:
                     for folder, change_count in commit.changes.items():

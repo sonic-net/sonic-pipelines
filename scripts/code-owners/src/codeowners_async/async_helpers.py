@@ -128,7 +128,10 @@ async def async_run_cmd_lines(cmd):
 
 
 async def get_all_commit_stats(repo_path: str):
-    cmd = f"git -C {shlex.quote(repo_path)} log --format='{COMMIT_HEADER_KEY}%H;%aI;%aE;%aN' --numstat"
+    cmd = (
+        f"git -C {shlex.quote(repo_path)} log "
+        f"--format='{COMMIT_HEADER_KEY}%H;%aI;%aE;%aN' --numstat"
+    )
     commit_header = None
     commit_changes = []
     async for line in async_run_cmd_lines(cmd):
