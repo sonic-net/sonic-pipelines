@@ -1,5 +1,5 @@
 !Contributor
-commit_count: 458
+commit_count: 459
 emails:
 - wangxin.wang@gmail.com
 - xiwang5@microsoft.com
@@ -18,12 +18,12 @@ last_commit_ts: 2025-08-06 17:53:10+10:00
 name: Javier Tan
 organization: OTHER
 --- !Contributor
-commit_count: 124
+commit_count: 132
 emails:
 - 103085864+echuawu@users.noreply.github.com
 github_id: 103085864
 github_login: echuawu
-last_commit_ts: 2025-08-01 14:23:05+08:00
+last_commit_ts: 2025-08-19 02:52:09+08:00
 name: Chuan Wu
 organization: NVDA
 --- !Contributor
@@ -36,16 +36,16 @@ last_commit_ts: 2025-08-10 17:26:23-07:00
 name: Changrong Wu
 organization: OTHER
 --- !Contributor
-commit_count: 86
+commit_count: 91
 emails:
 - 164845223+sdszhang@users.noreply.github.com
 github_id: 164845223
 github_login: sdszhang
-last_commit_ts: 2025-08-12 10:49:42+10:00
+last_commit_ts: 2025-08-18 10:07:00+10:00
 name: Dashuai Zhang
 organization: OTHER
 --- !Contributor
-commit_count: 2
+commit_count: 3
 emails:
 - rolin@arista.com
 github_id: 197041129
@@ -81,26 +81,26 @@ last_commit_ts: 2025-08-12 14:22:29+08:00
 name: weguo-NV
 organization: NVDA
 --- !Contributor
-commit_count: 5
+commit_count: 6
 emails:
 - xixuej@nvidia.com
 github_id: 192669470
 github_login: xixuej
-last_commit_ts: 2025-08-11 18:56:13+08:00
+last_commit_ts: 2025-08-19 13:56:32+08:00
 name: xixuej
 organization: NVDA
 --- !Contributor
-commit_count: 49
+commit_count: 50
 emails:
 - zhangjing@microsoft.com
 - zjsw1206@gmail.com
 github_id: 26625909
 github_login: zjswhhh
-last_commit_ts: 2025-07-31 11:47:33-07:00
+last_commit_ts: 2025-08-18 14:53:43-07:00
 name: Jing Zhang
 organization: MSFT
 --- !Contributor
-commit_count: 1
+commit_count: 2
 emails:
 - nikolay.a.mirin@gmail.com
 github_id: 29677895
@@ -109,14 +109,14 @@ last_commit_ts: 2025-07-31 11:06:24-07:00
 name: Nikolay Mirin
 organization: NVDA
 --- !Contributor
-commit_count: 80
+commit_count: 81
 emails:
 - austinpham@microsoft.com
 - contact@auspham.dev
 - rockmanvnx6@gmail.com
 github_id: 16440123
 github_login: auspham
-last_commit_ts: 2025-08-08 10:41:52+10:00
+last_commit_ts: 2025-08-13 09:04:46-07:00
 name: Austin (Thang Pham)
 organization: MSFT
 --- !Contributor
@@ -131,49 +131,49 @@ last_commit_ts: 2025-08-05 21:00:41+02:00
 name: roman_savchuk
 organization: NVDA
 --- !Contributor
-commit_count: 111
+commit_count: 113
 emails:
 - 78413612+nhe-nv@users.noreply.github.com
 github_id: 78413612
 github_login: nhe-NV
-last_commit_ts: 2025-08-12 14:20:28+08:00
+last_commit_ts: 2025-08-19 00:20:36+08:00
 name: Nana@Nvidia
 organization: NVDA
 --- !Contributor
-commit_count: 21
+commit_count: 22
 emails:
 - 37450862+illia-kotvitskyi@users.noreply.github.com
 github_id: 37450862
 github_login: illia-kotvitskyi
-last_commit_ts: 2025-08-11 10:10:13+03:00
+last_commit_ts: 2025-08-18 19:29:30+03:00
 name: Illia
 organization: NVDA
 --- !Contributor
-commit_count: 116
+commit_count: 119
 emails:
 - jbao@nvidia.com
 github_id: 7019768
 github_login: JibinBao
-last_commit_ts: 2025-08-12 04:34:27+08:00
+last_commit_ts: 2025-08-19 13:57:13+08:00
 name: Jibin Bao
 organization: NVDA
 --- !Contributor
-commit_count: 134
+commit_count: 136
 emails:
 - 97947969+congh-nvidia@users.noreply.github.com
 github_id: 97947969
 github_login: congh-nvidia
-last_commit_ts: 2025-08-05 18:53:37+08:00
+last_commit_ts: 2025-08-20 12:27:22+08:00
 name: Cong Hou
 organization: NVDA
 --- !Contributor
-commit_count: 40
+commit_count: 44
 emails:
 - 736034564@qq.com
 - zitingguo@microsoft.com
 github_id: 19384917
 github_login: Gfrom2016
-last_commit_ts: 2025-08-06 23:11:52-07:00
+last_commit_ts: 2025-08-18 09:55:46-07:00
 name: zitingguo-ms
 organization: MSFT
 --- !Contributor
@@ -196,12 +196,12 @@ last_commit_ts: 2025-07-30 23:25:38-07:00
 name: Lawrence Lee
 organization: MSFT
 --- !Contributor
-commit_count: 36
+commit_count: 39
 emails:
 - r12f.code@gmail.com
 github_id: 1533278
 github_login: r12f
-last_commit_ts: 2025-08-04 17:09:11-07:00
+last_commit_ts: 2025-08-17 23:59:21-07:00
 name: Riff
 organization: OTHER
 --- !Contributor
@@ -214,12 +214,12 @@ last_commit_ts: 2025-07-31 06:28:37+05:30
 name: vkjammala-arista
 organization: ANET
 --- !Contributor
-commit_count: 14
+commit_count: 15
 emails:
 - nnelluri@cisco.com
 github_id: 192652567
 github_login: nnelluri-cisco
-last_commit_ts: 2025-08-04 12:03:50-07:00
+last_commit_ts: 2025-08-18 16:23:29-07:00
 name: nnelluri-cisco
 organization: CSCO
 --- !Contributor
@@ -232,21 +232,21 @@ last_commit_ts: 2025-07-31 00:02:06+05:30
 name: siva-prasad-cisco
 organization: CSCO
 --- !Contributor
-commit_count: 43
+commit_count: 45
 emails:
 - 94405414+arista-nwolfe@users.noreply.github.com
 github_id: 94405414
 github_login: arista-nwolfe
-last_commit_ts: 2025-07-30 13:46:32-04:00
+last_commit_ts: 2025-08-20 01:07:37-04:00
 name: arista-nwolfe
 organization: ANET
 --- !Contributor
-commit_count: 12
+commit_count: 13
 emails:
 - v-backumar@microsoft.com
 github_id: 200611691
 github_login: bachalla
-last_commit_ts: 2025-07-30 19:07:58+05:30
+last_commit_ts: 2025-08-14 07:08:56+05:30
 name: bachalla
 organization: MSFT
 --- !Contributor
@@ -269,7 +269,7 @@ last_commit_ts: 2025-07-30 21:20:12+08:00
 name: Xu Chen
 organization: MSFT
 --- !Contributor
-commit_count: 320
+commit_count: 321
 emails:
 - 90831468+yutongzhang-microsoft@users.noreply.github.com
 github_id: 90831468
@@ -287,7 +287,7 @@ last_commit_ts: 2025-07-30 13:52:14+08:00
 name: Hua Liu
 organization: MSFT
 --- !Contributor
-commit_count: 52
+commit_count: 53
 emails:
 - 110003254+opcoder0@users.noreply.github.com
 github_id: 110003254
@@ -314,13 +314,13 @@ last_commit_ts: 2025-07-29 17:39:28+05:30
 name: ksravani-hcl
 organization: OTHER
 --- !Contributor
-commit_count: 268
+commit_count: 271
 emails:
 - 96218837+xwjiang-ms@users.noreply.github.com
 - 96218837+xwjiang2021@users.noreply.github.com
 github_id: 96218837
 github_login: xwjiang-ms
-last_commit_ts: 2025-08-05 23:37:33+10:00
+last_commit_ts: 2025-08-20 18:54:06+10:00
 name: xwjiang-ms
 organization: MSFT
 --- !Contributor
@@ -333,16 +333,16 @@ last_commit_ts: 2025-08-13 03:53:16+10:00
 name: Longxiang Lyu
 organization: MSFT
 --- !Contributor
-commit_count: 95
+commit_count: 96
 emails:
 - 108326363+lipxu@users.noreply.github.com
 github_id: 108326363
 github_login: lipxu
-last_commit_ts: 2025-08-11 15:31:30+08:00
+last_commit_ts: 2025-08-20 15:17:27+08:00
 name: Liping Xu
 organization: MSFT
 --- !Contributor
-commit_count: 72
+commit_count: 74
 emails:
 - ganze718@gmail.com
 github_id: 18609639
@@ -379,12 +379,12 @@ last_commit_ts: 2025-08-08 20:32:58-04:00
 name: Patrick MacArthur
 organization: ANET
 --- !Contributor
-commit_count: 369
+commit_count: 370
 emails:
 - 66248323+bingwang-ms@users.noreply.github.com
 github_id: 66248323
 github_login: bingwang-ms
-last_commit_ts: 2025-08-11 11:11:18-07:00
+last_commit_ts: 2025-08-14 18:11:49-07:00
 name: bingwang-ms
 organization: OTHER
 --- !Contributor
@@ -460,7 +460,7 @@ last_commit_ts: 2025-07-24 13:41:29-07:00
 name: Peter Bailey
 organization: ANET
 --- !Contributor
-commit_count: 4
+commit_count: 5
 emails:
 - vivekreddykarri98@gmail.com
 - vkarri@nvidia.com
@@ -543,12 +543,12 @@ last_commit_ts: 2025-07-22 07:30:55+05:30
 name: sivanuka-arista
 organization: ANET
 --- !Contributor
-commit_count: 17
+commit_count: 18
 emails:
 - 150791552+okaravasi@users.noreply.github.com
 github_id: 150791552
 github_login: okaravasi
-last_commit_ts: 2025-07-22 02:57:09+03:00
+last_commit_ts: 2025-08-16 00:15:00+03:00
 name: Olympia Karavasili Arapogianni
 organization: NOK
 --- !Contributor
@@ -606,12 +606,12 @@ last_commit_ts: 2025-07-16 22:02:34-07:00
 name: Chris
 organization: ANET
 --- !Contributor
-commit_count: 27
+commit_count: 28
 emails:
 - 113053330+dayouliu1@users.noreply.github.com
 github_id: 113053330
 github_login: dayouliu1
-last_commit_ts: 2025-08-11 18:50:01-07:00
+last_commit_ts: 2025-08-15 02:38:59-07:00
 name: Dayou Liu
 organization: OTHER
 --- !Contributor
@@ -669,14 +669,14 @@ last_commit_ts: 2025-08-04 08:38:15-07:00
 name: Yatish
 organization: MSFT
 --- !Contributor
-commit_count: 184
+commit_count: 185
 emails:
 - 1512099831@qq.com
 - yaqiangzhu@microsoft.com
 - zyq1512099831@gmail.com
 github_id: 26435361
 github_login: yaqiangz
-last_commit_ts: 2025-08-04 10:46:59+08:00
+last_commit_ts: 2025-08-18 11:12:19+08:00
 name: Yaqiang Zhu
 organization: MSFT
 --- !Contributor
@@ -698,12 +698,12 @@ last_commit_ts: 2025-07-14 21:26:11-04:00
 name: Amit Pawar
 organization: NOK
 --- !Contributor
-commit_count: 9
+commit_count: 10
 emails:
 - andymo96@gmail.com
 github_id: 15720572
 github_login: yanmo96
-last_commit_ts: 2025-07-14 15:16:32-07:00
+last_commit_ts: 2025-08-14 14:47:44-07:00
 name: Yan Mo
 organization: OTHER
 --- !Contributor
@@ -716,21 +716,21 @@ last_commit_ts: 2025-07-14 14:03:11-04:00
 name: sanjair-git
 organization: OTHER
 --- !Contributor
-commit_count: 98
+commit_count: 99
 emails:
 - jingwenxie@microsoft.com
 github_id: 9283786
 github_login: wen587
-last_commit_ts: 2025-07-14 14:01:16+08:00
+last_commit_ts: 2025-08-13 11:53:12+08:00
 name: jingwenxie
 organization: MSFT
 --- !Contributor
-commit_count: 137
+commit_count: 138
 emails:
 - zhijianli@microsoft.com
 github_id: 10472742
 github_login: lizhijianrd
-last_commit_ts: 2025-08-04 23:59:52+10:00
+last_commit_ts: 2025-08-15 19:53:27+10:00
 name: Zhijian Li
 organization: MSFT
 --- !Contributor
@@ -851,21 +851,21 @@ last_commit_ts: 2025-07-03 09:56:31-07:00
 name: prabhataravind
 organization: OTHER
 --- !Contributor
-commit_count: 43
+commit_count: 44
 emails:
 - 44230426+zhixzhu@users.noreply.github.com
 github_id: 44230426
 github_login: zhixzhu
-last_commit_ts: 2025-08-03 16:53:27-07:00
+last_commit_ts: 2025-08-20 01:27:54-07:00
 name: Zhixin Zhu
 organization: CSCO
 --- !Contributor
-commit_count: 104
+commit_count: 105
 emails:
 - shiyanwang@microsoft.com
 github_id: 1931001
 github_login: wsycqyz
-last_commit_ts: 2025-07-03 09:35:06+08:00
+last_commit_ts: 2025-08-18 10:17:21+08:00
 name: ShiyanWangMS
 organization: MSFT
 --- !Contributor
@@ -908,12 +908,12 @@ last_commit_ts: 2025-07-01 13:20:56+10:00
 name: Matthew Soulsby
 organization: OTHER
 --- !Contributor
-commit_count: 70
+commit_count: 72
 emails:
 - lukelin0907@gmail.com
 github_id: 30065554
 github_login: Xichen96
-last_commit_ts: 2025-07-01 12:33:00+10:00
+last_commit_ts: 2025-08-19 13:26:07+10:00
 name: Xichen96
 organization: OTHER
 --- !Contributor
@@ -982,7 +982,7 @@ last_commit_ts: 2025-06-24 16:00:40+10:00
 name: Ryangwaite
 organization: MSFT
 --- !Contributor
-commit_count: 16
+commit_count: 17
 emails:
 - daweihuang@microsoft.com
 - dwhuang9@gmail.com
@@ -992,13 +992,13 @@ last_commit_ts: 2025-06-23 11:15:19-05:00
 name: Dawei Huang
 organization: MSFT
 --- !Contributor
-commit_count: 100
+commit_count: 101
 emails:
 - saiarcot895@gmail.com
 - sarcot@microsoft.com
 github_id: 5923875
 github_login: saiarcot895
-last_commit_ts: 2025-08-08 01:19:48-07:00
+last_commit_ts: 2025-08-15 14:19:52-07:00
 name: Saikrishna Arcot
 organization: MSFT
 --- !Contributor
@@ -1411,7 +1411,7 @@ last_commit_ts: 2025-04-15 00:53:52-04:00
 name: vikshaw-Nokia
 organization: NOK
 --- !Contributor
-commit_count: 45
+commit_count: 46
 emails:
 - 76687950+antonhryshchuk@users.noreply.github.com
 github_id: 76687950
@@ -1420,12 +1420,12 @@ last_commit_ts: 2025-04-13 09:27:32+03:00
 name: Anton Hryshchuk
 organization: NVDA
 --- !Contributor
-commit_count: 69
+commit_count: 71
 emails:
 - 65380078+kevinskwang@users.noreply.github.com
 github_id: 65380078
 github_login: kevinskwang
-last_commit_ts: 2025-08-13 01:50:04+08:00
+last_commit_ts: 2025-08-19 16:31:22+08:00
 name: Kevin Wang
 organization: MSFT
 --- !Contributor
@@ -1721,12 +1721,12 @@ last_commit_ts: 2025-01-03 17:17:10-08:00
 name: jfeng-arista
 organization: ANET
 --- !Contributor
-commit_count: 44
+commit_count: 45
 emails:
 - 86314901+mannytaheri@users.noreply.github.com
 github_id: 86314901
 github_login: mannytaheri
-last_commit_ts: 2025-01-02 23:04:58-05:00
+last_commit_ts: 2025-08-13 14:26:52-04:00
 name: mannytaheri
 organization: OTHER
 --- !Contributor
@@ -1741,12 +1741,12 @@ last_commit_ts: 2025-01-02 15:32:21-08:00
 name: Sudharsan Dhamal Gopalarathnam
 organization: NVDA
 --- !Contributor
-commit_count: 18
+commit_count: 19
 emails:
 - 65668547+rawal01@users.noreply.github.com
 github_id: 65668547
 github_login: rawal01
-last_commit_ts: 2024-12-30 18:14:07-05:00
+last_commit_ts: 2025-08-14 07:46:20-04:00
 name: rawal01
 organization: NOK
 --- !Contributor
@@ -1862,12 +1862,12 @@ last_commit_ts: 2024-11-13 09:47:24-08:00
 name: Sai
 organization: OTHER
 --- !Contributor
-commit_count: 5
+commit_count: 6
 emails:
 - 84595962+longhuan-cisco@users.noreply.github.com
 github_id: 84595962
 github_login: longhuan-cisco
-last_commit_ts: 2024-11-12 19:06:57-08:00
+last_commit_ts: 2025-08-13 22:37:09-07:00
 name: longhuan-cisco
 organization: CSCO
 --- !Contributor
@@ -1925,12 +1925,12 @@ last_commit_ts: 2024-10-01 11:00:39-07:00
 name: alawing
 organization: OTHER
 --- !Contributor
-commit_count: 3
+commit_count: 4
 emails:
 - 142842429+maunnikr-cisco@users.noreply.github.com
 github_id: 142842429
 github_login: maunnikr-cisco
-last_commit_ts: 2024-09-12 19:46:31-07:00
+last_commit_ts: 2025-08-17 19:01:19-07:00
 name: Malavika Unnikrishnan
 organization: CSCO
 --- !Contributor
@@ -2120,7 +2120,7 @@ last_commit_ts: 2024-04-19 03:04:44+05:30
 name: SureshAviz
 organization: OTHER
 --- !Contributor
-commit_count: 16
+commit_count: 17
 emails:
 - 69785882+slutati1536@users.noreply.github.com
 github_id: 69785882
@@ -2237,7 +2237,7 @@ last_commit_ts: 2024-02-12 23:00:16+08:00
 name: Junchao-Mellanox
 organization: NVDA
 --- !Contributor
-commit_count: 38
+commit_count: 39
 emails:
 - 66816195+julius-bcm@users.noreply.github.com
 github_id: 66816195
@@ -2256,7 +2256,7 @@ last_commit_ts: 2024-01-19 10:08:50+08:00
 name: Kebo Liu
 organization: NVDA
 --- !Contributor
-commit_count: 255
+commit_count: 260
 emails:
 - ying.xie@microsoft.com
 - yxieca@users.noreply.github.com
@@ -2377,7 +2377,7 @@ last_commit_ts: 2023-10-26 01:46:36+02:00
 name: Cédric Ollivier
 organization: ORANY
 --- !Contributor
-commit_count: 37
+commit_count: 38
 emails:
 - rama.kristipati@gmail.com
 github_id: 16873780
@@ -2406,7 +2406,7 @@ last_commit_ts: 2023-10-13 17:08:33+08:00
 name: Jing Kan
 organization: MSFT
 --- !Contributor
-commit_count: 31
+commit_count: 32
 emails:
 - 13481901+chandra-bs@users.noreply.github.com
 github_id: 13481901
@@ -2497,12 +2497,12 @@ last_commit_ts: 2023-08-02 16:18:09+08:00
 name: Kelly Chen
 organization: OTHER
 --- !Contributor
-commit_count: 2
+commit_count: 3
 emails:
 - 136517217+bjavvaji1331@users.noreply.github.com
 github_id: 136517217
 github_login: bjavvaji1331
-last_commit_ts: 2023-07-28 19:26:50-07:00
+last_commit_ts: 2023-08-04 01:43:22-07:00
 name: Bala Venkatesh Javvaji
 organization: OTHER
 --- !Contributor
@@ -2757,7 +2757,7 @@ last_commit_ts: 2023-03-03 22:23:23+05:00
 name: RoRonoa
 organization: OTHER
 --- !Contributor
-commit_count: 38
+commit_count: 39
 emails:
 - richard.yu@microsoft.com
 - richardyu81@yahoo.com
@@ -2872,7 +2872,7 @@ last_commit_ts: 2023-01-09 18:53:33+08:00
 name: Daris Chu
 organization: OTHER
 --- !Contributor
-commit_count: 19
+commit_count: 20
 emails:
 - 74666177+vcheketx@users.noreply.github.com
 - viktorx.cheketa@intel.com
@@ -2900,7 +2900,7 @@ last_commit_ts: 2022-12-14 12:48:02+05:30
 name: sureshsekar28
 organization: MRVL
 --- !Contributor
-commit_count: 28
+commit_count: 29
 emails:
 - 47282725+renukamanavalan@users.noreply.github.com
 - remanava@microsoft.com
@@ -2928,7 +2928,7 @@ last_commit_ts: 2022-11-14 13:12:31+05:30
 name: Lokesh
 organization: MRVL
 --- !Contributor
-commit_count: 5
+commit_count: 6
 emails:
 - 62022266+vadymhlushko-mlnx@users.noreply.github.com
 github_id: 62022266
@@ -3092,7 +3092,7 @@ last_commit_ts: 2022-06-17 12:15:12-07:00
 name: yozhao101
 organization: MSFT
 --- !Contributor
-commit_count: 25
+commit_count: 27
 emails:
 - stumkurv@microsoft.com
 - sumukhatv@outlook.com
@@ -3476,7 +3476,7 @@ last_commit_ts: 2021-09-15 14:24:51-04:00
 name: Andoni Sanguesa
 organization: MSFT
 --- !Contributor
-commit_count: 225
+commit_count: 233
 emails:
 - gulv@microsft.com
 - gulv@microsoft.com
@@ -3578,7 +3578,7 @@ last_commit_ts: 2023-02-10 05:01:14+02:00
 name: Ihor Chekh
 organization: NVDA
 --- !Contributor
-commit_count: 56
+commit_count: 58
 emails:
 - andriis@mellanox.com
 - daloher@microsoft.com
@@ -3596,7 +3596,7 @@ emails:
 - wgetbum@icloud.com
 github_id: -1
 github_login: non-github-bundle
-last_commit_ts: 2023-02-10 05:01:14+02:00
+last_commit_ts: 2022-03-09 17:08:37+08:00
 name: Non-found emails bundle
 organization: OTHER
 --- !Contributor
@@ -3984,7 +3984,7 @@ last_commit_ts: 2020-03-20 09:32:00+05:30
 name: Harsha S Adiga
 organization: OTHER
 --- !Contributor
-commit_count: 26
+commit_count: 27
 emails:
 - hansihuisjtu@gmail.com
 - sihan@microsoft.com
@@ -4289,7 +4289,7 @@ last_commit_ts: 2017-02-24 23:47:29+02:00
 name: pkandrin
 organization: OTHER
 --- !Contributor
-commit_count: 10
+commit_count: 11
 emails:
 - johnar@microsoft.com
 - lastjediknight@hotmail.com
@@ -4307,3 +4307,12 @@ github_login: RapaportOded
 last_commit_ts: 2025-08-12 11:24:44+03:00
 name: RapaportOded
 organization: NVDA
+--- !Contributor
+commit_count: 1
+emails:
+- eswaran@nexthop.ai
+github_id: 192280215
+github_login: eswaran-nexthop
+last_commit_ts: 2025-08-18 16:55:32-07:00
+name: eswaran-nexthop
+organization: NXHP
