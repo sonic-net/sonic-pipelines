@@ -15,9 +15,6 @@ jobs:
 
   steps:
     - checkout: none
-#    - script: |
-#        curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
-#      displayName: install dependencies
     - task: AzureCLI@2
       displayName: clean ACR
       inputs:
@@ -25,7 +22,7 @@ jobs:
         scriptType: 'bash'
         scriptLocation: 'inlineScript'
         inlineScript: |
-          az login --identity
+          #az login --identity
           for registry in $(sonic_acrs); do
             az acr run --registry $registry --cmd "acr purge --filter '.*:.*'  --ago 1200d " --timeout 3600 /dev/null
             az acr run --registry $registry --cmd "acr purge --filter '.*:.*bld.*' --ago 365d" --timeout 3600 /dev/null
