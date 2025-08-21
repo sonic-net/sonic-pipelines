@@ -25,7 +25,7 @@ github_id: 103085864
 github_login: echuawu
 last_commit_ts: 2025-08-19 02:52:09+08:00
 name: Chuan Wu
-organization: NVDA
+organization: OTHER
 --- !Contributor
 commit_count: 50
 emails:
@@ -36,12 +36,12 @@ last_commit_ts: 2025-08-10 17:26:23-07:00
 name: Changrong Wu
 organization: OTHER
 --- !Contributor
-commit_count: 91
+commit_count: 92
 emails:
 - 164845223+sdszhang@users.noreply.github.com
 github_id: 164845223
 github_login: sdszhang
-last_commit_ts: 2025-08-18 10:07:00+10:00
+last_commit_ts: 2025-08-21 12:50:26+10:00
 name: Dashuai Zhang
 organization: OTHER
 --- !Contributor
@@ -70,14 +70,14 @@ github_id: 89824293
 github_login: StormLiangMS
 last_commit_ts: 2025-08-01 08:44:46+08:00
 name: StormLiangMS
-organization: OTHER
+organization: MSFT
 --- !Contributor
-commit_count: 41
+commit_count: 43
 emails:
 - 154216071+weiguo-nvidia@users.noreply.github.com
 github_id: 154216071
 github_login: weiguo-nvidia
-last_commit_ts: 2025-08-12 14:22:29+08:00
+last_commit_ts: 2025-08-21 18:26:15+08:00
 name: weguo-NV
 organization: NVDA
 --- !Contributor
@@ -100,7 +100,7 @@ last_commit_ts: 2025-08-18 14:53:43-07:00
 name: Jing Zhang
 organization: MSFT
 --- !Contributor
-commit_count: 2
+commit_count: 1
 emails:
 - nikolay.a.mirin@gmail.com
 github_id: 29677895
@@ -285,7 +285,7 @@ github_id: 58683130
 github_login: liuh-80
 last_commit_ts: 2025-07-30 13:52:14+08:00
 name: Hua Liu
-organization: MSFT
+organization: OTHER
 --- !Contributor
 commit_count: 53
 emails:
@@ -312,15 +312,15 @@ github_id: 196306286
 github_login: ksravani-hcl
 last_commit_ts: 2025-07-29 17:39:28+05:30
 name: ksravani-hcl
-organization: OTHER
+organization: HCLTECH
 --- !Contributor
-commit_count: 271
+commit_count: 272
 emails:
 - 96218837+xwjiang-ms@users.noreply.github.com
 - 96218837+xwjiang2021@users.noreply.github.com
 github_id: 96218837
 github_login: xwjiang-ms
-last_commit_ts: 2025-08-20 18:54:06+10:00
+last_commit_ts: 2025-08-21 13:20:54+10:00
 name: xwjiang-ms
 organization: MSFT
 --- !Contributor
@@ -331,7 +331,7 @@ github_id: 35479537
 github_login: lolyu
 last_commit_ts: 2025-08-13 03:53:16+10:00
 name: Longxiang Lyu
-organization: MSFT
+organization: OTHER
 --- !Contributor
 commit_count: 96
 emails:
@@ -340,7 +340,7 @@ github_id: 108326363
 github_login: lipxu
 last_commit_ts: 2025-08-20 15:17:27+08:00
 name: Liping Xu
-organization: MSFT
+organization: OTHER
 --- !Contributor
 commit_count: 74
 emails:
@@ -349,7 +349,7 @@ github_id: 18609639
 github_login: Pterosaur
 last_commit_ts: 2025-07-28 12:48:28+10:00
 name: Ze Gan
-organization: MSFT
+organization: OTHER
 --- !Contributor
 commit_count: 4
 emails:
@@ -386,7 +386,7 @@ github_id: 66248323
 github_login: bingwang-ms
 last_commit_ts: 2025-08-14 18:11:49-07:00
 name: bingwang-ms
-organization: OTHER
+organization: MSFT
 --- !Contributor
 commit_count: 13
 emails:
@@ -404,7 +404,7 @@ github_id: 5427064
 github_login: az-pz
 last_commit_ts: 2025-07-25 11:51:27-04:00
 name: Ariz Zubair
-organization: MSFT
+organization: OTHER
 --- !Contributor
 commit_count: 6
 emails:
@@ -449,7 +449,7 @@ github_id: 57159499
 github_login: kamalsahu0001
 last_commit_ts: 2025-07-24 21:43:44-07:00
 name: kamalsahu0001
-organization: KEYS
+organization: OTHER
 --- !Contributor
 commit_count: 3
 emails:
@@ -486,16 +486,16 @@ github_id: 94370721
 github_login: AharonMalkin
 last_commit_ts: 2025-08-05 14:10:12+03:00
 name: AharonMalkin
-organization: NVDA
+organization: OTHER
 --- !Contributor
-commit_count: 83
+commit_count: 84
 emails:
 - 49756587+cyw233@users.noreply.github.com
 github_id: 49756587
 github_login: cyw233
-last_commit_ts: 2025-07-23 17:04:20+10:00
+last_commit_ts: 2025-08-21 12:53:08+10:00
 name: Chenyang Wang
-organization: MSFT
+organization: OTHER
 --- !Contributor
 commit_count: 18
 emails:
@@ -514,16 +514,16 @@ github_id: 41528500
 github_login: Janetxxx
 last_commit_ts: 2025-08-11 11:20:37+10:00
 name: Janet Cui
-organization: MSFT
+organization: OTHER
 --- !Contributor
-commit_count: 78
+commit_count: 79
 emails:
 - 39114813+lerry-lee@users.noreply.github.com
 github_id: 39114813
 github_login: lerry-lee
-last_commit_ts: 2025-08-12 08:47:50+08:00
+last_commit_ts: 2025-08-21 11:35:33+08:00
 name: Chun'ang Li
-organization: MSFT
+organization: OTHER
 --- !Contributor
 commit_count: 12
 emails:
@@ -550,7 +550,7 @@ github_id: 150791552
 github_login: okaravasi
 last_commit_ts: 2025-08-16 00:15:00+03:00
 name: Olympia Karavasili Arapogianni
-organization: NOK
+organization: OTHER
 --- !Contributor
 commit_count: 30
 emails:
@@ -696,7 +696,7 @@ github_id: 158334735
 github_login: amitpawar12
 last_commit_ts: 2025-07-14 21:26:11-04:00
 name: Amit Pawar
-organization: NOK
+organization: OTHER
 --- !Contributor
 commit_count: 10
 emails:
@@ -795,7 +795,7 @@ github_id: 32250288
 github_login: w1nda
 last_commit_ts: 2025-07-07 17:28:40+08:00
 name: Wenda Chu
-organization: MSFT
+organization: OTHER
 --- !Contributor
 commit_count: 204
 emails:
@@ -804,7 +804,7 @@ github_id: 94606222
 github_login: ZhaohuiS
 last_commit_ts: 2025-07-07 14:53:51+08:00
 name: Zhaohui Sun
-organization: MSFT
+organization: OTHER
 --- !Contributor
 commit_count: 3
 emails:
@@ -831,7 +831,7 @@ github_id: 192649916
 github_login: gupurush
 last_commit_ts: 2025-07-03 22:16:31-07:00
 name: Nanma Purushotam
-organization: CSCO
+organization: OTHER
 --- !Contributor
 commit_count: 2
 emails:
@@ -858,7 +858,7 @@ github_id: 44230426
 github_login: zhixzhu
 last_commit_ts: 2025-08-20 01:27:54-07:00
 name: Zhixin Zhu
-organization: CSCO
+organization: OTHER
 --- !Contributor
 commit_count: 105
 emails:
@@ -896,7 +896,7 @@ github_id: 34770518
 github_login: LARLSN
 last_commit_ts: 2025-07-01 14:03:45+08:00
 name: Linsongnan
-organization: OTHER
+organization: BABA
 --- !Contributor
 commit_count: 8
 emails:
@@ -906,7 +906,7 @@ github_id: 83053424
 github_login: matthew-soulsby
 last_commit_ts: 2025-07-01 13:20:56+10:00
 name: Matthew Soulsby
-organization: OTHER
+organization: MSFT
 --- !Contributor
 commit_count: 72
 emails:
@@ -936,14 +936,14 @@ last_commit_ts: 2025-06-26 15:15:16+10:00
 name: LinJin23
 organization: MSFT
 --- !Contributor
-commit_count: 78
+commit_count: 79
 emails:
 - 88995770+ganglyu@users.noreply.github.com
 github_id: 88995770
 github_login: ganglyu
-last_commit_ts: 2025-06-26 11:55:32+08:00
+last_commit_ts: 2025-08-21 09:02:16+08:00
 name: ganglv
-organization: MSFT
+organization: OTHER
 --- !Contributor
 commit_count: 2
 emails:
@@ -980,7 +980,7 @@ github_id: 16096111
 github_login: Ryangwaite
 last_commit_ts: 2025-06-24 16:00:40+10:00
 name: Ryangwaite
-organization: MSFT
+organization: OTHER
 --- !Contributor
 commit_count: 17
 emails:
@@ -1036,7 +1036,7 @@ github_id: 147451452
 github_login: xincunli-sonic
 last_commit_ts: 2025-06-15 22:22:52-07:00
 name: Xincun Li
-organization: MSFT
+organization: OTHER
 --- !Contributor
 commit_count: 41
 emails:
@@ -1064,7 +1064,7 @@ github_id: 40899231
 github_login: selldinesh
 last_commit_ts: 2025-06-13 02:04:12-07:00
 name: Dinesh Kumar Sellappan
-organization: KEYS
+organization: OTHER
 --- !Contributor
 commit_count: 3
 emails:
@@ -1128,7 +1128,7 @@ github_id: 51765988
 github_login: Praveen-Brcm
 last_commit_ts: 2025-05-30 21:38:59-07:00
 name: Praveen-Brcm
-organization: OTHER
+organization: AVGO
 --- !Contributor
 commit_count: 1
 emails:
@@ -1137,7 +1137,7 @@ github_id: 204829423
 github_login: pmuthu-hcl
 last_commit_ts: 2025-05-30 22:17:46+05:30
 name: pmuthu-hcl
-organization: OTHER
+organization: HCLTECH
 --- !Contributor
 commit_count: 1
 emails:
@@ -1173,7 +1173,7 @@ github_id: 100332470
 github_login: kbabujp
 last_commit_ts: 2025-05-27 06:17:47+05:30
 name: Kumaresh Babu JP
-organization: MRVL
+organization: OTHER
 --- !Contributor
 commit_count: 5
 emails:
@@ -1200,7 +1200,7 @@ github_id: 64041228
 github_login: ysmanman
 last_commit_ts: 2025-05-21 10:56:05-07:00
 name: Song Yuan
-organization: ANET
+organization: OTHER
 --- !Contributor
 commit_count: 14
 emails:
@@ -1209,7 +1209,7 @@ github_id: 127479400
 github_login: AnantKishorSharma
 last_commit_ts: 2025-05-21 10:16:56+05:30
 name: Anant
-organization: CSCO
+organization: OTHER
 --- !Contributor
 commit_count: 2
 emails:
@@ -1290,7 +1290,7 @@ github_id: 45705344
 github_login: prgeor
 last_commit_ts: 2025-05-12 19:47:53-07:00
 name: Prince George
-organization: MSFT
+organization: OTHER
 --- !Contributor
 commit_count: 3
 emails:
@@ -1299,7 +1299,7 @@ github_id: 166534786
 github_login: aronovic
 last_commit_ts: 2025-05-12 17:15:26-04:00
 name: aronovic
-organization: CSCO
+organization: OTHER
 --- !Contributor
 commit_count: 2
 emails:
@@ -1418,7 +1418,7 @@ github_id: 76687950
 github_login: AntonHryshchuk
 last_commit_ts: 2025-04-13 09:27:32+03:00
 name: Anton Hryshchuk
-organization: NVDA
+organization: OTHER
 --- !Contributor
 commit_count: 71
 emails:
@@ -1427,7 +1427,7 @@ github_id: 65380078
 github_login: kevinskwang
 last_commit_ts: 2025-08-19 16:31:22+08:00
 name: Kevin Wang
-organization: MSFT
+organization: OTHER
 --- !Contributor
 commit_count: 9
 emails:
@@ -1436,7 +1436,7 @@ github_id: 54692434
 github_login: anamehra
 last_commit_ts: 2025-04-08 11:22:30-07:00
 name: anamehra
-organization: CSCO
+organization: OTHER
 --- !Contributor
 commit_count: 11
 emails:
@@ -1475,14 +1475,14 @@ last_commit_ts: 2025-04-01 18:57:59+02:00
 name: Rida Hanif
 organization: OTHER
 --- !Contributor
-commit_count: 22
+commit_count: 23
 emails:
 - 115033986+deepak-singhal0408@users.noreply.github.com
 github_id: 115033986
 github_login: deepak-singhal0408
-last_commit_ts: 2025-03-28 11:27:36-07:00
+last_commit_ts: 2025-08-20 13:57:56-07:00
 name: Deepak Singhal
-organization: MSFT
+organization: OTHER
 --- !Contributor
 commit_count: 1
 emails:
@@ -1518,7 +1518,7 @@ github_id: 92752170
 github_login: harish-kalyanaraman
 last_commit_ts: 2025-03-21 03:32:23-04:00
 name: Harish Kalyanaraman
-organization: NOK
+organization: OTHER
 --- !Contributor
 commit_count: 3
 emails:
@@ -1619,7 +1619,7 @@ github_id: 62408185
 github_login: gechiang
 last_commit_ts: 2025-03-01 14:45:35-08:00
 name: gechiang
-organization: MSFT
+organization: OTHER
 --- !Contributor
 commit_count: 5
 emails:
@@ -1628,7 +1628,7 @@ github_id: 86369558
 github_login: albertovillarreal-keys
 last_commit_ts: 2025-02-28 13:28:56-06:00
 name: Alberto Villarreal
-organization: OTHER
+organization: KEYS
 --- !Contributor
 commit_count: 17
 emails:
@@ -1692,7 +1692,7 @@ github_id: 159443973
 github_login: VSuryaprasad-HCL
 last_commit_ts: 2025-02-06 23:47:52+05:30
 name: VSuryaprasad-hcl
-organization: OTHER
+organization: HCLTECH
 --- !Contributor
 commit_count: 6
 emails:
@@ -1710,7 +1710,7 @@ github_id: 101218333
 github_login: arfeigin
 last_commit_ts: 2025-01-27 20:55:43+02:00
 name: Aryeh Feigin
-organization: NVDA
+organization: OTHER
 --- !Contributor
 commit_count: 11
 emails:
@@ -1739,7 +1739,7 @@ github_id: 12964710
 github_login: dgsudharsan
 last_commit_ts: 2025-01-02 15:32:21-08:00
 name: Sudharsan Dhamal Gopalarathnam
-organization: NVDA
+organization: DELL
 --- !Contributor
 commit_count: 19
 emails:
@@ -1748,7 +1748,7 @@ github_id: 65668547
 github_login: rawal01
 last_commit_ts: 2025-08-14 07:46:20-04:00
 name: rawal01
-organization: NOK
+organization: OTHER
 --- !Contributor
 commit_count: 3
 emails:
@@ -1823,7 +1823,7 @@ github_id: 64033340
 github_login: kishorekunal01
 last_commit_ts: 2024-11-22 10:28:21-08:00
 name: KISHORE KUNAL
-organization: AVGO
+organization: OTHER
 --- !Contributor
 commit_count: 3
 emails:
@@ -1841,7 +1841,7 @@ github_id: 137210298
 github_login: abdbaig
 last_commit_ts: 2024-11-20 18:36:52-05:00
 name: Abdel Baig
-organization: CSCO
+organization: OTHER
 --- !Contributor
 commit_count: 1
 emails:
@@ -1851,7 +1851,7 @@ github_id: 129542523
 github_login: vincentpcng
 last_commit_ts: 2024-11-17 19:13:09-08:00
 name: vincentpcng
-organization: OTHER
+organization: ANET
 --- !Contributor
 commit_count: 1
 emails:
@@ -1950,7 +1950,7 @@ github_id: 143127557
 github_login: tudupa
 last_commit_ts: 2024-08-28 00:37:38-04:00
 name: TANMAYA UDUPA
-organization: NOK
+organization: OTHER
 --- !Contributor
 commit_count: 1
 emails:
@@ -2004,7 +2004,7 @@ github_id: 30709399
 github_login: bmridul
 last_commit_ts: 2024-06-24 00:26:24-07:00
 name: Mridul Bajpai
-organization: CSCO
+organization: OTHER
 --- !Contributor
 commit_count: 35
 emails:
@@ -2013,7 +2013,7 @@ github_id: 159437886
 github_login: divyagayathri-hcl
 last_commit_ts: 2024-06-13 19:26:45-07:00
 name: divyagayathri-hcl
-organization: OTHER
+organization: HCLTECH
 --- !Contributor
 commit_count: 8
 emails:
@@ -2100,7 +2100,7 @@ github_id: 119973184
 github_login: vikumarks
 last_commit_ts: 2024-04-25 16:26:34-07:00
 name: Vinod Kumar
-organization: KEYS
+organization: OTHER
 --- !Contributor
 commit_count: 1
 emails:
@@ -2136,7 +2136,7 @@ github_id: 48329728
 github_login: isgmano
 last_commit_ts: 2024-04-16 01:58:50-07:00
 name: Manodipto Ghose
-organization: KEYS
+organization: OTHER
 --- !Contributor
 commit_count: 1
 emails:
@@ -2154,7 +2154,7 @@ github_id: 95772436
 github_login: yanjundeng
 last_commit_ts: 2024-03-19 23:18:27-07:00
 name: yanjundeng
-organization: CSCO
+organization: OTHER
 --- !Contributor
 commit_count: 23
 emails:
@@ -2172,7 +2172,7 @@ github_id: 98349131
 github_login: amulyan7
 last_commit_ts: 2025-08-01 21:11:27-07:00
 name: amulyan7
-organization: CSCO
+organization: OTHER
 --- !Contributor
 commit_count: 1
 emails:
@@ -2244,7 +2244,7 @@ github_id: 66816195
 github_login: julius-bcm
 last_commit_ts: 2024-02-07 18:44:26+05:30
 name: julius-bcm
-organization: OTHER
+organization: AVGO
 --- !Contributor
 commit_count: 29
 emails:
@@ -2282,7 +2282,7 @@ github_id: 127834195
 github_login: amnsinghal
 last_commit_ts: 2023-12-29 12:34:33-08:00
 name: Aman Singhal
-organization: CSCO
+organization: OTHER
 --- !Contributor
 commit_count: 4
 emails:
@@ -2365,7 +2365,7 @@ github_id: 5379172
 github_login: stephenxs
 last_commit_ts: 2023-10-31 01:30:05+08:00
 name: Stephen Sun
-organization: NVDA
+organization: OTHER
 --- !Contributor
 commit_count: 3
 emails:
@@ -2413,7 +2413,7 @@ github_id: 13481901
 github_login: Chandra-BS
 last_commit_ts: 2023-10-12 08:34:34+05:30
 name: Chandra BS
-organization: AVGO
+organization: OTHER
 --- !Contributor
 commit_count: 8
 emails:
@@ -2422,7 +2422,7 @@ github_id: 52521751
 github_login: ArunSaravananBalachandran
 last_commit_ts: 2023-09-27 19:49:15+05:30
 name: Arun Saravanan Balachandran
-organization: DELL
+organization: OTHER
 --- !Contributor
 commit_count: 24
 emails:
@@ -2440,7 +2440,7 @@ github_id: 87805083
 github_login: Gokulnath-Raja
 last_commit_ts: 2023-09-14 06:21:30+05:30
 name: Gokulnath Raja
-organization: DELL
+organization: OTHER
 --- !Contributor
 commit_count: 35
 emails:
@@ -2458,7 +2458,7 @@ github_id: 70200079
 github_login: ppikh
 last_commit_ts: 2023-09-03 09:51:01+03:00
 name: ppikh
-organization: NVDA
+organization: OTHER
 --- !Contributor
 commit_count: 1
 emails:
@@ -2595,7 +2595,7 @@ github_id: 105526392
 github_login: abohanyang
 last_commit_ts: 2023-05-01 18:42:26-07:00
 name: Bohan Yang
-organization: ANET
+organization: OTHER
 --- !Contributor
 commit_count: 1
 emails:
@@ -2604,7 +2604,7 @@ github_id: 54966909
 github_login: devpatha
 last_commit_ts: 2023-04-27 20:07:17-07:00
 name: Devesh Pathak
-organization: CSCO
+organization: OTHER
 --- !Contributor
 commit_count: 65
 emails:
@@ -2613,7 +2613,7 @@ github_id: 66454160
 github_login: sanmalho-git
 last_commit_ts: 2023-04-24 16:22:31-04:00
 name: sanmalho-git
-organization: NOK
+organization: OTHER
 --- !Contributor
 commit_count: 1
 emails:
@@ -2650,7 +2650,7 @@ github_id: 54458415
 github_login: yenlu-keith
 last_commit_ts: 2023-04-16 20:27:53-07:00
 name: Keith Lu
-organization: CSCO
+organization: OTHER
 --- !Contributor
 commit_count: 86
 emails:
@@ -2669,7 +2669,7 @@ github_id: 95731623
 github_login: yucgu
 last_commit_ts: 2023-04-07 05:46:58-07:00
 name: yucgu
-organization: CSCO
+organization: OTHER
 --- !Contributor
 commit_count: 3
 emails:
@@ -2719,7 +2719,7 @@ github_id: 68429300
 github_login: OleksandrKozodoi
 last_commit_ts: 2023-03-16 11:47:14+02:00
 name: Oleksandr Kozodoi
-organization: OTHER
+organization: INTC
 --- !Contributor
 commit_count: 12
 emails:
@@ -2811,7 +2811,7 @@ github_id: 84025678
 github_login: vmorokhx
 last_commit_ts: 2023-02-08 03:29:24+02:00
 name: Vladyslav Morokhovych
-organization: OTHER
+organization: INTC
 --- !Contributor
 commit_count: 5
 emails:
@@ -2830,7 +2830,7 @@ github_id: 73100001
 github_login: AndriiLozovyi
 last_commit_ts: 2023-02-06 09:15:05+02:00
 name: Andrii-Yosafat Lozovyi
-organization: OTHER
+organization: INTC
 --- !Contributor
 commit_count: 2
 emails:
@@ -2840,7 +2840,7 @@ github_id: 84008579
 github_login: KostiantynYarovyiBf
 last_commit_ts: 2023-01-27 15:17:22+01:00
 name: Kostiantyn Yarovyi
-organization: OTHER
+organization: INTC
 --- !Contributor
 commit_count: 5
 emails:
@@ -2851,7 +2851,7 @@ github_id: 68950226
 github_login: bratashX
 last_commit_ts: 2023-01-11 10:52:42+02:00
 name: Petro Bratash
-organization: OTHER
+organization: INTC
 --- !Contributor
 commit_count: 49
 emails:
@@ -2861,7 +2861,7 @@ github_id: 79265382
 github_login: antonptashnik
 last_commit_ts: 2023-01-10 17:47:00+02:00
 name: Anton Ptashnik
-organization: OTHER
+organization: INTC
 --- !Contributor
 commit_count: 1
 emails:
@@ -2880,7 +2880,7 @@ github_id: 74666177
 github_login: vcheketx
 last_commit_ts: 2023-01-04 16:21:18+02:00
 name: Viktor Cheketa
-organization: OTHER
+organization: INTC
 --- !Contributor
 commit_count: 1
 emails:
@@ -2889,7 +2889,7 @@ github_id: 105214075
 github_login: dbarashinvd
 last_commit_ts: 2022-12-26 09:09:58+02:00
 name: dbarashinvd
-organization: NVDA
+organization: OTHER
 --- !Contributor
 commit_count: 2
 emails:
@@ -2908,7 +2908,7 @@ github_id: 47282725
 github_login: renukamanavalan
 last_commit_ts: 2022-12-07 23:33:02-08:00
 name: Renuka Manavalan
-organization: OTHER
+organization: MSFT
 --- !Contributor
 commit_count: 2
 emails:
@@ -2935,7 +2935,7 @@ github_id: 62022266
 github_login: vadymhlushko-mlnx
 last_commit_ts: 2022-11-10 00:49:20+02:00
 name: Vadym Hlushko
-organization: OTHER
+organization: NVDA
 --- !Contributor
 commit_count: 1
 emails:
@@ -2953,7 +2953,7 @@ github_id: 103988735
 github_login: tiejunzhang
 last_commit_ts: 2022-10-27 14:47:00+08:00
 name: tiejunzhang
-organization: MSFT
+organization: OTHER
 --- !Contributor
 commit_count: 1
 emails:
@@ -2962,7 +2962,7 @@ github_id: 73036155
 github_login: liorghub
 last_commit_ts: 2022-10-24 04:42:31+03:00
 name: Lior Avramov
-organization: NVDA
+organization: OTHER
 --- !Contributor
 commit_count: 4
 emails:
@@ -2999,7 +2999,7 @@ github_id: 102161288
 github_login: romanvasylys
 last_commit_ts: 2022-09-27 08:25:53+03:00
 name: Roman Vasylyshyn
-organization: OTHER
+organization: INTC
 --- !Contributor
 commit_count: 2
 emails:
@@ -3036,7 +3036,7 @@ github_id: 21187890
 github_login: jimmyzhai
 last_commit_ts: 2022-08-27 10:03:46+00:00
 name: Junhua Zhai
-organization: MSFT
+organization: OTHER
 --- !Contributor
 commit_count: 1
 emails:
@@ -3090,7 +3090,7 @@ github_id: 56170650
 github_login: yozhao101
 last_commit_ts: 2022-06-17 12:15:12-07:00
 name: yozhao101
-organization: MSFT
+organization: OTHER
 --- !Contributor
 commit_count: 27
 emails:
@@ -3100,7 +3100,7 @@ github_id: 2938885
 github_login: sumukhatv
 last_commit_ts: 2022-06-17 07:51:32-07:00
 name: Sumukha Tumkur Vani
-organization: OTHER
+organization: MSFT
 --- !Contributor
 commit_count: 1
 emails:
@@ -3128,7 +3128,7 @@ github_id: 66446128
 github_login: vboykox
 last_commit_ts: 2022-05-23 12:32:03+03:00
 name: Volodymyr Boiko
-organization: OTHER
+organization: INTC
 --- !Contributor
 commit_count: 1
 emails:
@@ -3146,7 +3146,7 @@ github_id: 10645050
 github_login: smaheshm
 last_commit_ts: 2022-04-28 09:47:00-07:00
 name: Mahesh Maddikayala
-organization: MSFT
+organization: OTHER
 --- !Contributor
 commit_count: 1
 emails:
@@ -3192,7 +3192,7 @@ github_id: 66022536
 github_login: nathcohe
 last_commit_ts: 2022-04-01 00:37:19-07:00
 name: Nathan Cohen
-organization: CSCO
+organization: OTHER
 --- !Contributor
 commit_count: 1
 emails:
@@ -3219,7 +3219,7 @@ github_id: 3046965
 github_login: ByReaL
 last_commit_ts: 2022-03-16 00:10:17-07:00
 name: MirceaDan
-organization: KEYS
+organization: OTHER
 --- !Contributor
 commit_count: 32
 emails:
@@ -3246,7 +3246,7 @@ github_id: 73910672
 github_login: oxygen980
 last_commit_ts: 2022-02-09 17:08:08-08:00
 name: Renu Falodiya
-organization: NOK
+organization: OTHER
 --- !Contributor
 commit_count: 8
 emails:
@@ -3319,7 +3319,7 @@ github_id: 53524901
 github_login: aravindmani-1
 last_commit_ts: 2021-12-23 19:59:56+05:30
 name: Aravind Mani
-organization: DELL
+organization: OTHER
 --- !Contributor
 commit_count: 8
 emails:
@@ -3402,7 +3402,7 @@ github_id: 35757981
 github_login: Megathrone
 last_commit_ts: 2021-10-28 17:40:55+08:00
 name: Yizhou Wang
-organization: MSFT
+organization: OTHER
 --- !Contributor
 commit_count: 2
 emails:
@@ -3447,7 +3447,7 @@ github_id: 4404714
 github_login: baiwei0427
 last_commit_ts: 2021-10-07 16:42:50-07:00
 name: Wei Bai
-organization: NVDA
+organization: OTHER
 --- !Contributor
 commit_count: 1
 emails:
@@ -3456,7 +3456,7 @@ github_id: 32644413
 github_login: DavidZagury
 last_commit_ts: 2021-09-29 11:54:55+03:00
 name: DavidZagury
-organization: NVDA
+organization: OTHER
 --- !Contributor
 commit_count: 1
 emails:
@@ -3474,7 +3474,7 @@ github_id: 31708881
 github_login: AndoniSanguesa
 last_commit_ts: 2021-09-15 14:24:51-04:00
 name: Andoni Sanguesa
-organization: MSFT
+organization: OTHER
 --- !Contributor
 commit_count: 233
 emails:
@@ -3512,7 +3512,7 @@ github_id: 32665166
 github_login: chitra-raghavan
 last_commit_ts: 2021-07-31 12:52:55+05:30
 name: Chitra Raghavan
-organization: DELL
+organization: OTHER
 --- !Contributor
 commit_count: 3
 emails:
@@ -3539,7 +3539,7 @@ github_id: 60276887
 github_login: saravanansv
 last_commit_ts: 2021-06-21 04:42:29-07:00
 name: Saravanan Sellappa
-organization: ANET
+organization: OTHER
 --- !Contributor
 commit_count: 81
 emails:
@@ -3558,7 +3558,7 @@ github_id: 60775876
 github_login: mpiechocinski
 last_commit_ts: 2021-05-17 12:15:29+02:00
 name: Mateusz Piechocinski
-organization: OTHER
+organization: INTC
 --- !Contributor
 commit_count: 1
 emails:
@@ -3625,7 +3625,7 @@ github_id: 67008155
 github_login: Abdul-Raheem10
 last_commit_ts: 2021-04-23 04:25:51+05:30
 name: Mohammed Abdul Raheem Ali
-organization: AVGO
+organization: OTHER
 --- !Contributor
 commit_count: 2
 emails:
@@ -3653,7 +3653,7 @@ github_id: 75294883
 github_login: vpsubramaniam
 last_commit_ts: 2021-03-11 00:16:59+05:30
 name: vpsubramaniam
-organization: DELL
+organization: OTHER
 --- !Contributor
 commit_count: 2
 emails:
@@ -3662,7 +3662,7 @@ github_id: 42399057
 github_login: shubav
 last_commit_ts: 2021-03-01 17:32:20-08:00
 name: Shuba Viswanathan
-organization: NOK
+organization: OTHER
 --- !Contributor
 commit_count: 7
 emails:
@@ -3699,7 +3699,7 @@ github_id: 68949102
 github_login: dmytroxshevchuk
 last_commit_ts: 2021-02-17 23:51:30+02:00
 name: Dmytro Shevchuk
-organization: OTHER
+organization: INTC
 --- !Contributor
 commit_count: 1
 emails:
@@ -3809,7 +3809,7 @@ github_id: 21184819
 github_login: vkuma82
 last_commit_ts: 2020-11-24 23:35:00-08:00
 name: Vinod Kumar
-organization: KEYS
+organization: OTHER
 --- !Contributor
 commit_count: 1
 emails:
@@ -3872,7 +3872,7 @@ github_id: 69640904
 github_login: thomas-am
 last_commit_ts: 2020-09-08 21:01:51-07:00
 name: thomas-am
-organization: KEYS
+organization: OTHER
 --- !Contributor
 commit_count: 41
 emails:
@@ -4019,7 +4019,7 @@ github_id: 53076238
 github_login: ciju-juniper
 last_commit_ts: 2020-01-17 12:31:35+05:30
 name: Ciju Rajan K
-organization: OTHER
+organization: JNPR
 --- !Contributor
 commit_count: 2
 emails:
@@ -4048,7 +4048,7 @@ github_id: 6498198
 github_login: wendani
 last_commit_ts: 2019-11-11 11:30:07-08:00
 name: Wenda Ni
-organization: OTHER
+organization: MSFT
 --- !Contributor
 commit_count: 1
 emails:
@@ -4058,7 +4058,7 @@ github_id: 25989640
 github_login: hzheng5
 last_commit_ts: 2019-11-07 11:07:11-08:00
 name: Haiyang Zheng
-organization: OTHER
+organization: BABA
 --- !Contributor
 commit_count: 4
 emails:
@@ -4077,7 +4077,7 @@ github_id: 2702699
 github_login: stcheng
 last_commit_ts: 2019-09-27 01:36:50-07:00
 name: Shuotian Cheng
-organization: OTHER
+organization: MSFT
 --- !Contributor
 commit_count: 1
 emails:
@@ -4132,7 +4132,7 @@ github_id: 42243355
 github_login: romankachur-mlnx
 last_commit_ts: 2019-03-31 12:19:11+03:00
 name: Roman Kachur
-organization: OTHER
+organization: NVDA
 --- !Contributor
 commit_count: 1
 emails:

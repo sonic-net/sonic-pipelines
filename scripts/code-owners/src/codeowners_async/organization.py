@@ -12,6 +12,9 @@ class ORGANIZATION(enum.Enum):
     BABA = "Alibaba Inc"
     CSCO = "Cisco"
     DELL = "Dell technologies"
+    HCLTECH = "HCL Technologies Ltd"
+    INTC = "Intel Corporation"
+    JNPR = "Juniper"
     KEYS = "Keysight Technologies"
     MRVL = "Marvell Technology Inc"
     MSFT = "Microsoft"
@@ -25,6 +28,7 @@ class ORGANIZATION(enum.Enum):
 # A lookup dictionary for domains
 ORGANIZATION_LOOKUP_DOMAIN = {
     "alibaba.com": ORGANIZATION.BABA,
+    "alibaba-inc.com": ORGANIZATION.BABA,
     "broadcom.com": ORGANIZATION.AVGO,
     "dell.com": ORGANIZATION.DELL,
     "microsoft.com": ORGANIZATION.MSFT,
@@ -37,6 +41,20 @@ ORGANIZATION_LOOKUP_DOMAIN = {
     "cisco.com": ORGANIZATION.CSCO,
     "arista.com": ORGANIZATION.ANET,
     "keysight.com": ORGANIZATION.KEYS,
+    "hcltech.com": ORGANIZATION.HCLTECH,
+    "intel.com": ORGANIZATION.INTC,
+}
+
+ORGANIZATION_SUFFIXES = {
+    "arista": ORGANIZATION.ANET,
+    "ms": ORGANIZATION.MSFT,
+    "nv": ORGANIZATION.NVDA,
+    "mlnx": ORGANIZATION.NVDA,
+    "hcl": ORGANIZATION.HCLTECH,
+    "brcm": ORGANIZATION.AVGO,
+    "bcm": ORGANIZATION.AVGO,
+    "nexthop": ORGANIZATION.NXHP,
+    "keys": ORGANIZATION.KEYS,
 }
 
 
@@ -74,7 +92,12 @@ def organization_by_company(company: str) -> ORGANIZATION:
         ORGANIZATION: The organization associated with the company name.
     """
     company = company.lower()
-    if "nvidia" in company or "mellanox" in company:
+    if (
+        "nvidia" in company
+        or "mellanox" in company
+        or "nvda" in company
+        or "mlnx" in company
+    ):
         return ORGANIZATION.NVDA
     if "microsoft" in company or "azure" in company or "msft" in company:
         return ORGANIZATION.MSFT
@@ -98,5 +121,30 @@ def organization_by_company(company: str) -> ORGANIZATION:
         return ORGANIZATION.NXHP
     if "orange" in company:
         return ORGANIZATION.ORANY
+    if "juniper" in company:
+        return ORGANIZATION.JNPR
+
+    return ORGANIZATION.OTHER
+
+
+def organization_by_suffix(github_login: str) -> ORGANIZATION:
+    for suffix, org in ORGANIZATION_SUFFIXES.items():
+        # check if the login ends with the suffix
+        if (
+            len(github_login) > len(suffix)
+            and github_login[-len(suffix) :].lower() == suffix
+        ):
+            # check if the suffix is separates by the case or punctuation
+            pre_suffix = github_login[-len(suffix) - 1]
+            if not (pre_suffix.isalnum()):
+                return org
+            suffix_start = github_login[-len(suffix)]
+            # case change in between the name and suffix
+            if (
+                pre_suffix.isalpha()
+                and suffix_start.isalpha()
+                and (pre_suffix.islower() ^ suffix_start.islower())
+            ):
+                return org
 
     return ORGANIZATION.OTHER

@@ -101,14 +101,14 @@ async def get_remote_owner_repo(repo_path: str) -> Tuple[str, str]:
     return repo_owner, repo_name
 
 
-async def async_run_cmd(cmd):
+async def async_run_cmd(cmd: str):
     stdout_lines = []
     async for line in async_run_cmd_lines(cmd):
         stdout_lines.append(line)
     return "".join(stdout_lines)
 
 
-async def async_run_cmd_lines(cmd):
+async def async_run_cmd_lines(cmd: str):
     proc = await asyncio.create_subprocess_shell(
         cmd,
         stdout=asyncio.subprocess.PIPE,

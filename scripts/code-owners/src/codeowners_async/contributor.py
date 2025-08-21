@@ -6,7 +6,10 @@ import yaml
 from yaml import MappingNode
 import aiofiles
 
-from codeowners_async.organization import organization_by_company
+from codeowners_async.organization import (
+    organization_by_company,
+    organization_by_suffix,
+)
 from .organization import organization_by_emails, ORGANIZATION
 
 logger = logging.getLogger(__name__)
@@ -22,7 +25,7 @@ class Contributor:
         github_login: The contributor's GitHub username.
         github_id: The contributor's GitHub user ID.
         last_commit_ts: Timestamp of the contributor's most recent commit.
-        commit_count: Count of GitCommit objects made by this contributor.
+        commits: Count of GitCommit objects made by this contributor.
     """
 
     def __init__(
@@ -44,10 +47,16 @@ class Contributor:
         """
         self.name = name
         self.emails = emails
-        if organization is None:
+        if github_id == -1:
+            organization = ORGANIZATION.OTHER
+        elif organization is None:
             organization = organization_by_emails(self.emails)
             if organization == ORGANIZATION.OTHER:
                 organization = organization_by_company(github_login)
+            if organization == ORGANIZATION.OTHER:
+                organization = organization_by_company(name)
+            if organization == ORGANIZATION.OTHER:
+                organization = organization_by_suffix(github_login)
 
         self.organization = organization
 
@@ -146,7 +155,7 @@ def contributor_constructor(loader: yaml.SafeLoader, node) -> Contributor:
     return Contributor(
         name=value["name"],
         emails=set(value["emails"]),
-        organization=(ORGANIZATION[value["organization"]]),
+        organization=ORGANIZATION[value["organization"]],
         github_login=value["github_login"],
         github_id=value["github_id"],
     )

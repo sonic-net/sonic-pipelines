@@ -8,15 +8,17 @@ import asyncio
 import os
 import ssl
 import certifi
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 from urllib.parse import quote_plus
+
+from aiohttp import ClientResponse
 
 from codeowners_async.async_helpers import (
     get_all_commit_stats,
     GitCommitLocal,
 )
-from codeowners_async.contributor import Contributor
-from codeowners_async.folders import FolderType
+from codeowners_async.contributor import Contributor, ContributorCollection
+from codeowners_async.folders import FolderType, FolderSettings
 from codeowners_async.organization import (
     ORGANIZATION,
     organization_by_company,
@@ -50,7 +52,7 @@ class AsyncGitHubRepoSummary:
             headers["Authorization"] = f"token {token}"
         return headers
 
-    async def check_api_rate(self, response):
+    async def check_api_rate(self, response: ClientResponse):
         # exponentiate the time at every request
         if (
             datetime.now(timezone.utc).timestamp() - self.expo_wait_last_update
@@ -92,7 +94,9 @@ class AsyncGitHubRepoSummary:
         )
         await asyncio.sleep(sleep_duration)
 
-    async def send_github_api_request(self, url: str, params=None):
+    async def send_github_api_request(
+        self, url: str, params=Dict[str, str]
+    ) -> Optional[Any]:
         # limit the number of requests
         headers = self.build_api_headers()
         async with aiohttp.ClientSession(
@@ -208,8 +212,8 @@ class AsyncGitHubRepoSummary:
 
     async def _initialize(
         self,
-        contributors,
-        repo_folders,
+        contributors: ContributorCollection,
+        repo_folders: Dict[str, FolderSettings],
         repo_path: str,
         owner: str,
         repo: str,
@@ -245,8 +249,8 @@ class AsyncGitHubRepoSummary:
 
     async def process_repository(
         self,
-        contributors,
-        repo_folders,
+        contributors: ContributorCollection,
+        repo_folders: Dict[str, FolderSettings],
         repo_path: str,
         total_commit_count: int,
         owner: str,
