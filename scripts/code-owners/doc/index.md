@@ -37,10 +37,10 @@ graph TD
     D --> E[Statistics Aggregation]
     E --> F[CODEOWNERS Generation]
     
-    G[Contributors YAML] --> C
-    H[Folder Presets] --> E
+    H[Contributors YAML] --> C
+    G[Folder Presets] --> E
     I[Configuration] --> A
-    D[GitHub API Lookup] --> G
+    D[GitHub API Lookup] --> H
 ```
 
 ### Core Components
