@@ -6,7 +6,7 @@ import yaml
 from yaml import MappingNode
 import aiofiles
 
-from codeowners.organization import organization_by_company
+from codeowners_async.organization import organization_by_company
 from .organization import organization_by_emails, ORGANIZATION
 
 logger = logging.getLogger(__name__)

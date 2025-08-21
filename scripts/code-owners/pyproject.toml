@@ -12,7 +12,6 @@ requires-python = ">= 3.8"
 dynamic = ["version"]
 name = "generate-codeowners"
 dependencies = [
-  "requests >= 2.3.4",
   "PyYAML >= 6.0.2",
   "aiodns >= 3.2.0",
   "aiofiles >= 24.1.0",
@@ -21,9 +20,8 @@ dependencies = [
 ]
 
 [project.scripts]
-codeowners-cli = "codeowners:main"
-codeowners-async-cli = "codeowners_async:main"
+codeowners-cli = "codeowners_async:main"
 
 
 [tool.setuptools.dynamic]
-version = {attr = "codeowners.__version__"}
+version = {attr = "codeowners_async.__version__"}
