@@ -34,10 +34,10 @@ graph TD
     A[Repository] --> B[Git Log Analysis]
     B --> C[Contributor Resolution]
     C --> D[GitHub API Lookup]
+    C --> H[Contributors YAML]
     D --> E[Statistics Aggregation]
     E --> F[CODEOWNERS Generation]
     
-    H[Contributors YAML] --> C
     G[Folder Presets] --> E
     I[Configuration] --> A
     D[GitHub API Lookup] --> H
