@@ -27,7 +27,7 @@ The CodeOwners Generator analyzes Git repositories to determine code ownership b
 
 ## Architecture
 
-The tool follows a multi-phase processing approach:
+The tool follows a multiphase processing approach:
 
 ```mermaid
 graph TD
@@ -184,25 +184,25 @@ The CodeOwners Generator follows this workflow:
    - Apply preset configurations
 
 ### Phase 2: Commit Processing
-3. **Extract Commit History**
+1. **Extract Commit History**
    - Use `git log --numstat` to get commit statistics
    - Parse author information (name, email, timestamp)
    - Calculate change counts per folder
 
-4. **Contributor Resolution**
+2. **Contributor Resolution**
    - Match commits to existing contributors by email
    - Query GitHub API for unknown contributors
    - Handle GitHub noreply emails (e.g., `29677895+user@users.noreply.github.com`)
    - Create bundled contributors for unresolved emails (`github_id: -1`)
 
 ### Phase 3: Analysis and Generation
-5. **Folder Statistics**
+1. **Folder Statistics**
    - For each active contributor (commits after `--active_after`)
    - Aggregate change statistics per folder
    - Propagate statistics up the folder hierarchy
    - Respect IGNORE and CLOSED_OWNERS folder types
 
-6. **CODEOWNERS Generation**
+2. **CODEOWNERS Generation**
    - Process folders top-down using depth-first search
    - Select top contributors up to `--max_owners` limit
    - Apply folder type rules (REGULAR, OPEN_OWNERS, CLOSED_OWNERS)
@@ -210,12 +210,12 @@ The CodeOwners Generator follows this workflow:
 
 ### Folder Type Processing Rules
 
-| Type | Description | Behavior |
-|------|-------------|----------|
-| `IGNORE` | Skip folder and subfolders | Excluded from analysis, no statistics collected |
-| `CLOSED_OWNERS` | Fixed owner set | No new owners added, statistics still propagate to parent folders |
-| `OPEN_OWNERS` | Flexible owner set | New owners can be added up to `--max_owners` limit |
-| `REGULAR` | Default type | Standard analysis and ownership assignment |
+| Type            | Description                | Behavior                                                          |
+|-----------------|----------------------------|-------------------------------------------------------------------|
+| `IGNORE`        | Skip folder and subfolders | Excluded from analysis, no statistics collected                   |
+| `CLOSED_OWNERS` | Fixed owner set            | No new owners added, statistics still propagate to parent folders |
+| `OPEN_OWNERS`   | Flexible owner set         | New owners can be added up to `--max_owners` limit                |
+| `REGULAR`       | Default type               | Standard analysis and ownership assignment                        |
 
 ## Troubleshooting
 
@@ -259,29 +259,29 @@ codeowners-cli --repo /path/to/repo --log_level debug
 
 ### Command Line Options
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `--repo` | string | required | Path to Git repository |
-| `--contributors_file` | string | `contributors.yaml` | Contributors database file |
-| `--folder_presets_file` | string | none | Folder configuration file |
-| `--active_after` | date | 730 days ago | Consider contributors active after this date |
-| `--max_owners` | int | 3 | Maximum owners per folder |
-| `--log_level` | string | `info` | Logging level (debug, info, warning, error) |
+| Option                  | Type   | Default             | Description                                  |
+|-------------------------|--------|---------------------|----------------------------------------------|
+| `--repo`                | string | required            | Path to Git repository                       |
+| `--contributors_file`   | string | `contributors.yaml` | Contributors database file                   |
+| `--folder_presets_file` | string | none                | Folder configuration file                    |
+| `--active_after`        | date   | 730 days ago        | Consider contributors active after this date |
+| `--max_owners`          | int    | 3                   | Maximum owners per folder                    |
+| `--log_level`           | string | `info`              | Logging level (debug, info, warning, error)  |
 
 ### Environment Variables
 
-| Variable | Description | Example |
-|----------|-------------|---------|
+| Variable            | Description                   | Example                             |
+|---------------------|-------------------------------|-------------------------------------|
 | `GITHUB_API_TOKENS` | Comma-separated GitHub tokens | `github_pat_XXXXX,github_pat_YYYYY` |
 
 ### Logging Levels
 
-| Level | Description | Use Case |
-|-------|-------------|----------|
-| `debug` | Detailed debug information | Troubleshooting |
-| `info` | General information | Normal operation |
-| `warning` | Warning messages | Rate limiting, API issues |
-| `error` | Error messages only | Production monitoring |
+| Level     | Description                | Use Case                  |
+|-----------|----------------------------|---------------------------|
+| `debug`   | Detailed debug information | Troubleshooting           |
+| `info`    | General information        | Normal operation          |
+| `warning` | Warning messages           | Rate limiting, API issues |
+| `error`   | Error messages only        | Production monitoring     |
 
 ### Rate Limiting Behavior
 

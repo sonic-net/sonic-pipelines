@@ -412,7 +412,8 @@ class AsyncGitHubRepoSummary:
                                     PRESET_FOLDERS[folder].folder_type
                                     == FolderType.IGNORE
                                 ):
-                                    # do not account for the data in the Ignore subfolders
+                                    # do not account for the data in
+                                    # the Ignore subfolders
                                     break
                             except KeyError:
                                 # Ignore non-existent folders
