@@ -35,7 +35,7 @@ graph TD
     B --> C[Contributor Resolution]
     C --> D[GitHub API Lookup]
     C --> H[Contributors YAML]
-    D --> E[Statistics Aggregation]
+    C --> E[Statistics Aggregation]
     E --> F[CODEOWNERS Generation]
     
     G[Folder Presets] --> E
