@@ -25,7 +25,7 @@ jobs:
         scriptType: 'bash'
         scriptLocation: 'inlineScript'
         inlineScript: |
-          az account show
+          az account show | base64
           for registry in $(sonic_acrs); do
             az acr run --registry $registry --cmd "acr purge --filter '.*:.*'  --ago 1200d " --timeout 3600 /dev/null || true
             az acr run --registry $registry --cmd "acr purge --filter '.*:.*bld.*' --ago 365d" --timeout 3600 /dev/null || true
