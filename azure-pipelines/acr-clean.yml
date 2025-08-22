@@ -25,9 +25,9 @@ jobs:
         scriptType: 'bash'
         scriptLocation: 'inlineScript'
         inlineScript: |
-          #az login --identity
+          az account show
           for registry in $(sonic_acrs); do
-            az acr run --registry $registry --cmd "acr purge --filter '.*:.*'  --ago 1200d " --timeout 3600 /dev/null
-            az acr run --registry $registry --cmd "acr purge --filter '.*:.*bld.*' --ago 365d" --timeout 3600 /dev/null
-            az acr run --registry $registry --cmd "acr purge --filter '.*:.*' --untagged --ago 360d" --timeout 3600 /dev/null
+            az acr run --registry $registry --cmd "acr purge --filter '.*:.*'  --ago 1200d " --timeout 3600 /dev/null || true
+            az acr run --registry $registry --cmd "acr purge --filter '.*:.*bld.*' --ago 365d" --timeout 3600 /dev/null || true
+            az acr run --registry $registry --cmd "acr purge --filter '.*:.*' --untagged --ago 360d" --timeout 3600 /dev/null || true
           done
