@@ -12,6 +12,7 @@ requires-python = ">= 3.8"
 dynamic = ["version"]
 name = "generate-codeowners"
 dependencies = [
+  "certifi >= 2025.8.3",
   "PyYAML >= 6.0.2",
   "aiodns >= 3.2.0",
   "aiofiles >= 24.1.0",
