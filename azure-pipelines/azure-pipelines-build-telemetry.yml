@@ -18,9 +18,7 @@ name: $(TeamProject)_$(Build.DefinitionName)_$(SourceBranchName)_$(Date:yyyyMMdd
 
 stages:
 - stage: Build
-  pool: sonicbld-1es
-  variables:
-    - group: sonicbld
+  pool: sonic-ubuntu-1c
   jobs:
   - job: Build
     timeoutInMinutes: 240
@@ -30,15 +28,19 @@ stages:
         sudo apt-get install -y python3-pip
         sudo pip3 install azure.core azure.kusto.data azure.kusto.ingest azure.storage.blob azure.storage.queue
         sudo update-alternatives --install /usr/bin/python python /usr/bin/python3 10
+
         # Install Azure cli
+        # Wait for apt lock to be released
+        while sudo fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do
+          echo "Waiting for apt lock to be released..."
+          sleep 5
+        done
         curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
-        az login --service-principal --use-cert-sn-issuer -u 08fd13c1-63ab-4b08-9007-f4ff86b61248 --certificate $CERTPATH --tenant 72f988bf-86f1-41af-91ab-2d7cd011db47
-      env:
-        CERTPATH: $(CERTPATH)
       displayName: Install build tools
-    - bash: |
+
+    - script: |
         python3 azure-pipelines/scripts/publish-mssonic-logs.py
       env:
-        SYSTEM_ACCESSTOKEN: $(System.AccessToken)
-        TOKEN: $(MSAZURE-TOKEN)
+        # Must configure pipeline variable "MANAGED_IDENTITY_ID", set it to client ID of "sonic-automation-umi"
+        MANAGED_IDENTITY_ID: $(MANAGED_IDENTITY_ID)
       displayName: Ingest data into kusto
