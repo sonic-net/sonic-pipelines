@@ -21,8 +21,12 @@ dependencies = [
 ]
 
 [project.scripts]
-codeowners-cli = "codeowners_async:main"
+codeowners-cli = "main:main"
 
 
 [tool.setuptools.dynamic]
-version = {attr = "codeowners_async.__version__"}
+version = {attr = "main.__version__"}
+
+[tool.setuptools]
+py-modules = ["main", "async_github_repo_summary", "contributor", "async_helpers", "folders", "organization"]
+

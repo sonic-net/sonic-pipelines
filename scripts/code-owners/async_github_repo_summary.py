@@ -13,13 +13,13 @@ from urllib.parse import quote_plus
 
 from aiohttp import ClientResponse
 
-from codeowners_async.async_helpers import (
+from async_helpers import (
     get_all_commit_stats,
     GitCommitLocal,
 )
-from codeowners_async.contributor import Contributor, ContributorCollection
-from codeowners_async.folders import FolderType, FolderSettings, PRESET_FOLDERS
-from codeowners_async.organization import (
+from contributor import Contributor, ContributorCollection
+from folders import FolderType, FolderSettings, PRESET_FOLDERS
+from organization import (
     ORGANIZATION,
     organization_by_company,
 )

@@ -5,15 +5,17 @@ from datetime import datetime, timezone, date, timedelta
 import logging
 import time
 
-from codeowners_async.async_github_repo_summary import (
+__version__ = "0.0.5"
+
+from async_github_repo_summary import (
     AsyncGitHubRepoSummary,
 )
-from codeowners_async.async_helpers import (
+from async_helpers import (
     get_remote_owner_repo,
     get_commit_count,
 )
-from codeowners_async.contributor import ContributorCollection
-from codeowners_async.folders import load_folder_metadata, PRESET_FOLDERS
+from contributor import ContributorCollection
+from folders import load_folder_metadata, PRESET_FOLDERS
 
 logger = logging.getLogger(__name__)
 

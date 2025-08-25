@@ -10,7 +10,7 @@ import aiofiles.os
 
 import yaml
 
-from codeowners_async.async_helpers import (
+from async_helpers import (
     async_run_cmd_lines,
 )
 
