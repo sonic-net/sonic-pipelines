@@ -5,6 +5,8 @@ the GitHub and list the top contributors per folder in the CODEOWNERS format.
 
 ## Building the Wheel Package
 
+Alternatively you can do just pip install
+
 May need to do it from the virtual environment (see how to setup below)
 To build the wheel package, use the following command:
 
@@ -61,6 +63,19 @@ For development purposes, you can install the package in editable mode:
 pip install -e .
 ```
 
+### Installing using pip, dependencies only
+
+```bash
+# optionally create a virtual environment
+python3 -m venv .venv
+source .venv/bin/activate
+
+
+git clone <repo>
+cd <path to code owners>
+pip install -r requirements.txt
+```
+
 ### Updating the GitHub tokens
 
 Without GitHub tokens the script will be only allowed 60 API requests
@@ -82,7 +97,7 @@ env GITHUB_API_TOKENS = "github_pat_XXXXX,github_pat_YYYYY,github_pat_ZZZZZZ" co
 
 ## Running the CLI
 
-After installation, you can use the `codeowners-cli` command:
+After wheel installation, you can use the `codeowners-cli` command:
 
 ```bash
 # Basic usage
@@ -90,6 +105,11 @@ codeowners-cli --help
 
 # Example: Analyze a repository
 codeowners-cli --repo_name /path/to/your/repo_name --contributors-file contributors.yaml
+```
+
+After PIP installation
+```bash
+python3 main.py --help
 ```
 
 ## CLI Options
