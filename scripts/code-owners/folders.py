@@ -4,7 +4,7 @@ import os
 from collections import namedtuple
 from enum import Enum
 import shlex
-from typing import Dict
+from typing import Dict, Tuple
 import aiofiles
 import aiofiles.os
 
@@ -30,8 +30,6 @@ FolderSettings = namedtuple(
     "FolderSettings", ["folder_type", "owners", "children"]
 )
 
-PRESET_FOLDERS: Dict[str, FolderSettings] = {}
-
 
 def is_subfolder(prefix: str, folder: str) -> bool:
     """Check if a folder is a subfolder of a given prefix.
@@ -50,7 +48,7 @@ def is_subfolder(prefix: str, folder: str) -> bool:
     )
 
 
-def get_folder_settings(folder: str) -> FolderSettings:
+def get_folder_settings(folder: str, preset_folders) -> FolderSettings:
     """Get the settings for a specific folder.
 
     Checks for explicitly defined folders first, then checks if the folder
@@ -59,24 +57,27 @@ def get_folder_settings(folder: str) -> FolderSettings:
 
     Args:
         folder: The folder path to get settings for.
+        preset_folders: Dictionary of the folders and their presets
 
     Returns:
         FolderSettings: The settings for the specified folder.
     """
     # Explicitly defined folder
-    if folder in PRESET_FOLDERS:
+    if folder in preset_folders:
         # return the copy of a named tuple
-        return PRESET_FOLDERS[folder]._replace()
+        return preset_folders[folder]._replace()
 
     # Ignore all subfolders of the explicitly defined folders
-    if any(is_subfolder(prefix, folder) for prefix in PRESET_FOLDERS):
+    if any(is_subfolder(prefix, folder) for prefix in preset_folders):
         return FolderSettings(FolderType.IGNORE, set(), [])
 
     # Regular folder is the default
     return FolderSettings(FolderType.REGULAR, set(), [])
 
 
-async def get_repo_folders(repo: str) -> Dict[str, FolderSettings]:
+async def get_repo_folders(
+    repo: str, preset_folders: Dict[str, FolderSettings]
+) -> Tuple[Dict[str, FolderSettings], Dict[str, FolderSettings]]:
     """Get all folders in a repository with their settings.
 
     Walks through the repository directory tree and returns a dictionary
@@ -85,9 +86,12 @@ async def get_repo_folders(repo: str) -> Dict[str, FolderSettings]:
 
     Args:
         repo: Path to the repository root directory.
+        preset_folders: Dictionary of the folders and their presets
 
     Returns:
-        Dict[str, FolderSettings]:
+        Tuple[Dict[str, FolderSettings], Dict[str, FolderSettings]]:
+        Tuple of dictionaries of the folder presets and the actual
+        folders found in the repo
         Dictionary mapping folder paths to their settings.
 
     Raises:
@@ -104,7 +108,7 @@ async def get_repo_folders(repo: str) -> Dict[str, FolderSettings]:
                 f"Folder: {folder} is outside of repo_name {repo}"
             )
         folder = folder[len(repo) - 1 :]
-        folder_settings = get_folder_settings(folder)
+        folder_settings = get_folder_settings(folder, preset_folders)
         if folder_settings.folder_type != FolderType.IGNORE:
             result[folder] = folder_settings
             # update the parent folder with the child name
@@ -115,7 +119,7 @@ async def get_repo_folders(repo: str) -> Dict[str, FolderSettings]:
                     )
                 )
 
-    return result
+    return preset_folders, result
 
 
 def folder_settings_constructor(
@@ -143,7 +147,7 @@ yaml.SafeLoader.add_constructor("!FolderSettings", folder_settings_constructor)
 
 async def load_folder_metadata(
     filename: str, repo: str
-) -> Dict[str, FolderSettings]:
+) -> Tuple[Dict[str, FolderSettings], Dict[str, FolderSettings]]:
     """Load folder metadata from a YAML file and get repository folder
     structure.
 
@@ -155,14 +159,16 @@ async def load_folder_metadata(
         repo: Path to the repository root directory.
 
     Returns:
-        Dict[str, FolderSettings]: Dictionary mapping folder paths to their
-        settings.
+        Tuple[Dict[str, FolderSettings], Dict[str, FolderSettings]]:
+        Tuple of dictionaries of the folder presets and the actual
+        folders found in the repo
 
     Raises:
         ValueError: If a folder is found outside the repository path.
     """
+    preset_folders: Dict[str, FolderSettings] = {}
     if filename:
         async with aiofiles.open(filename, "r") as folder_file:
             contents = await folder_file.read()
-        PRESET_FOLDERS.update(yaml.safe_load(contents))
-    return await get_repo_folders(repo)
+        preset_folders.update(yaml.safe_load(contents))
+    return await get_repo_folders(repo, preset_folders)

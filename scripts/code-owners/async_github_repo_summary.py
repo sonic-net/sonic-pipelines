@@ -18,7 +18,7 @@ from async_helpers import (
     GitCommitLocal,
 )
 from contributor import Contributor, ContributorCollection
-from folders import FolderType, FolderSettings, PRESET_FOLDERS
+from folders import FolderType, FolderSettings
 from organization import (
     ORGANIZATION,
     organization_by_company,
@@ -288,7 +288,8 @@ class AsyncGitHubRepoSummary:
 
         Args:
             contributors: Collection of contributors to analyze.
-            repo_folders: Dictionary mapping folder paths to their settings.
+            repo_folders: Dictionary mapping repo folder paths
+                          to their settings.
             repo_path: Path to the local repository.
             owner: GitHub repository owner.
             repo: GitHub repository name.
@@ -325,6 +326,7 @@ class AsyncGitHubRepoSummary:
     async def process_repository(
         self,
         contributors: ContributorCollection,
+        preset_folders: Dict[str, FolderSettings],
         repo_folders: Dict[str, FolderSettings],
         repo_path: str,
         total_commit_count: int,
@@ -341,6 +343,8 @@ class AsyncGitHubRepoSummary:
 
         Args:
             contributors: Collection of contributors to analyze.
+            preset_folders: Dictionary mapping folder presets
+                            to their settings.
             repo_folders: Dictionary mapping folder paths to their settings.
             repo_path: Path to the local repository.
             total_commit_count: Total number of commits in the repository.
@@ -409,7 +413,7 @@ class AsyncGitHubRepoSummary:
                         while True:
                             try:
                                 if (
-                                    PRESET_FOLDERS[folder].folder_type
+                                    preset_folders[folder].folder_type
                                     == FolderType.IGNORE
                                 ):
                                     # do not account for the data in

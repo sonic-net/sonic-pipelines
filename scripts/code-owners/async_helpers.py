@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import os
+from dataclasses import dataclass
 from typing import Tuple, List
 import shlex
 from datetime import datetime
@@ -11,6 +12,7 @@ logger = logging.getLogger(__name__)
 COMMIT_HEADER_KEY = "Commit: "
 
 
+@dataclass(init=False)
 class GitCommitLocal:
     """Represents a Git commit in local file system with metadata and file
     changes.
@@ -50,18 +52,6 @@ class GitCommitLocal:
             total_count = add_count + del_count
 
             self.changes[os.path.dirname(change_path)] += total_count
-
-    def __repr__(self):
-        """Return a string representation of the GitCommit object.
-
-        Returns:
-            str: String representation of the GitCommit.
-        """
-        return (
-            f"GitCommit(name={self.name}, email={self.email}, "
-            f"ts={self.ts}, changes={self.changes}, "
-            f"hash={self.commit_hash})"
-        )
 
 
 async def get_commit_count(repo_path: str) -> int:

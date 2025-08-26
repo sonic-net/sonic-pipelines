@@ -15,7 +15,7 @@ A comprehensive tool for analyzing Git repositories to extract commit history, i
 
 ## Overview
 
-The CodeOwners Generator analyzes Git repositories to determine code ownership based on commit history and contributor activity. It uses the GitHub API to gather information about contributors and their commit patterns, then generates CODEOWNERS files that assign ownership to repository folders based on actual contribution data.
+The CodeOwners Generator analyzes Git repositories to determine code ownership based on commit history and contributor activity. It uses the GitHub API to gather information about contributors and their commit patterns, then generates CODEOWNERS files that assigns ownership to repository folders based on actual contribution data.
 
 ### Key Features
 - **Automatic Contributor Discovery**: Identifies and resolves contributors from Git history

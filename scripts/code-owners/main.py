@@ -15,7 +15,7 @@ from async_helpers import (
     get_commit_count,
 )
 from contributor import ContributorCollection
-from folders import load_folder_metadata, PRESET_FOLDERS
+from folders import load_folder_metadata
 
 logger = logging.getLogger(__name__)
 
@@ -143,18 +143,22 @@ async def async_loop(args: argparse.Namespace):
     repo_summarizer = AsyncGitHubRepoSummary()
     contributor_collection = ContributorCollection(args.contributors_file)
 
-    (owner, repo_name), repo_folders, _, total_commit_count = (
-        await asyncio.gather(
-            get_remote_owner_repo(args.repo),
-            load_folder_metadata(args.folder_presets_file, args.repo),
-            contributor_collection.load_from_file(),
-            get_commit_count(args.repo),
-        )
+    (
+        (owner, repo_name),
+        (preset_folders, repo_folders),
+        _,
+        total_commit_count,
+    ) = await asyncio.gather(
+        get_remote_owner_repo(args.repo),
+        load_folder_metadata(args.folder_presets_file, args.repo),
+        contributor_collection.load_from_file(),
+        get_commit_count(args.repo),
     )
     logging.info("Loaded all folder presets and contributors if any")
 
     await repo_summarizer.process_repository(
         contributor_collection,
+        preset_folders,
         repo_folders,
         args.repo,
         total_commit_count,
