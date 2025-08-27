@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 COMMIT_HEADER_KEY = "Commit: "
 
 
-@dataclass(init=False)
+@dataclass
 class GitCommitLocal:
     """Represents a Git commit in local file system with metadata and file
     changes.
@@ -25,8 +25,16 @@ class GitCommitLocal:
         commit_hash: The Git commit hash.
     """
 
-    def __init__(self, commit_header: str, commit_changes: List[str]):
-        """Initialize a GitCommit object.
+    name: str
+    email: str
+    ts: datetime
+    changes: Counter
+    commit_hash: str
+
+    @classmethod
+    def build_from_git_log(cls, commit_header: str, commit_changes: List[str]):
+        """An alternative constructor for  a GitCommit object.
+           Parses the output of "git log ..."
 
         Args:
             commit_header: A semicolon-separated string containing commit hash,
@@ -37,11 +45,9 @@ class GitCommitLocal:
 
         # Split the commit header
         commit_hash, ts_iso_str, email, name = commit_header.split(";", 3)
-        self.name = name
-        self.email = email.lower()
-        self.ts = datetime.fromisoformat(ts_iso_str)
-        self.changes = Counter()
-        self.commit_hash = commit_hash
+        email = email.lower()
+        ts = datetime.fromisoformat(ts_iso_str)
+        changes = Counter()
 
         # Group the adds and deletes by the folder
         for line in commit_changes:
@@ -51,7 +57,8 @@ class GitCommitLocal:
             del_count = 1 if del_count_str == "-" else int(del_count_str)
             total_count = add_count + del_count
 
-            self.changes[os.path.dirname(change_path)] += total_count
+            changes[os.path.dirname(change_path)] += total_count
+        return cls(name, email, ts, changes, commit_hash)
 
 
 async def get_commit_count(repo_path: str) -> int:
@@ -176,11 +183,13 @@ async def get_all_commit_stats(repo_path: str):
         line = line.strip()
         if line.startswith(COMMIT_HEADER_KEY):
             if commit_header:
-                yield GitCommitLocal(commit_header, commit_changes)
+                yield GitCommitLocal.build_from_git_log(
+                    commit_header, commit_changes
+                )
 
             commit_header = line[len(COMMIT_HEADER_KEY) :]
             commit_changes.clear()
         elif commit_header and line:
             commit_changes.append(line)
     if commit_changes:
-        yield GitCommitLocal(commit_header, commit_changes)
+        yield GitCommitLocal.build_from_git_log(commit_header, commit_changes)
