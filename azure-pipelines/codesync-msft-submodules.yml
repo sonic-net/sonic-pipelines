@@ -16,7 +16,6 @@ steps:
       git config --global user.name "Sonic Automation"
       git config --global pull.rebase false
       echo $TOKEN | gh auth login --with-token
-      echo $AZURE_DEVOPS_EXT_PAT | az devops login
 
       repos=$(for i in $(cat azure-pipelines/codesync.json | jq .[] -r); do echo $i | sed 's#src/##'; done | sort -u)
       [ -z $repos ] && exit 1
@@ -31,7 +30,6 @@ steps:
       done
     env:
       TOKEN: $(GITHUB-TOKEN)
-      AZURE_DEVOPS_EXT_PAT: $(MSAZURE-TOKEN)
     displayName: Setup env
   - bash: |
       set -ex
@@ -108,7 +106,6 @@ steps:
       done
     env:
       TOKEN: $(GITHUB-TOKEN)
-      AZURE_DEVOPS_EXT_PAT: $(MSAZURE-TOKEN)
     displayName: 'code sync'
   - bash: |
       set -ex
