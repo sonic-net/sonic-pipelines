@@ -11,8 +11,8 @@ parameters:
     type: object
     default:
       - vs
-      - centec-arm64
       - marvell-prestera-armhf
+      - marvell-prestera-arm64
 
 jobs:
   - job: Build
@@ -21,6 +21,8 @@ jobs:
     steps:
       - checkout: self
         clean: true
+      - script: |
+          set -ex
           # Wait for apt lock to be released (timeout after 10 minutes)
           timeout=600
           elapsed=0
@@ -35,6 +37,7 @@ jobs:
           done
 
           curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+        retryCountOnTaskFailure: 5
         displayName: install dependencies
       - ${{ each platform in parameters.platforms }}:
         - task: DownloadPipelineArtifact@2
