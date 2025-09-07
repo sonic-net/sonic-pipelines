@@ -36,6 +36,7 @@ class Contributor:
         organization: ORGANIZATION = None,
         github_login: str = None,
         github_id: int = None,
+        available_to_review: bool = True,
     ):
         """Initialize a Contributor object.
 
@@ -63,7 +64,7 @@ class Contributor:
 
         self.github_login = github_login
         self.github_id = github_id
-
+        self.available_to_review = available_to_review
         # The last commit TS as per git log
         self.last_commit_ts = None
         # Commits made by the contributor
@@ -134,6 +135,7 @@ def contributor_representer(
             "github_id": data.github_id,
             "last_commit_ts": data.last_commit_ts,
             "commit_count": len(data.commits),
+            "available_to_review": data.available_to_review,
         },
     )
 
@@ -164,6 +166,7 @@ def contributor_constructor(loader: yaml.SafeLoader, node) -> Contributor:
         organization=org,
         github_login=value["github_login"],
         github_id=value["github_id"],
+        available_to_review=value.get("available_to_review", True),
     )
 
 
