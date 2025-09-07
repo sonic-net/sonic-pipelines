@@ -170,5 +170,12 @@ async def load_folder_metadata(
     if filename:
         async with aiofiles.open(filename, "r") as folder_file:
             contents = await folder_file.read()
-        preset_folders.update(yaml.safe_load(contents))
+        loaded_folders = {}
+        for folder_name, value in yaml.safe_load(contents).items():
+            loaded_folders[folder_name] = FolderSettings(
+                folder_type=FolderType[value["type"]],
+                owners=set(value.get("owners", [])),
+                children=[],
+            )
+        preset_folders.update(loaded_folders)
     return await get_repo_folders(repo, preset_folders)
