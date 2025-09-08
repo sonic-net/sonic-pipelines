@@ -1,6 +1,7 @@
 """Module for managing contributor information and collections."""
 
 import logging
+import os
 from typing import Optional, Dict, List, Set
 import yaml
 from yaml import MappingNode
