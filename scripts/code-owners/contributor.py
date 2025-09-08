@@ -1,6 +1,7 @@
 """Module for managing contributor information and collections."""
 
 import logging
+import os
 from typing import Optional, Dict, List, Set
 import yaml
 from yaml import MappingNode
@@ -205,6 +206,7 @@ class ContributorCollection:
         )
         async with aiofiles.open(self.db_filename, "w") as out_file:
             await out_file.write(contents)
+            await out_file.write(os.linesep)
 
     async def load_from_file(self):
         """Load contributors from the YAML file.
