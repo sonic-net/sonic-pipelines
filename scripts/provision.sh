@@ -44,7 +44,6 @@ if [ "$ARCH" == "armhf" ] && [ "$ARCH" != "$DEFAULT_ARCH" ]; then
   service containerd restart
 
   # Verify docker armhf is ready
-  sleep 30
   machine=$(docker run --rm publicmirror.azurecr.io/debian:bookworm uname -m)
   if [ "$machine" != "armv7l" ] && [ "$machine" != "armv8l" ]; then
     echo "The machine=$machine is not correct, provision failed" 1>&2
@@ -56,11 +55,9 @@ else
   systemctl daemon-reload
   systemctl start docker
 fi
-echo "HH" >> /var/log/agent-provision.log
 usermod -a -G docker azureuser 2>&1 >> /var/log/agent-provision.log || true
 cat /etc/passwd /etc/group >> /var/log/agent-provision.log || true
-echo "HH" >> /var/log/agent-provision.log
 
 # Install build tools (and waiting docker ready)
-apt-get install -y build-essential nfs-common python3-pip python3-setuptools
-pip3 install jinja2==2.10 j2cli==0.3.10 markupsafe==2.0.1
+apt-get install -y build-essential nfs-common python3-pip python3-setuptools python3-pip python-is-python3
+pip3 install jinja2 j2cli markupsafe
