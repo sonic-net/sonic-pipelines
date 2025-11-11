@@ -46,7 +46,14 @@ class GitCommitLocal:
         # Split the commit header
         commit_hash, ts_iso_str, email, name = commit_header.split(";", 3)
         email = email.lower()
-        ts = datetime.fromisoformat(ts_iso_str)
+        try:
+            ts = datetime.fromisoformat(ts_iso_str)
+        except ValueError:
+            if ts_iso_str.endswith("Z"):
+                ts = datetime.fromisoformat(ts_iso_str[:-1] + "+00:00")
+            else:
+                raise ValueError(f"Invalid timestamp: {ts_iso_str}")
+
         changes = Counter()
 
         # Group the adds and deletes by the folder
