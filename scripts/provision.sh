@@ -70,8 +70,3 @@ echo "intnfs.file.core.windows.net:/intnfs/nfs /nfs aznfs noauto,x-systemd.autom
 apt-get install -y build-essential aznfs nfs-common python3-pip python3-setuptools python3-pip python-is-python3
 pip3 install jinjanator --break-system-packages
 mkdir -p /nfs
-for i in {1..10}; do
-  mount -a
-  mountpoint /nfs && break
-  sleep 5
-done
