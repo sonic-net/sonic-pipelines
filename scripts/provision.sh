@@ -7,6 +7,7 @@ DEFAULT_ARCH=$(dpkg --print-architecture)
 [ -z "$ARCH" ] && [ -f /etc/docker-arch ] && ARCH=$(cat /etc/docker-arch)
 [ -z "$ARCH" ] && ARCH=$DEFAULT_ARCH  
 
+dpkg --configure -a
 apt-get update
 apt-get install -y ca-certificates curl gnupg lsb-release
 # install git lfs
