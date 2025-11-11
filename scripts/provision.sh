@@ -61,5 +61,16 @@ usermod -a -G docker azureuser 2>&1 >> /var/log/agent-provision.log || true
 cat /etc/passwd /etc/group >> /var/log/agent-provision.log || true
 
 # Install build tools (and waiting docker ready)
-apt-get install -y build-essential nfs-common python3-pip python3-setuptools python3-pip python-is-python3
-pip3 install jinja2 j2cli markupsafe
+curl -sSL -O https://packages.microsoft.com/config/$(source /etc/os-release && echo "$ID/$VERSION_ID")/packages-microsoft-prod.deb
+dpkg -i packages-microsoft-prod.deb
+rm packages-microsoft-prod.deb
+apt-get update
+echo "intnfs.file.core.windows.net:/intnfs/nfs /nfs aznfs noauto,x-systemd.automount,_netdev,vers=4.1,sec=sys,nconnect=4 0 0" >> /etc/fstab
+apt-get install -y build-essential aznfs nfs-common python3-pip python3-setuptools python3-pip python-is-python3
+pip3 install jinjanator --break-system-packages
+mkdir -p /nfs
+for i in {1..10}; do
+  mount -a
+  mountpoint /nfs && break
+  sleep 5
+done
