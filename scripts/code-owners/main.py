@@ -170,8 +170,6 @@ async def async_loop(args: argparse.Namespace):
     logging.info(f"Processed {total_commit_count} commits")
     await contributor_collection.save_to_file()
 
-    print()
-    print("CODEOWNERS output:")
     process_folders_recursively("/", repo_folders)
 
 

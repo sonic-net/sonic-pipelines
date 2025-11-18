@@ -1,6 +1,7 @@
 """Module for managing contributor information and collections."""
 
 import logging
+import os
 from typing import Optional, Dict, List, Set
 import yaml
 from yaml import MappingNode
@@ -36,6 +37,7 @@ class Contributor:
         organization: ORGANIZATION = None,
         github_login: str = None,
         github_id: int = None,
+        available_to_review: bool = True,
     ):
         """Initialize a Contributor object.
 
@@ -63,7 +65,7 @@ class Contributor:
 
         self.github_login = github_login
         self.github_id = github_id
-
+        self.available_to_review = available_to_review
         # The last commit TS as per git log
         self.last_commit_ts = None
         # Commits made by the contributor
@@ -111,63 +113,18 @@ class Contributor:
             f"{self.organization}, {repr(self.github_login)})"
         )
 
-
-def contributor_representer(
-    dumper: yaml.SafeDumper, data: Contributor
-) -> MappingNode:
-    """YAML representer for Contributor objects.
-
-    Args:
-        dumper: The YAML dumper instance.
-        data: The Contributor object to serialize.
-
-    Returns:
-        MappingNode: YAML representation of the Contributor object.
-    """
-    return dumper.represent_mapping(
-        "!Contributor",  # Custom tag for the Contributor object
-        {
-            "name": data.name,
-            "emails": sorted(data.emails),
-            "organization": str(data.organization.name),
-            "github_login": data.github_login,
-            "github_id": data.github_id,
-            "last_commit_ts": data.last_commit_ts,
-            "commit_count": len(data.commits),
-        },
-    )
-
-
-yaml.SafeDumper.add_representer(Contributor, contributor_representer)
-
-
-def contributor_constructor(loader: yaml.SafeLoader, node) -> Contributor:
-    """YAML constructor for Contributor objects.
-
-    Args:
-        loader: The YAML loader instance.
-        node: The YAML node to deserialize.
-
-    Returns:
-        Contributor: The reconstructed Contributor object.
-
-    Raises:
-        ValueError: If GitHub ID is missing from the YAML data.
-    """
-    value = loader.construct_mapping(node, deep=True)
-    if value["github_id"] is None:
-        raise ValueError(f"Missing github id in YAML data {value}")
-    org = ORGANIZATION[value["organization"]]
-    return Contributor(
-        name=value["name"],
-        emails=set(value["emails"]),
-        organization=org,
-        github_login=value["github_login"],
-        github_id=value["github_id"],
-    )
-
-
-yaml.SafeLoader.add_constructor("!Contributor", contributor_constructor)
+    def to_dict(self):
+        """Return a dictionary representation of the Contributor."""
+        return {
+            "name": self.name,
+            "emails": sorted(self.emails),
+            "organization": str(self.organization.name),
+            "github_login": self.github_login,
+            "github_id": self.github_id,
+            "last_commit_ts": self.last_commit_ts,
+            "commit_count": len(self.commits),
+            "available_to_review": self.available_to_review,
+        }
 
 
 class ContributorCollection:
@@ -241,8 +198,8 @@ class ContributorCollection:
         Serializes all contributors in the collection to the configured
         YAML file using the custom YAML representer.
         """
-        contents = yaml.safe_dump_all(
-            self.contributors,
+        contents = yaml.safe_dump(
+            [contributor.to_dict() for contributor in self.contributors],
             indent=2,
             allow_unicode=True,
             default_flow_style=False,
@@ -259,8 +216,19 @@ class ContributorCollection:
         try:
             async with aiofiles.open(self.db_filename, "r") as in_file:
                 contents = await in_file.read()
-            for item in yaml.safe_load_all(contents):
-                self.add_update_contributor(item)
+            for value in yaml.safe_load(contents):
+                if value["github_id"] is None:
+                    raise ValueError(f"Missing github id in YAML data {value}")
+                org = ORGANIZATION[value["organization"]]
+                contributor = Contributor(
+                    name=value["name"],
+                    emails=set(value["emails"]),
+                    organization=org,
+                    github_login=value["github_login"],
+                    github_id=value["github_id"],
+                    available_to_review=value.get("available_to_review", True),
+                )
+                self.add_update_contributor(contributor)
         except FileNotFoundError:
             pass
 
