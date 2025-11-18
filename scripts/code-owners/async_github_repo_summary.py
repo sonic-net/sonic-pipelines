@@ -402,6 +402,7 @@ class AsyncGitHubRepoSummary:
             if (
                 contributor.last_commit_ts is not None
                 and contributor.last_commit_ts >= self.active_after
+                and contributor.available_to_review
             ):
                 # if the contributor's last commit was after
                 # the cutoff date, add the commit stats to the

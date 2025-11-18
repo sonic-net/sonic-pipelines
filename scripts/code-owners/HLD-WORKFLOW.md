@@ -111,16 +111,16 @@ Stores contributor information including:
 
 **Example:**
 ```yaml
-!Contributor
-name: John Doe
-emails:
-  - john.doe@company.com
-  - john.doe@gmail.com
-github_id: 123456
-github_login: johndoe
-organization: MSFT
-last_commit_ts: 2024-01-15 10:30:00+00:00
-commit_count: 45
+- available_to_review: true
+  commit_count: 45
+  emails:
+    - john.doe@company.com
+    - john.doe@gmail.com
+  github_id: 123456
+  github_login: johndoe
+  last_commit_ts: 2024-01-15 10:30:00+00:00
+  name: John Doe
+  organization: MSFT
 ```
 
 #### Folder Presets File (`folder_presets.yaml`)
@@ -131,14 +131,14 @@ Defines folder-specific settings:
 
 **Example:**
 ```yaml
-/.git: !FolderSettings
+/.git:
   type: IGNORE
-/tests/dash: !FolderSettings
+/tests/dash:
   owners:
     - congh
     - nikamirrr
   type: CLOSED_OWNERS
-/tests/ntp: !FolderSettings
+/tests/ntp:
   owners:
     - nikamirrr
   type: OPEN_OWNERS
