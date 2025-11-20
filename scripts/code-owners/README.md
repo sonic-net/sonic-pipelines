@@ -19,7 +19,16 @@ This will create both a source distribution (`.tar.gz`) and a wheel distribution
 
 ## Setting Up Virtual Environment
 
-### Option 1: Using venv (Recommended)
+### Option 1: Using UV (Recommended)
+1. Download and install UV: https://docs.astral.sh/uv/getting-started/installation/
+2. Run the command from the directory with the code
+```bash
+cd sonic-pipelines/scripts/code-owners
+
+uv run codeowners-cli --repo /local/workspace/repo/nmirin-sonic-mgmt --contributors_file /local/workspace/repo/nmirin-sonic-mgmt/.code-owners/contributors.yaml --folder_presets_file /local/workspace/repo/nmirin-sonic-mgmt/.code-owners/folder_presets.yaml
+```
+
+### Option 2: Using venv
 
 ```bash
 # Create a virtual environment
@@ -33,7 +42,7 @@ source venv/bin/activate
 # venv\Scripts\activate
 ```
 
-### Option 2: Using conda
+### Option 3: Using conda
 
 ```bash
 # Create a conda environment
@@ -61,19 +70,6 @@ For development purposes, you can install the package in editable mode:
 ```bash
 # Make sure your virtual environment is activated
 pip install -e .
-```
-
-### Installing using pip, dependencies only
-
-```bash
-# optionally create a virtual environment
-python3 -m venv .venv
-source .venv/bin/activate
-
-
-git clone <repo>
-cd <path to code owners>
-pip install -r requirements.txt
 ```
 
 ### Updating the GitHub tokens

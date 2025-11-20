@@ -121,16 +121,18 @@ def process_folders_recursively(start_folder: str, repo_folders):
             owners_match = owners_match and (
                 repo_folders[subfolder_full_name].owners <= owners
             )
-
+        if start_folder == os.sep:
+            print_folder = "*"
+        else:
+            print_folder = start_folder + os.sep
+        print(
+            print_folder,
+            " ".join(f"@{owner}" for owner in sorted(owners)),
+        )
         if not owners_match:
             # proceed to lower levels if there is a mismatched owner there
             for subfolder_full_name in subfolder_full_names:
                 process_folders_recursively(subfolder_full_name, repo_folders)
-        else:
-            print(
-                start_folder + os.sep,
-                " ".join(f"@{owner}" for owner in sorted(owners)),
-            )
 
 
 async def async_loop(args: argparse.Namespace):
