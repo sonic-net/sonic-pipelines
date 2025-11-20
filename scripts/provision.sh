@@ -7,6 +7,7 @@ DEFAULT_ARCH=$(dpkg --print-architecture)
 [ -z "$ARCH" ] && [ -f /etc/docker-arch ] && ARCH=$(cat /etc/docker-arch)
 [ -z "$ARCH" ] && ARCH=$DEFAULT_ARCH  
 
+dpkg --configure -a
 apt-get update
 apt-get install -y ca-certificates curl gnupg lsb-release
 # install git lfs
@@ -22,7 +23,9 @@ curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/
 echo "deb [arch=$ARCH signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" > /etc/apt/sources.list.d/docker.list
 
 apt-get update
-apt-get install -y docker-ce:$ARCH docker-ce-cli:$ARCH containerd.io:$ARCH docker-compose-plugin:$ARCH
+#apt-get install -y docker-ce:$ARCH docker-ce-cli:$ARCH containerd.io:$ARCH docker-compose-plugin:$ARCH
+# docker-ce 29 docker root don't work.
+apt-get install -y docker-ce:=5:28.5.2-1~ubuntu.24.04~noble docker-ce-cli=5:28.5.2-1~ubuntu.24.04~noble containerd.io:$ARCH docker-compose-plugin:$ARCH
 
 # Customize for armhf
 if [ "$ARCH" == "armhf" ] && [ "$ARCH" != "$DEFAULT_ARCH" ]; then
@@ -44,7 +47,6 @@ if [ "$ARCH" == "armhf" ] && [ "$ARCH" != "$DEFAULT_ARCH" ]; then
   service containerd restart
 
   # Verify docker armhf is ready
-  sleep 30
   machine=$(docker run --rm publicmirror.azurecr.io/debian:bookworm uname -m)
   if [ "$machine" != "armv7l" ] && [ "$machine" != "armv8l" ]; then
     echo "The machine=$machine is not correct, provision failed" 1>&2
@@ -56,11 +58,16 @@ else
   systemctl daemon-reload
   systemctl start docker
 fi
-echo "HH" >> /var/log/agent-provision.log
 usermod -a -G docker azureuser 2>&1 >> /var/log/agent-provision.log || true
 cat /etc/passwd /etc/group >> /var/log/agent-provision.log || true
-echo "HH" >> /var/log/agent-provision.log
 
 # Install build tools (and waiting docker ready)
-apt-get install -y build-essential nfs-common python3-pip python3-setuptools
-pip3 install jinja2==2.10 j2cli==0.3.10 markupsafe==2.0.1
+curl -sSL -O https://packages.microsoft.com/config/$(source /etc/os-release && echo "$ID/$VERSION_ID")/packages-microsoft-prod.deb
+dpkg -i packages-microsoft-prod.deb
+rm packages-microsoft-prod.deb
+apt-get update
+echo "intnfs.file.core.windows.net:/intnfs/nfs /nfs aznfs noauto,x-systemd.automount,_netdev,vers=4.1,sec=sys,nconnect=4 0 0" >> /etc/fstab
+apt-get install -y build-essential aznfs nfs-common python3-pip python3-setuptools python3-pip python-is-python3
+pip3 install jinjanator --break-system-packages
+mkdir -p /nfs
+
