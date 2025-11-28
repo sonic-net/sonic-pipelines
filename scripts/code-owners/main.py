@@ -4,6 +4,7 @@ import os
 from datetime import datetime, timezone, date, timedelta
 import logging
 import time
+import yaml
 
 __version__ = "0.0.5"
 
@@ -97,7 +98,7 @@ def main():
     logger.debug(f"Runtime {time.time() - main_start_time} seconds")
 
 
-def process_folders_recursively(start_folder: str, repo_folders):
+def process_folders_recursively(start_folder: str, repo_folders, out_folder_dict):
     """Process the folders with counted contributors top to bottom.
 
     If all subfolders have contributors as the subset of a folder
@@ -121,18 +122,20 @@ def process_folders_recursively(start_folder: str, repo_folders):
             owners_match = owners_match and (
                 repo_folders[subfolder_full_name].owners <= owners
             )
-        if start_folder == os.sep:
-            print_folder = "*"
-        else:
+        if start_folder != os.sep:
             print_folder = start_folder + os.sep
-        print(
-            print_folder,
-            " ".join(f"@{owner}" for owner in sorted(owners)),
-        )
-        if not owners_match:
+        else:
+            print_folder = start_folder
+        print_folder = print_folder.lstrip(os.sep)
+
+        print_owners =sorted(owners)
+        if owners_match:
+            out_folder_dict[f"{print_folder}**"] = print_owners
+        else:
+            out_folder_dict[f"{print_folder}*"] = print_owners
             # proceed to lower levels if there is a mismatched owner there
             for subfolder_full_name in subfolder_full_names:
-                process_folders_recursively(subfolder_full_name, repo_folders)
+                process_folders_recursively(subfolder_full_name, repo_folders, out_folder_dict)
 
 
 async def async_loop(args: argparse.Namespace):
@@ -171,8 +174,16 @@ async def async_loop(args: argparse.Namespace):
     )
     logging.info(f"Processed {total_commit_count} commits")
     await contributor_collection.save_to_file()
+    out_folder_dict = {}
+    process_folders_recursively("/", repo_folders, out_folder_dict)
+    contents = yaml.safe_dump(
+            out_folder_dict,
+            indent=2,
+            allow_unicode=True,
+            default_flow_style=False,
+        )
 
-    process_folders_recursively("/", repo_folders)
+    print(contents)
 
 
 if __name__ == "__main__":
