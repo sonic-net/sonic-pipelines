@@ -114,6 +114,7 @@ def process_folders_recursively(start_folder: str, repo_folders, out_folder_dict
         subfolders = repo_folders[start_folder].children
         subfolder_full_names = []
         owners_match = True
+        empty_subfolders = []
         for subfolder in sorted(subfolders):
             subfolder_full_name = os.path.join(start_folder, subfolder)
             subfolder_full_names.append(subfolder_full_name)
@@ -122,6 +123,9 @@ def process_folders_recursively(start_folder: str, repo_folders, out_folder_dict
             owners_match = owners_match and (
                 repo_folders[subfolder_full_name].owners <= owners
             )
+            if not repo_folders[subfolder_full_name].owners:
+                empty_subfolders.append(subfolder_full_name)
+
         if start_folder != os.sep:
             print_folder = start_folder + os.sep
         else:
@@ -136,6 +140,11 @@ def process_folders_recursively(start_folder: str, repo_folders, out_folder_dict
             # proceed to lower levels if there is a mismatched owner there
             for subfolder_full_name in subfolder_full_names:
                 process_folders_recursively(subfolder_full_name, repo_folders, out_folder_dict)
+            # extend the parent ownership to the empty subfolder
+            # if any sibling has a different owner
+            for empty_subfolder in empty_subfolders:
+                empty_subfolder = empty_subfolder.lstrip(os.sep)
+                out_folder_dict[f"{empty_subfolder}{os.sep}**"] = print_owners.copy()
 
 
 async def async_loop(args: argparse.Namespace):
