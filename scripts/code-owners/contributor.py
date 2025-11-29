@@ -36,7 +36,7 @@ class Contributor:
         organization: ORGANIZATION = None,
         github_login: str = None,
         github_id: int = None,
-        available_to_review: bool = True,
+        available_to_review: bool = False,
     ):
         """Initialize a Contributor object.
 
@@ -225,7 +225,7 @@ class ContributorCollection:
                     organization=org,
                     github_login=value["github_login"],
                     github_id=value["github_id"],
-                    available_to_review=value.get("available_to_review", True),
+                    available_to_review=value.get("available_to_review", False),
                 )
                 self.add_update_contributor(contributor)
         except FileNotFoundError:
