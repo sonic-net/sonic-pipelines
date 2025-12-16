@@ -47,7 +47,7 @@ jobs:
       - bash: |
           set -ex
           echo $CERT | base64 -d > cert.pfx
-          cert=$(openssl pkcs12 -in log.pfx -nokeys -nodes -passin pass: | openssl x509 -noout -fingerprint -sha1 | sed 's/^.*=//' | tr -d ':' | tr 'A-Z' 'a-z')
+          cert=$(openssl pkcs12 -in cert.pfx -nokeys -nodes -passin pass: | openssl x509 -noout -fingerprint -sha1 | sed 's/^.*=//' | tr -d ':' | tr 'A-Z' 'a-z')
           since=$(date "+%Y-%m-%d" --date="5 day ago")
           gh pr list -R sonic-net/sonic-buildimage -A mssonicbld --head submodule- -S "created:<=$since" --json url,title,statusCheckRollup,createdAt | jq '[.[] | .statusCheckRollup |= map(select(.conclusion == "FAILURE" and (.name|tostring | startswith("Azure.sonic-buildimage")) and (.name|tostring!="Azure.sonic-buildimage") ) | {name, conclusion, status})]' | jq '[.[] | {url, title, createdAt, statusCheckRollup}]' | jq '[.[] | select(.statusCheckRollup | length > 0)]' > log
           c=$(cat log | jq length)
