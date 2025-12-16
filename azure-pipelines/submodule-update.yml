@@ -56,9 +56,10 @@ jobs:
           for ((i=0;i<c;i++)); do
             ins=$(cat log | jq .[$i])
             echo $ins | jq -r '.url | "- " + .' >> content.log
-            echo $ins | jq -r .createdAt >> content.log
-            echo $ins | jq -r .title | cut -c1-53 >> content.log
-            echo $ins | jq -r '.statusCheckRollup[] | .name' | sed 's/Azure.sonic-buildimage //' | tr -d '\n' | sed 's/$/\n/' >> content.log
+            echo '' >> content.log
+            echo $ins | jq -r '.createdAt | "  " + . + "<br>"' >> content.log
+            echo "  $(echo $ins | jq -r .title | grep -Eo '.* Update submodule [a-z-]' | cut -c1-53)<br>" >> content.log
+            echo "  $(echo $ins | jq -r '.statusCheckRollup[] | .name' | sed 's/Azure.sonic-buildimage //' | tr -d '\n' | sed 's/$/\n/')" >> content.log
           done
           des=$(cat content.log)
           jq -n --arg des "$des" '{"name":"submodule_advance","description":$des,"client":"https://dev.azure.com/mssonic/build/_build?definitionId=955"}' | curl -H "Content-Type: application/json" -X POST https://notice-center.azurewebsites.net/noti_center/notice -d @- -v -H "thumbprint: $cert"
