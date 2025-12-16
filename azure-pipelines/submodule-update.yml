@@ -63,7 +63,7 @@ jobs:
           jq -n --arg des "$des" '{"name":"submodule_advance","description":$des,"client":"https://dev.azure.com/mssonic/build/_build?definitionId=955"}' | curl -H "Content-Type: application/json" -X POST https://notice-center.azurewebsites.net/noti_center/notice -d @- -v -H "thumbprint: $cert"
         env:
           CERT: $(cert-noti)
-      displayName: Check blocked PRs
+        displayName: Check blocked PRs
     - bash: |
         set -e
         exit 0
