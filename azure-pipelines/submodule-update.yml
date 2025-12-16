@@ -70,7 +70,6 @@ jobs:
         displayName: Check blocked PRs
     - bash: |
         set -e
-        exit 0
         cd sonic-buildimage
         work_space=$(pwd)
         while read -r line
