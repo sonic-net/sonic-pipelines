@@ -57,8 +57,10 @@ jobs:
             ins=$(cat log | jq .[$i])
             echo $ins | jq -r '.url | "- " + .' >> content.log
             echo '' >> content.log
-            echo $ins | jq -r '.createdAt | "  " + . + "<br>"' >> content.log
-            echo "  $(echo $ins | jq -r .title | grep -Eo '.* Update submodule [a-z-]' | cut -c1-53)<br>" >> content.log
+            echo $ins | jq -r '.createdAt | "  " + .' >> content.log
+            echo '' >> content.log
+            echo "  $(echo $ins | jq -r .title | grep -Eo '.* Update submodule [a-z-]*' | cut -c1-55)" >> content.log
+            echo '' >> content.log
             echo "  $(echo $ins | jq -r '.statusCheckRollup[] | .name' | sed 's/Azure.sonic-buildimage //' | tr -d '\n' | sed 's/$/\n/')" >> content.log
           done
           des=$(cat content.log)
