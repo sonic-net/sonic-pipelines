@@ -18,6 +18,9 @@ parameters:
   - 202405
   - 202311
 
+variables:
+  - group: sonicbld
+
 jobs:
 - ${{ each branch in parameters.branches }}:
   - job:
@@ -40,6 +43,31 @@ jobs:
       env:
         TOKEN: $(token)
       displayName: Setup env
+    - ${{ if eq(branch, 'master') }}:
+      - bash: |
+          set -ex
+          echo $CERT | base64 -d > cert.pfx
+          cert=$(openssl pkcs12 -in cert.pfx -nokeys -nodes -passin pass: | openssl x509 -noout -fingerprint -sha1 | sed 's/^.*=//' | tr -d ':' | tr 'A-Z' 'a-z')
+          since=$(date "+%Y-%m-%d" --date="5 day ago")
+          gh pr list -R sonic-net/sonic-buildimage -A mssonicbld --head submodule- -S "created:<=$since" --json url,title,statusCheckRollup,createdAt | jq '[.[] | .statusCheckRollup |= map(select(.conclusion == "FAILURE" and (.name|tostring | startswith("Azure.sonic-buildimage")) and (.name|tostring!="Azure.sonic-buildimage") ) | {name, conclusion, status})]' | jq '[.[] | {url, title, createdAt, statusCheckRollup}]' | jq '[.[] | select(.statusCheckRollup | length > 0)]' > log
+          c=$(cat log | jq length)
+          rm -rf content.log
+          touch content.log
+          for ((i=0;i<c;i++)); do
+            ins=$(cat log | jq .[$i])
+            echo $ins | jq -r '.url | "- " + .' >> content.log
+            echo '' >> content.log
+            echo $ins | jq -r '.createdAt | "  " + .' >> content.log
+            echo '' >> content.log
+            echo "  $(echo $ins | jq -r .title | grep -Eo '.* Update submodule [a-z-]*' | cut -c1-55)" >> content.log
+            echo '' >> content.log
+            echo "  $(echo $ins | jq -r '.statusCheckRollup[] | .name' | sed 's/Azure.sonic-buildimage //' | tr -d '\n' | sed 's/$/\n/')" >> content.log
+          done
+          des=$(cat content.log)
+          jq -n --arg des "$des" '{"name":"submodule_advance","description":$des,"client":"https://dev.azure.com/mssonic/build/_build?definitionId=955"}' | curl -H "Content-Type: application/json" -X POST https://notice-center.azurewebsites.net/noti_center/notice -d @- -v -H "thumbprint: $cert"
+        env:
+          CERT: $(cert-noti)
+        displayName: Check blocked PRs
     - bash: |
         set -e
         cd sonic-buildimage
