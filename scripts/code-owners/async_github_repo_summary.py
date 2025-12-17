@@ -452,15 +452,30 @@ class AsyncGitHubRepoSummary:
                 need_extra_owners = max(
                     0, (self.max_owners - len(folder_settings.owners))
                 )
-                if need_extra_owners > 0:
-                    # try to get the full number of the owners in case of the
-                    # overlay with the pre-defined owners
-                    for contributor, _ in contributor_stat.most_common(
-                        self.max_owners
-                    ):
-                        folder_settings.owners.add(contributor.github_login)
-                        if len(folder_settings.owners) >= self.max_owners:
+                if need_extra_owners > 0 and contributor_stat:
+                    # Select all contributors to complement to the self.max_owners
+                    # if there is a tie in the number of changes, select all of them
+                    it_contributors = iter(
+                        contributor_stat.most_common(self.max_owners)
+                    )
+                    contributor, previous_contributor_changes = next(
+                        it_contributors
+                    )
+                    folder_settings.owners[contributor.github_login] = (
+                        previous_contributor_changes
+                    )
+                    for contributor, contributor_changes in it_contributors:
+                        if (
+                            len(folder_settings.owners) >= self.max_owners
+                            and contributor_changes
+                            < previous_contributor_changes
+                        ):
+                            # if found enough contributors and the new contributor has less changes, stop
                             break
+                        folder_settings.owners[contributor.github_login] = (
+                            contributor_changes
+                        )
+                        previous_contributor_changes = contributor_changes
 
     async def resolve_commit(self):
         """Worker task to resolve commit information and update contributors.

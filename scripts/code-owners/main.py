@@ -98,7 +98,9 @@ def main():
     logger.debug(f"Runtime {time.time() - main_start_time} seconds")
 
 
-def process_folders_recursively(start_folder: str, repo_folders, out_folder_dict):
+def process_folders_recursively(
+    start_folder: str, repo_folders, out_folder_dict
+):
     """Process the folders with counted contributors top to bottom.
 
     If all subfolders have contributors as the subset of a folder
@@ -121,7 +123,8 @@ def process_folders_recursively(start_folder: str, repo_folders, out_folder_dict
             # make sure that subfolder owners
             # are the subset of the current folder owners
             owners_match = owners_match and (
-                repo_folders[subfolder_full_name].owners <= owners
+                repo_folders[subfolder_full_name].owners.keys()
+                <= owners.keys()
             )
             if not repo_folders[subfolder_full_name].owners:
                 empty_subfolders.append(subfolder_full_name)
@@ -130,21 +133,19 @@ def process_folders_recursively(start_folder: str, repo_folders, out_folder_dict
             print_folder = start_folder + os.sep
         else:
             print_folder = start_folder
-        print_folder = print_folder.lstrip(os.sep)
 
-        print_owners =sorted(owners)
-        if owners_match:
-            out_folder_dict[f"{print_folder}**"] = print_owners
-        else:
-            out_folder_dict[f"{print_folder}*"] = print_owners
+        print_owners = sorted(owners)
+        out_folder_dict[print_folder] = owners
+        if not owners_match:
             # proceed to lower levels if there is a mismatched owner there
             for subfolder_full_name in subfolder_full_names:
-                process_folders_recursively(subfolder_full_name, repo_folders, out_folder_dict)
+                process_folders_recursively(
+                    subfolder_full_name, repo_folders, out_folder_dict
+                )
             # extend the parent ownership to the empty subfolder
             # if any sibling has a different owner
             for empty_subfolder in empty_subfolders:
-                empty_subfolder = empty_subfolder.lstrip(os.sep)
-                out_folder_dict[f"{empty_subfolder}{os.sep}**"] = print_owners.copy()
+                out_folder_dict[f"{empty_subfolder}{os.sep}"] = owners.copy()
 
 
 async def async_loop(args: argparse.Namespace):
@@ -186,11 +187,11 @@ async def async_loop(args: argparse.Namespace):
     out_folder_dict = {}
     process_folders_recursively("/", repo_folders, out_folder_dict)
     contents = yaml.safe_dump(
-            out_folder_dict,
-            indent=2,
-            allow_unicode=True,
-            default_flow_style=False,
-        )
+        out_folder_dict,
+        indent=2,
+        allow_unicode=True,
+        default_flow_style=False,
+    )
 
     print(contents)
 
