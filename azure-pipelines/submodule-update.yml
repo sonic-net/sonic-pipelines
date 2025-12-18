@@ -103,7 +103,7 @@ jobs:
             cd $work_space
 
             git add $path
-            git commit -m "[submodule] Update submodule $module_name to the latest HEAD automatically" || continue
+            git commit -s -m "[submodule] Update submodule $module_name to the latest HEAD automatically" || continue
             git push mssonicbld HEAD:submodule-${{ branch }}-$module_name -f
             label=""
             echo $(automerge_branches) | grep ${{ branch }} && label=",automerge"
