@@ -68,7 +68,7 @@ steps:
             cd $work_space
 
             git add $path
-            git commit -m "[submodule] Update submodule $module_name to the latest HEAD automatically" || continue
+            git commit -s -m "[submodule] Update submodule $module_name to the latest HEAD automatically" || continue
             git push mssonicbld HEAD:submodule-$branch-$module_name -f
             git status
             result=$(gh pr create -R Azure/sonic-buildimage-msft -H mssonicbld:submodule-$branch-$module_name -B $branch -t "[submodule][$branch] Update submodule $module_name to the latest HEAD automatically" -l "automerge" -b "$body" 2>&1 || true)
