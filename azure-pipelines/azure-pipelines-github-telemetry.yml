@@ -38,7 +38,9 @@ stages:
         inlineScript: |
           set -ex
           az account show
-          pip3 install azure-storage-queue azure-storage-blob pytz python-dateutil azure.core azure.kusto.data azure.kusto.ingest
+          sudo apt-get update
+          sudo apt-get install -y python3-pip
+          sudo pip3 install --break-system-package azure-storage-queue azure-storage-blob pytz python-dateutil azure.core azure.kusto.data azure.kusto.ingest
     - script: |
         python3 azure-pipelines/scripts/publish-github-prs.py $GITHUB_TOKEN
       env:
