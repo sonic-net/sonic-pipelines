@@ -6,7 +6,7 @@ from  azure.core.exceptions import ResourceNotFoundError
 from dateutil import parser
 import http.client
 from azure.storage.blob import BlobServiceClient
-from azure.identity import AzureCliCredential
+from azure.identity import AzureCliCredential, DefaultAzureCredential
 
 from azure.kusto.data import DataFormat
 from azure.kusto.ingest import QueuedIngestClient, IngestionProperties, FileDescriptor, ReportLevel, ReportMethod
@@ -15,8 +15,10 @@ from azure.kusto.data import KustoClient, KustoConnectionStringBuilder
 CONTAINER = 'build'
 INFO_PULLREQUESTS_FILE = "info/pullrequests.json"
 GITHUB_TOKEN = sys.argv[1]
-AZURE_STORAGE_CONNECTION_STRING = sys.argv[2]
-blob_service_client = BlobServiceClient.from_connection_string(AZURE_STORAGE_CONNECTION_STRING)
+blob_service_client = BlobServiceClient(
+    account_url=f"https://sonicstorage.blob.core.windows.net",
+    credential=DefaultAzureCredential()
+)
 
 ingest_cluster = "https://ingest-sonic.westus2.kusto.windows.net"
 ingest_kcsb = KustoConnectionStringBuilder.with_az_cli_authentication(ingest_cluster)

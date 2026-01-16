@@ -31,11 +31,12 @@ stages:
         scriptLocation: 'inlineScript'
         inlineScript: |
           set -ex
+          curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+          az version
           az account show
           pip3 install azure-storage-queue azure-storage-blob pytz python-dateutil azure.core azure.kusto.data azure.kusto.ingest
     - script: |
-        python3 azure-pipelines/scripts/publish-github-prs.py $GITHUB_TOKEN $AZURE_STORAGE_CONNECTION_STRING
+        python3 azure-pipelines/scripts/publish-github-prs.py $GITHUB_TOKEN
       env:
-        AZURE_STORAGE_CONNECTION_STRING: '$(AZURE_STORAGE_CONNECTION_STRING)'
         GITHUB_TOKEN: '$(GITHUB_TOKEN)'
       displayName: Upload PR info to kusto
