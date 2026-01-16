@@ -23,6 +23,12 @@ stages:
   - job: Build
     timeoutInMinutes: 120
     steps:
+    - script: |
+        set -ex
+        # Install Azure cli
+        curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+        az version
+      displayName: Install Azure CLI
     - task: AzureCLI@2
       displayName: Install build tools
       inputs:
@@ -31,8 +37,6 @@ stages:
         scriptLocation: 'inlineScript'
         inlineScript: |
           set -ex
-          curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
-          az version
           az account show
           pip3 install azure-storage-queue azure-storage-blob pytz python-dateutil azure.core azure.kusto.data azure.kusto.ingest
     - script: |
