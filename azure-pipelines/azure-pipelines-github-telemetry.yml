@@ -27,7 +27,7 @@ stages:
         set -ex
         # Install Azure cli
         curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
-        az login --service-principal --use-cert-sn-issuer -u 08fd13c1-63ab-4b08-9007-f4ff86b61248 -certificate $CERTPATH --tenant 72f988bf-86f1-41af-91ab-2d7cd011db47
+        az login --service-principal --use-cert-sn-issuer -u 08fd13c1-63ab-4b08-9007-f4ff86b61248 --certificate $CERTPATH --tenant 72f988bf-86f1-41af-91ab-2d7cd011db47
         pip3 install azure-storage-queue azure-storage-blob pytz python-dateutil azure.core azure.kusto.data azure.kusto.ingest
       env:
         CERTPATH: $(CERTPATH)
