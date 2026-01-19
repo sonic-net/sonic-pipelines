@@ -148,5 +148,5 @@ def get_pullrequests():
     return results
 
 results = get_pullrequests()
-# kusto_ingest(database='build', table='PullRequests', mapping='PullRequests-json', lines=results)
+kusto_ingest(database='build', table='PullRequests', mapping='PullRequests-json', lines=results)
 print(update_start_timestamp())

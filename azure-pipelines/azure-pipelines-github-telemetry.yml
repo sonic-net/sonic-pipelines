@@ -61,15 +61,12 @@ stages:
           azcopy cp "$(PUBLISH_URL_PREFIX)/info/pullrequests.json" ./pullrequests.json --overwrite=true
           timestamp=$(jq -r '.timestamp' pullrequests.json)
           echo "Get timestamp: $timestamp"
-          mock_timestamp='2026-01-18T02:04:27.958534+00:00'
           
-          new_timestamp=$(python3 azure-pipelines/scripts/publish-github-prs.py $GITHUB_TOKEN $mock_timestamp | tail -n 1) 
-          echo "New timestamp: $new_timestamp"
-          echo "before update"
+          new_timestamp=$(python3 azure-pipelines/scripts/publish-github-prs.py $GITHUB_TOKEN $timestamp | tail -n 1) 
           # update blob timestamp if new_timestamp is not empty
           if [ -n "$new_timestamp" ]; then
             echo "Update timestamp to: $new_timestamp"
-            echo -n "{\"timestamp\":\"$new_timestamp\"}" > ./temp.json
+            echo -n "{\"timestamp\": \"$new_timestamp\"}" > ./temp.json
             mv temp.json pullrequests.json
             azcopy cp ./pullrequests.json "$(PUBLISH_URL_PREFIX)/info/pullrequests.json"
           else
