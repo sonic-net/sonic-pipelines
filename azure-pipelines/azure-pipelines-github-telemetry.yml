@@ -63,8 +63,8 @@ stages:
           echo "Get timestamp: $timestamp"
           mock_timestamp='2026-01-18T02:04:27.958534+00:00'
           
-          new_timestamp=$(python3 azure-pipelines/scripts/publish-github-prs.py $GITHUB_TOKEN $mock_timestamp) 
-
+          new_timestamp=$(python3 azure-pipelines/scripts/publish-github-prs.py $GITHUB_TOKEN $mock_timestamp | tail -n 1) 
+          echo "New timestamp: $new_timestamp"
           # Set the new timestamp into the blob
           if [ -n "$new_timestamp" ]; then
             echo "Update timestamp to: $new_timestamp"
