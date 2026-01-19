@@ -46,7 +46,7 @@ stages:
           set -ex
           az account show
           sudo apt-get update
-          sudo apt-get install -y python3-pip
+          sudo apt-get install -y python3-pip jp
           sudo pip3 install --break-system-package azure-storage-queue azure-storage-blob pytz python-dateutil azure.core azure.kusto.data azure.kusto.ingest
     - task: AzureCLI@2
       displayName: Upload RP into kusto
