@@ -16,6 +16,10 @@ schedules:
 
 name: $(TeamProject)_$(Build.DefinitionName)_$(SourceBranchName)_$(Date:yyyyMMdd)$(Rev:.r)
 
+variables:
+  - name: PUBLISH_URL_PREFIX
+    value: 'https://sonicazurepipelines.blob.core.windows.net/build'
+
 stages:
 - stage: Build
   pool: sonicso1ES-amd64
@@ -25,6 +29,9 @@ stages:
     steps:
     - script: |
         set -ex
+        # Install azcopy
+        curl -sL https://aka.ms/downloadazcopy-v10-linux | tar -xz
+        sudo mv azcopy_linux_amd64_*/azcopy /usr/local/bin/
         # Install Azure cli
         curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
         az version
@@ -49,33 +56,18 @@ stages:
         scriptLocation: 'inlineScript'
         inlineScript: |
           set -ex
-          ACCOUNT_NAME="sonicazurepipelines"
-          CONTAINER_NAME="build"
-          BLOB_NAME="info/pullrequests.json"
-
-          # Get the timestamp from the blob
-          timestamp=$(az storage blob download \
-            --account-name "$ACCOUNT_NAME" \
-            --container-name "$CONTAINER_NAME" \
-            --name "$BLOB_NAME" \
-            --file - | jq -r '.timestamp' \
-            --auth-mode login)
+          azcopy cp "$(PUBLISH_URL_PREFIX)/info/pullrequests.json" ./pullrequests.json --overwrite=true
+          timestamp=$(jp -r '.timestamp' pullrequests.json)
           echo "Get timestamp: $timestamp"
           
-          new_timestamp=$(python3 azure-pipelines/scripts/publish-github-prs.py $GITHUB_TOKEN $timestamp)
+          new_timestamp=$(python3 azure-pipelines/scripts/publish-github-prs.py $GITHUB_TOKEN $timestamp) 
 
           # Set the new timestamp into the blob
           if [ -n "$new_timestamp" ]; then
             echo "Update timestamp to: $new_timestamp"
-            echo -n "{\"timestamp\":\"$new_timestamp\"}" > temp.json
-            az storage blob upload \
-              --account-name "$ACCOUNT_NAME" \
-              --container-name "$CONTAINER_NAME" \
-              --name "$BLOB_NAME" \
-              --file temp.json \
-              --overwrite \
-              --auth-mode login
-            rm temp.json
+            echo -n "{\"timestamp\":\"$new_timestamp\"}" > ./temp.json
+            mv temp.json pullrequests.json
+            azcopy cp ./pullrequests.json "$(PUBLISH_URL_PREFIX)/info/pullrequests.json
           else
             echo "No update to timestamp."
           fi
