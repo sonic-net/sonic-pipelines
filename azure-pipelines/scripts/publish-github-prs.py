@@ -36,7 +36,7 @@ def kusto_ingest(database='build', table='', mapping='', lines=[]):
             file.write('\n'.join(lines))
         properties = IngestionProperties(database=database, table=table, data_format=DataFormat.JSON, ingestion_mapping_reference=mapping)
         response = ingest_client.ingest_from_file(tmpfile, properties)
-        print("ingest response:", response)
+        print(response)
     else:
         print('No lines', database, table, buildid)
 

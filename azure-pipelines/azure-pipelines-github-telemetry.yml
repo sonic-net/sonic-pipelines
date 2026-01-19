@@ -67,11 +67,11 @@ stages:
           echo "New timestamp: $new_timestamp"
           echo "before update"
           # update blob timestamp if new_timestamp is not empty
-          if [[ -n "$new_timestamp" ]]; then
+          if [ -n "$new_timestamp" ]; then
             echo "Update timestamp to: $new_timestamp"
             echo -n "{\"timestamp\":\"$new_timestamp\"}" > ./temp.json
             mv temp.json pullrequests.json
-            azcopy cp ./pullrequests.json "$(PUBLISH_URL_PREFIX)/info/pullrequests.json
+            azcopy cp ./pullrequests.json "$(PUBLISH_URL_PREFIX)/info/pullrequests.json"
           else
             echo "No update to timestamp."
           fi
