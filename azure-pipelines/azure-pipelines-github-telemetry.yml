@@ -46,7 +46,7 @@ stages:
           set -ex
           az account show
           sudo apt-get update
-          sudo apt-get install -y python3-pip jp
+          sudo apt-get install -y python3-pip jq
           sudo pip3 install --break-system-package azure-storage-queue azure-storage-blob pytz python-dateutil azure.core azure.kusto.data azure.kusto.ingest
     - task: AzureCLI@2
       displayName: Upload RP into kusto
@@ -58,7 +58,7 @@ stages:
           set -ex
           export AZCOPY_AUTO_LOGIN_TYPE=AZCLI
           azcopy cp "$(PUBLISH_URL_PREFIX)/info/pullrequests.json" ./pullrequests.json --overwrite=true
-          timestamp=$(jp -r '.timestamp' pullrequests.json)
+          timestamp=$(jq -r '.timestamp' pullrequests.json)
           echo "Get timestamp: $timestamp"
           
           new_timestamp=$(python3 azure-pipelines/scripts/publish-github-prs.py $GITHUB_TOKEN $timestamp) 
