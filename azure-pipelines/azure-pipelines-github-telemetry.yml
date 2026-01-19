@@ -44,7 +44,7 @@ stages:
     - task: AzureCLI@2
       displayName: Upload RP into kusto
       inputs:
-        azureSubscription: 'sonic-sub-prod'
+        azureSubscription: 'WIF-soniccr1'
         scriptType: 'bash'
         scriptLocation: 'inlineScript'
         inlineScript: |
