@@ -41,8 +41,43 @@ stages:
           sudo apt-get update
           sudo apt-get install -y python3-pip
           sudo pip3 install --break-system-package azure-storage-queue azure-storage-blob pytz python-dateutil azure.core azure.kusto.data azure.kusto.ingest
-    - script: |
-        python3 azure-pipelines/scripts/publish-github-prs.py $GITHUB_TOKEN
+    - task: AzureCLI@2
+      displayName: Upload RP into kusto
+      inputs:
+        azureSubscription: 'sonic-sub-prod'
+        scriptType: 'bash'
+        scriptLocation: 'inlineScript'
+        inlineScript: |
+          set -ex
+          ACCOUNT_NAME="sonicazurepipelines"
+          CONTAINER_NAME="build"
+          BLOB_NAME="info/pullrequests.json"
+
+          # Get the timestamp from the blob
+          timestamp=$(az storage blob download \
+            --acount-name "$ACCOUNT_NAME" \
+            --container-name "$CONTAINER_NAME" \
+            --name "$BLOB_NAME" \
+            --file - | jq -r '.timestamp' \
+            --auth-mode login)
+          echo "Get timestamp: $timestamp"
+          
+          new_timestamp=$(python3 azure-pipelines/scripts/publish-github-prs.py $GITHUB_TOKEN $timestamp)
+
+          # Set the new timestamp into the blob
+          if [ -n "$new_timestamp" ]; then
+            echo "Update timestamp to: $new_timestamp"
+            echo -n "{\"timestamp\":\"$new_timestamp\"}" > temp.json
+            az storage blob upload \
+              --account-name "$ACCOUNT_NAME" \
+              --container-name "$CONTAINER_NAME" \
+              --name "$BLOB_NAME" \
+              --file temp.json \
+              --overwrite \
+              --auth-mode login
+            rm temp.json
+          else
+            echo "No update to timestamp."
+          fi
       env:
         GITHUB_TOKEN: '$(GITHUB_TOKEN)'
-      displayName: Upload PR info to kusto
