@@ -74,4 +74,4 @@ stages:
             echo "No update to timestamp."
           fi
       env:
-        GITHUB_TOKEN: '$(GITHUB_TOKEN)'
+        GITHUB_TOKEN: $(GITHUB-TOKEN)
