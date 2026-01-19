@@ -55,7 +55,7 @@ stages:
 
           # Get the timestamp from the blob
           timestamp=$(az storage blob download \
-            --acount-name "$ACCOUNT_NAME" \
+            --account-name "$ACCOUNT_NAME" \
             --container-name "$CONTAINER_NAME" \
             --name "$BLOB_NAME" \
             --file - | jq -r '.timestamp' \
