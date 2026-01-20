@@ -154,4 +154,5 @@ def get_pullrequests():
 results = get_pullrequests()
 kusto_ingest(database='build', table='PullRequests', mapping='PullRequests-json', lines=results)
 new_timestamp = update_start_timestamp()
+print(f"New timestamp: {new_timestamp}")
 print(f"##vso[task.setvariable variable=NEW_TIMESTAMP]{new_timestamp}", flush=True)
