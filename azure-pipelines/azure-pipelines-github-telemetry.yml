@@ -61,9 +61,20 @@ stages:
           azcopy cp "$(PUBLISH_URL_PREFIX)/info/pullrequests.json" ./pullrequests.json --overwrite=true
           timestamp=$(jq -r '.timestamp' pullrequests.json)
           echo "Get timestamp: $timestamp"
-          timestamp='2024-12-09T02:04:27.958534+00:00'
+          timestamp='2024-12-19T02:04:27.958534+00:00'
           
           python3 azure-pipelines/scripts/publish-github-prs.py $GITHUB_TOKEN $timestamp
+      env:
+        GITHUB_TOKEN: $(GITHUB-TOKEN)
+    - task: AzureCLI@2
+      displayName: Upload new timestamp
+      inputs:
+        azureSubscription: 'WIF-soniccr1'
+        scriptType: 'bash'
+        scriptLocation: 'inlineScript'
+        inlineScript: |
+          set -ex
+          export AZCOPY_AUTO_LOGIN_TYPE=AZCLI
           # update blob timestamp if new_timestamp is not empty
           if [ ! -z "$(NEW_TIMESTAMP)" ]; then
             echo "Update timestamp to: $(NEW_TIMESTAMP)"
@@ -73,5 +84,3 @@ stages:
           else
             echo "No update to timestamp."
           fi
-      env:
-        GITHUB_TOKEN: $(GITHUB-TOKEN)
