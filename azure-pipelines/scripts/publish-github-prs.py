@@ -27,6 +27,7 @@ if 'TIMEDELTA_IN_MINUTES' in os.environ and os.environ['TIMEDELTA_IN_MINUTES']:
     timedelta_in_minutes = max(int(os.environ['TIMEDELTA_IN_MINUTES']), 30)
     delta =  datetime.timedelta(minutes=timedelta_in_minutes)
 max_timedelta_in_days = 35
+window_in_days = 10
 
 def kusto_ingest(database='build', table='', mapping='', lines=[]):
     now = datetime.datetime.utcnow().isoformat().replace(':','_')
@@ -63,6 +64,7 @@ def update_start_timestamp():
 def get_pullrequests():
     results = []
     start_timestamp = get_start_timestamp()
+    until = min(start_timestamp + datatime.timedelta(days=window_in_days), until)
     print('start: {0}, until: {1}'.format(start_timestamp.isoformat(), until.isoformat()), flush=True)
     query_pattern = '''
     {
