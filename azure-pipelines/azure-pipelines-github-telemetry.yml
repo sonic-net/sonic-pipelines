@@ -61,7 +61,6 @@ stages:
           azcopy cp "$(PUBLISH_URL_PREFIX)/info/pullrequests.json" ./pullrequests.json --overwrite=true
           timestamp=$(jq -r '.timestamp' pullrequests.json)
           echo "Get timestamp: $timestamp"
-          timestamp='2024-11-19T02:04:27.958534+00:00'
           
           python3 azure-pipelines/scripts/publish-github-prs.py $GITHUB_TOKEN $timestamp
           # update blob timestamp if new_timestamp is not empty
