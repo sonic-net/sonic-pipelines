@@ -57,15 +57,17 @@ def update_start_timestamp():
         if last > until:
             print('skipped update the start timestamp, until:%s < last:%s'.format(until.isoformat(), last.isoformat()))
             return
-    return until.isoformat()
+    start_timestamp = get_start_timestamp()
+    end_timestamp = min(start_timestamp + datetime.timedelta(days=window_in_days), until)
+    return end_timestamp.isoformat()
 
 # The GitHub Graphql supports to query 100 items per page, and 10 page in max.
 # To workaround it, split the query into several time range "delta", in a time range, need to make sure less than 1000 items.
 def get_pullrequests():
     results = []
     start_timestamp = get_start_timestamp()
-    until = min(start_timestamp + datetime.timedelta(days=window_in_days), until)
-    print('start: {0}, until: {1}'.format(start_timestamp.isoformat(), until.isoformat()), flush=True)
+    end_timestamp = min(start_timestamp + datetime.timedelta(days=window_in_days), until)
+    print('start: {0}, until: {1}'.format(start_timestamp.isoformat(), end_timestamp.isoformat()), flush=True)
     query_pattern = '''
     {
       search(query: "org:azure org:sonic-net is:pr updated:%s..%s sort:updated", %s type: ISSUE, first: 100) {
@@ -106,9 +108,9 @@ def get_pullrequests():
     }
     '''
     start = start_timestamp
-    count = math.ceil((until - start) / delta)
+    count = math.ceil((end_timestamp - start) / delta)
     for index in range(count):
-        end = min(start+delta, until)
+        end = min(start+delta, end_timestamp)
         condition = ""
         while True: # pagination, support 1000 total, support 100 per page
             print("Query: index:%s, count:%s, start:%s, end:%s, page:%s" % (index, count, start.isoformat(), end.isoformat(), condition), flush=True)
