@@ -63,11 +63,11 @@ stages:
           echo "Get timestamp: $timestamp"
           timestamp='2024-11-19T02:04:27.958534+00:00'
           
-          new_timestamp=$(python3 azure-pipelines/scripts/publish-github-prs.py $GITHUB_TOKEN $timestamp | tail -n 1) 
+          python3 azure-pipelines/scripts/publish-github-prs.py $GITHUB_TOKEN $timestamp
           # update blob timestamp if new_timestamp is not empty
-          if [ -n "$new_timestamp" ]; then
-            echo "Update timestamp to: $new_timestamp"
-            echo -n "{\"timestamp\": \"$new_timestamp\"}" > ./temp.json
+          if [ ! -z "$(NEW_TIMESTAMP)" ]; then
+            echo "Update timestamp to: $(NEW_TIMESTAMP)"
+            echo -n "{\"timestamp\": \"$(NEW_TIMESTAMP)\"}" > ./temp.json
             mv temp.json pullrequests.json
             azcopy cp ./pullrequests.json "$(PUBLISH_URL_PREFIX)/info/pullrequests.json"
           else
