@@ -28,6 +28,18 @@ apt-get update
 # containerd 2.2.1 can't download, pin to 2.2.0
 apt-get install -y docker-ce=5:28.5.2-1~ubuntu.24.04~noble docker-ce-cli=5:28.5.2-1~ubuntu.24.04~noble containerd.io=2.2.0-2~ubuntu.24.04~noble docker-compose-plugin:$ARCH
 
+if [ "$ARCH" == "amd64" ]; then
+  # On amd64, reduce the number of random bits for ASLR to 28 from 32. This was
+  # a change done in recent kernels to increase security, but this breaks older
+  # versions of ASAN that assumed that ASLR is only randomizing library load
+  # addresses within a certain range. This can be removed when we are using
+  # newer versions of ASAN that are bundled with GCC (Trixie and newer? Unsure
+  # on this at this time).
+  #
+  # See also https://stackoverflow.com/a/78302537 and https://stackoverflow.com/a/77895910
+  sysctl -w vm.mmap_rnd_bits=28
+fi
+
 # Customize for armhf
 if [ "$ARCH" == "armhf" ] && [ "$ARCH" != "$DEFAULT_ARCH" ]; then
   # Configure docker service
