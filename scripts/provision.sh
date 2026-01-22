@@ -81,6 +81,17 @@ rm packages-microsoft-prod.deb
 apt-get update
 echo "intnfs.file.core.windows.net:/intnfs/nfs /nfs aznfs noauto,x-systemd.automount,_netdev,vers=4.1,sec=sys,nconnect=4 0 0" >> /etc/fstab
 apt-get install -y build-essential aznfs nfs-common python3-pip python3-setuptools python3-pip python-is-python3
+# Some job need pwsh, Job Validation/Release Task Validation
+if [ "$ARCH" == "amd64" ]; then
+  apt-get install -y powershell
+else
+  mkdir -p /opt/microsoft/powershell/7
+  wget https://github.com/PowerShell/PowerShell/releases/download/v7.5.4/powershell-7.5.4-linux-arm64.tar.gz
+  tar -xzf powershell-7.5.4-linux-arm64.tar.gz -C /opt/microsoft/powershell/7
+  ln -s /opt/microsoft/powershell/7/pwsh /usr/bin/pwsh
+  chmod +x /opt/microsoft/powershell/7/pwsh
+  pwsh -v
+fi
 pip3 install jinjanator --break-system-packages
 mkdir -p /nfs
 
