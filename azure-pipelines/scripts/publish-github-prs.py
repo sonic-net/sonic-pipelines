@@ -2,28 +2,22 @@ import datetime, base64, json, time, os, re, pytz, math, sys
 from urllib import request
 from urllib.error import HTTPError
 from http.client import IncompleteRead
-from  azure.core.exceptions import ResourceNotFoundError
 from dateutil import parser
 import http.client
-from azure.storage.blob import BlobServiceClient
-from azure.identity import AzureCliCredential
 
 from azure.kusto.data import DataFormat
 from azure.kusto.ingest import QueuedIngestClient, IngestionProperties, FileDescriptor, ReportLevel, ReportMethod
 from azure.kusto.data import KustoClient, KustoConnectionStringBuilder
 
-CONTAINER = 'build'
-INFO_PULLREQUESTS_FILE = "info/pullrequests.json"
 GITHUB_TOKEN = sys.argv[1]
-AZURE_STORAGE_CONNECTION_STRING = sys.argv[2]
-blob_service_client = BlobServiceClient.from_connection_string(AZURE_STORAGE_CONNECTION_STRING)
+timestamp_from_blob = sys.argv[2]
 
 ingest_cluster = "https://ingest-sonic.westus2.kusto.windows.net"
 ingest_kcsb = KustoConnectionStringBuilder.with_az_cli_authentication(ingest_cluster)
 ingest_client = QueuedIngestClient(ingest_kcsb)
 
 url="https://api.github.com/graphql"
-timestamp = datetime.datetime.utcnow()
+timestamp = datetime.datetime.now(datetime.UTC)
 timeoffset = datetime.timedelta(minutes=5)
 until = (timestamp - timeoffset).replace(tzinfo=pytz.UTC)
 if 'END_TIMESTAMP' in os.environ and os.environ['END_TIMESTAMP']:
@@ -32,10 +26,10 @@ delta = datetime.timedelta(minutes=60)
 if 'TIMEDELTA_IN_MINUTES' in os.environ and os.environ['TIMEDELTA_IN_MINUTES']:
     timedelta_in_minutes = max(int(os.environ['TIMEDELTA_IN_MINUTES']), 30)
     delta =  datetime.timedelta(minutes=timedelta_in_minutes)
-max_timedelta_in_days = 35
+window_in_days = 10
 
 def kusto_ingest(database='build', table='', mapping='', lines=[]):
-    now = datetime.datetime.utcnow().isoformat().replace(':','_')
+    now = datetime.datetime.now(datetime.UTC).isoformat().replace(':','_')
     if lines:
         tmpfile = f"{database}_{table}_{now}.json"
         with open(tmpfile, "w") as file:
@@ -49,15 +43,7 @@ def kusto_ingest(database='build', table='', mapping='', lines=[]):
 def get_start_timestamp(force=False):
     if not force and 'START_TIMESTAMP' in os.environ and os.environ['START_TIMESTAMP']:
         return parser.isoparse(os.environ['START_TIMESTAMP']).replace(tzinfo=pytz.UTC)
-    blob_client = blob_service_client.get_blob_client(container=CONTAINER, blob=INFO_PULLREQUESTS_FILE)
-    try:
-        download_stream = blob_client.download_blob()
-        info = json.loads(download_stream.readall())
-        return parser.isoparse(info['timestamp']).replace(tzinfo=pytz.UTC)
-    except ResourceNotFoundError:
-        pass
-    start_timestamp = datetime.datetime.utcnow() - datetime.timedelta(days=max_timedelta_in_days)
-    return start_timestamp.replace(tzinfo=pytz.UTC)
+    return parser.isoparse(timestamp_from_blob).replace(tzinfo=pytz.UTC)
 
 def update_start_timestamp():
     if 'END_TIMESTAMP' in os.environ and os.environ['END_TIMESTAMP']:
@@ -65,19 +51,17 @@ def update_start_timestamp():
         if last > until:
             print('skipped update the start timestamp, until:%s < last:%s'.format(until.isoformat(), last.isoformat()))
             return
-    blob_file_name="info/pullrequests.json"
-    blob_client = blob_service_client.get_blob_client(container=CONTAINER, blob=INFO_PULLREQUESTS_FILE)
-    info = {}
-    info['timestamp'] = until.isoformat()
-    data = json.dumps(info)
-    blob_client.upload_blob(data, overwrite=True)
+    start_timestamp = get_start_timestamp()
+    end_timestamp = min(start_timestamp + datetime.timedelta(days=window_in_days), until)
+    return end_timestamp.isoformat()
 
 # The GitHub Graphql supports to query 100 items per page, and 10 page in max.
 # To workaround it, split the query into several time range "delta", in a time range, need to make sure less than 1000 items.
 def get_pullrequests():
     results = []
     start_timestamp = get_start_timestamp()
-    print('start: {0}, until: {1}'.format(start_timestamp.isoformat(), until.isoformat()), flush=True)
+    end_timestamp = min(start_timestamp + datetime.timedelta(days=window_in_days), until)
+    print('start: {0}, until: {1}'.format(start_timestamp.isoformat(), end_timestamp.isoformat()), flush=True)
     query_pattern = '''
     {
       search(query: "org:azure org:sonic-net is:pr updated:%s..%s sort:updated", %s type: ISSUE, first: 100) {
@@ -118,9 +102,9 @@ def get_pullrequests():
     }
     '''
     start = start_timestamp
-    count = math.ceil((until - start) / delta)
+    count = math.ceil((end_timestamp - start) / delta)
     for index in range(count):
-        end = min(start+delta, until)
+        end = min(start+delta, end_timestamp)
         condition = ""
         while True: # pagination, support 1000 total, support 100 per page
             print("Query: index:%s, count:%s, start:%s, end:%s, page:%s" % (index, count, start.isoformat(), end.isoformat(), condition), flush=True)
@@ -163,4 +147,6 @@ def get_pullrequests():
 
 results = get_pullrequests()
 kusto_ingest(database='build', table='PullRequests', mapping='PullRequests-json', lines=results)
-update_start_timestamp()
+new_timestamp = update_start_timestamp()
+print(f"New timestamp: {new_timestamp}")
+print(f"##vso[task.setvariable variable=NEW_TIMESTAMP]{new_timestamp}", flush=True)

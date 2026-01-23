@@ -16,25 +16,69 @@ schedules:
 
 name: $(TeamProject)_$(Build.DefinitionName)_$(SourceBranchName)_$(Date:yyyyMMdd)$(Rev:.r)
 
+variables:
+  - name: PUBLISH_URL_PREFIX
+    value: 'https://sonicazurepipelines.blob.core.windows.net/build'
+  - group: sonicbld
+
 stages:
 - stage: Build
-  pool: sonicbld-1es
+  pool: sonicso1ES-amd64
   jobs:
   - job: Build
     timeoutInMinutes: 120
     steps:
     - script: |
         set -ex
+        # Install azcopy
+        curl -sL https://aka.ms/downloadazcopy-v10-linux | tar -xz
+        sudo mv azcopy_linux_amd64_*/azcopy /usr/local/bin/
         # Install Azure cli
         curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
-        az login --service-principal --use-cert-sn-issuer -u 08fd13c1-63ab-4b08-9007-f4ff86b61248 -p $CERTPATH --tenant 72f988bf-86f1-41af-91ab-2d7cd011db47
-        pip3 install azure-storage-queue azure-storage-blob pytz python-dateutil azure.core azure.kusto.data azure.kusto.ingest
-      env:
-        CERTPATH: $(CERTPATH)
+        az version
+      displayName: Install Azure CLI
+    - task: AzureCLI@2
       displayName: Install build tools
-    - script: |
-        python3 azure-pipelines/scripts/publish-github-prs.py $GITHUB_TOKEN $AZURE_STORAGE_CONNECTION_STRING
+      inputs:
+        azureSubscription: 'WIF-soniccr1'
+        scriptType: 'bash'
+        scriptLocation: 'inlineScript'
+        inlineScript: |
+          set -ex
+          az account show
+          sudo apt-get update
+          sudo apt-get install -y python3-pip jq
+          sudo pip3 install --break-system-package azure-storage-queue azure-storage-blob pytz python-dateutil azure.core azure.kusto.data azure.kusto.ingest
+    - task: AzureCLI@2
+      displayName: Upload RP into kusto
+      inputs:
+        azureSubscription: 'WIF-soniccr1'
+        scriptType: 'bash'
+        scriptLocation: 'inlineScript'
+        inlineScript: |
+          set -ex
+          export AZCOPY_AUTO_LOGIN_TYPE=AZCLI
+          azcopy cp "$(PUBLISH_URL_PREFIX)/info/pullrequests.json" ./pullrequests.json --overwrite=true
+          timestamp=$(jq -r '.timestamp' pullrequests.json)
+          echo "Get timestamp: $timestamp"
+          python3 azure-pipelines/scripts/publish-github-prs.py $GITHUB_TOKEN $timestamp
       env:
-        AZURE_STORAGE_CONNECTION_STRING: '$(AZURE_STORAGE_CONNECTION_STRING)'
-        GITHUB_TOKEN: '$(GITHUB_TOKEN)'
-      displayName: Upload PR info to kusto
+        GITHUB_TOKEN: $(GITHUB-TOKEN)
+    - task: AzureCLI@2
+      displayName: Publish new timestamp
+      inputs:
+        azureSubscription: 'WIF-soniccr1'
+        scriptType: 'bash'
+        scriptLocation: 'inlineScript'
+        inlineScript: |
+          set -ex
+          export AZCOPY_AUTO_LOGIN_TYPE=AZCLI
+          # update blob timestamp if new_timestamp is not empty
+          if [ ! -z "$(NEW_TIMESTAMP)" ]; then
+            echo "Update timestamp to: $(NEW_TIMESTAMP)"
+            echo -n "{\"timestamp\": \"$(NEW_TIMESTAMP)\"}" > ./temp.json
+            mv temp.json pullrequests.json
+            azcopy cp ./pullrequests.json "$(PUBLISH_URL_PREFIX)/info/pullrequests.json"
+          else
+            echo "No update to timestamp."
+          fi
