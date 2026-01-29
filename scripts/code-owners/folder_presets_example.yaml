@@ -2,10 +2,10 @@
   type: IGNORE
 /tests/dash:
   owners:
-  - congh
-  - nikamirrr
+    congh: .inf
+    nikamirrr: .inf
   type: CLOSED_OWNERS
 /tests/ntp:
   owners:
-  - nikamirrr
+    nikamirrr: .inf
   type: OPEN_OWNERS

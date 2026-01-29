@@ -4,14 +4,15 @@ A comprehensive tool for analyzing Git repositories to extract commit history, i
 
 ## Table of Contents
 1. [Overview](#overview)
-2. [Architecture](#architecture)
-3. [Installation](#installation)
-4. [Configuration](#configuration)
-5. [Usage](#usage)
-6. [Workflow](#workflow)
-7. [Troubleshooting](#troubleshooting)
-8. [API Reference](#api-reference)
-9. [Maintenance](#maintenance)
+2. [What's New in Version 0.0.5](#whats-new-in-version-005)
+3. [Architecture](#architecture)
+4. [Installation](#installation)
+5. [Configuration](#configuration)
+6. [Usage](#usage)
+7. [Workflow](#workflow)
+8. [Troubleshooting](#troubleshooting)
+9. [API Reference](#api-reference)
+10. [Maintenance](#maintenance)
 
 ## Overview
 
@@ -21,9 +22,89 @@ The CodeOwners Generator analyzes Git repositories to determine code ownership b
 - **Automatic Contributor Discovery**: Identifies and resolves contributors from Git history
 - **GitHub Integration**: Uses GitHub API to enrich contributor information
 - **Flexible Folder Configuration**: Supports different folder types and ownership rules
+- **Weighted Owner Assignment**: Assigns numeric weights to owners based on contribution metrics
 - **Hierarchical Analysis**: Processes repository structure top-down
 - **Rate Limit Handling**: Implements exponential backoff for API requests
 - **Persistence**: Saves contributor data for incremental updates
+- **GitHub Actions Workflow**: Automatic reviewer assignment for pull requests
+- **YAML Output Format**: Structured output with contribution weights for easy integration
+
+## What's New in Version 0.0.5
+
+### Major Changes
+
+#### 1. Weighted Owner Format (Breaking Change)
+The `folder_presets.yaml` format has been updated to use weighted owners instead of simple lists.
+
+**Old Format (v0.0.4):**
+```yaml
+/tests/dash:
+  owners:
+    - congh
+    - nikamirrr
+  type: CLOSED_OWNERS
+```
+
+**New Format (v0.0.5):**
+```yaml
+/tests/dash:
+  owners:
+    congh: .inf
+    nikamirrr: .inf
+  type: CLOSED_OWNERS
+```
+
+**Migration:** Update your `folder_presets.yaml` files to use the dictionary format with weights. Use `.inf` for highest priority owners or numeric values for relative weighting.
+
+#### 2. YAML Output Format with Contribution Weights
+The tool now outputs a YAML file with contribution weights instead of plain owner lists.
+
+**New Output:**
+```yaml
+/:
+  owner1: 1505
+  owner2: 892
+  owner3: 678
+/src/:
+  owner1: 2000
+  owner4: 453
+```
+
+**Benefits:**
+- Quantifies contribution levels for each owner (total changed lines)
+- Enables data-driven reviewer selection
+- Provides transparency in ownership calculations
+- Supports integration with automated workflows
+- Weights are integers representing actual line change counts from Git history
+
+#### 3. GitHub Actions Workflow for Auto-Reviewer Assignment
+New workflow files enable automatic reviewer assignment for pull requests.
+
+**New Files:**
+- `workflow_scripts/assignReviewers.yaml` - GitHub Actions workflow configuration
+- `workflow_scripts/auto-assign.py` - Intelligent reviewer selection script
+
+**Features:**
+- Automatic trigger on pull request creation
+- BFS algorithm for hierarchical reviewer search
+- Configurable reviewer count and tie-breaking
+- Respects code ownership hierarchy
+
+**Setup:**
+```bash
+cp workflow_scripts/assignReviewers.yaml .github/workflows/
+cp workflow_scripts/auto-assign.py .github/.code-reviewers/
+codeowners-cli --repo . > .github/.code-reviewers/pr_reviewer-by-files.yml
+```
+
+### Breaking Changes
+⚠️ **Folder Presets Format:** Existing `folder_presets.yaml` files must be updated to use the new weighted dictionary format.
+
+### Upgrade Path
+1. Update `folder_presets.yaml` to use weighted owner format
+2. Review and test YAML output format compatibility with your tooling
+3. Optionally deploy GitHub workflow for auto-assignment
+4. Regenerate contributor and reviewer index files
 
 ## Architecture
 
@@ -36,12 +117,14 @@ graph TD
     C --> D[GitHub API Lookup]
     C --> H[Contributors YAML]
     C --> E[Statistics Aggregation]
-    E --> F[CODEOWNERS Generation]
+    E --> F[YAML Output with Weights]
+    F --> J[GitHub Workflow]
     
     G[Folder Presets] --> E
     I[Configuration] --> A
     H[Contributors YAML] --> C
     D[GitHub API Lookup] --> H
+    J --> K[Auto-Assign Reviewers]
 ```
 
 ### Core Components
@@ -126,8 +209,10 @@ Stores contributor information including:
 #### Folder Presets File (`folder_presets.yaml`)
 Defines folder-specific settings:
 - Folder types (IGNORE, CLOSED_OWNERS, OPEN_OWNERS, REGULAR)
-- Pre-defined owners
+- Pre-defined owners with weights
 - Inheritance rules
+
+**Format:** Owners are specified as a dictionary mapping GitHub usernames to weights. Use `.inf` for infinite weight (highest priority) or numeric values for relative importance.
 
 **Example:**
 ```yaml
@@ -135,14 +220,25 @@ Defines folder-specific settings:
   type: IGNORE
 /tests/dash:
   owners:
-    - congh
-    - nikamirrr
+    congh: .inf
+    nikamirrr: .inf
   type: CLOSED_OWNERS
 /tests/ntp:
   owners:
-    - nikamirrr
+    nikamirrr: .inf
+  type: OPEN_OWNERS
+/docs:
+  owners:
+    tech_writer: 100.5
+    maintainer: 75.0
   type: OPEN_OWNERS
 ```
+
+**Owner Weights:**
+- `.inf`: Infinite weight - highest priority, always included
+- Integer or float values (e.g., `100`, `50.5`): Manually assigned relative weight for prioritization
+- Owners with higher weights are prioritized when selecting code owners
+- Note: Calculated weights from commit history are always integers (line change counts), but manual preset weights can be floats
 
 ## Usage
 
@@ -162,9 +258,33 @@ codeowners-cli \
   --log_level debug
 ```
 
-### Output Example
+### Output Format
+
+The tool outputs a YAML file mapping folder paths to owners with their contribution weights. This format can be used to generate CODEOWNERS files or integrate with GitHub workflows.
+
+**Output Structure:**
+```yaml
+/:
+  owner1: 1505
+  owner2: 892
+  owner3: 678
+/src/:
+  owner1: 2000
+  owner4: 453
+/tests/:
+  owner2: 1200
+  owner5: 987
 ```
-CODEOWNERS output:
+
+**Weight Values:**
+- Integer values represent the total number of changed lines (additions + deletions) for each owner
+- Higher values indicate more significant contributions to that folder
+- `.inf` may appear for preset owners with infinite priority (from folder_presets.yaml)
+- Weights are automatically calculated from commit statistics and Git history
+
+**Converting to CODEOWNERS Format:**
+The YAML output can be transformed into GitHub CODEOWNERS format:
+```
 / @owner1 @owner2 @owner3
 /src/ @owner1 @owner4
 /tests/ @owner2 @owner5
@@ -219,6 +339,44 @@ The CodeOwners Generator follows this workflow:
 | `OPEN_OWNERS`   | Flexible owner set         | New owners can be added up to `--max_owners` limit                |
 | `REGULAR`       | Default type               | Standard analysis and ownership assignment                        |
 
+### Phase 4: GitHub Workflow Integration
+
+The tool includes GitHub Actions workflows for automatic reviewer assignment on pull requests.
+
+**Components:**
+1. **`assignReviewers.yaml`** - GitHub Actions workflow configuration
+2. **`auto-assign.py`** - Python script for intelligent reviewer selection
+
+**Workflow Features:**
+- Triggers on pull requests to `master`, `main`, or release branches (e.g., `202[0-9][0-9][0-9]`)
+- Analyzes changed files to determine appropriate reviewers
+- Uses BFS (Breadth-First Search) to find reviewers from changed paths up to repository root
+- Supports configurable reviewer count and tie-breaking logic
+- Respects the code ownership hierarchy
+
+**Configuration:**
+```yaml
+REVIEWER_INDEX: .github/.code-reviewers/pr_reviewer-by-files.yml
+NEEDED_REVIEWER_COUNT: 3
+INCLUDE_CONTRIBUTORS_TIES: True
+```
+
+**How It Works:**
+1. Workflow triggers on pull request creation/update
+2. Script analyzes all changed files in the PR
+3. For each changed file, traverses up the directory tree to find matching owners
+4. Uses BFS to collect reviewer candidates from the folder hierarchy
+5. Ranks candidates by contribution count
+6. Selects top reviewers (optionally including tied contributors)
+7. Automatically requests reviews from selected users
+
+**Reviewer Selection Algorithm:**
+- Start with most specific folder paths for changed files
+- If insufficient reviewers, traverse up to parent folders
+- Accumulate reviewer scores across all relevant folders
+- Optionally include all reviewers with tied contribution scores
+- Ensures diverse representation when changes span multiple areas
+
 ## Troubleshooting
 
 ### Common Issues
@@ -250,6 +408,28 @@ The CodeOwners Generator follows this workflow:
 - The tool uses `certifi` for certificate validation
 - Ensure system certificates are up to date
 - Check network proxy settings if applicable
+
+#### GitHub Workflow Issues
+**Problem:** Workflow fails to assign reviewers
+**Solution:**
+- Check workflow logs in GitHub Actions tab
+- Verify `REVIEWER_INDEX` file exists and has correct format
+- Ensure repository has `pull-requests: write` permission
+- Verify reviewers exist in the repository (not external users)
+
+**Problem:** Wrong reviewers assigned
+**Solution:**
+- Regenerate reviewer index file with latest contributor data
+- Review folder presets for correct owner weights
+- Check BFS traversal logic matches your repository structure
+- Adjust `NEEDED_REVIEWER_COUNT` if too many/few reviewers
+
+**Problem:** Workflow not triggering
+**Solution:**
+- Verify workflow file is in `.github/workflows/` directory
+- Check branch name matches trigger patterns
+- Ensure pull request targets correct base branch
+- Review workflow permissions in repository settings
 
 ### Debug Mode
 Enable debug logging to troubleshoot issues:
@@ -293,6 +473,56 @@ The tool implements intelligent rate limiting:
 - **Queue Management**: Queues commits for processing
 - **Worker Pool**: Uses multiple workers for parallel processing
 
+### Workflow Scripts Reference
+
+#### auto-assign.py
+
+Python script for automatic reviewer assignment in GitHub Actions.
+
+**Environment Variables:**
+| Variable                     | Required | Default | Description                                |
+|------------------------------|----------|---------|-------------------------------------------|
+| `GITHUB_TOKEN`               | Yes      | -       | GitHub Actions token (auto-provided)      |
+| `GITHUB_REPOSITORY`          | Yes      | -       | Repository name (auto-provided)           |
+| `PR_NUMBER`                  | Yes      | -       | Pull request number                       |
+| `REVIEWER_INDEX`             | Yes      | -       | Path to reviewer mapping YAML file        |
+| `NEEDED_REVIEWER_COUNT`      | No       | 3       | Number of reviewers to assign             |
+| `INCLUDE_CONTRIBUTORS_TIES`  | No       | False   | Include contributors with tied scores     |
+
+**Algorithm Details:**
+1. **Path Normalization**: Removes trailing slashes from repository paths
+2. **Changed File Processing**: Extracts directory path from each changed file
+3. **Hierarchical Lookup**: Traverses up directory tree until reviewers found
+4. **BFS Collection**: Uses breadth-first search to accumulate reviewer candidates
+5. **Score Aggregation**: Sums contribution scores across all relevant folders
+6. **Top-N Selection**: Selects reviewers with highest scores
+7. **Tie Breaking**: Optionally includes all reviewers with equal scores at cutoff
+
+**Output:**
+- Prints processing information and selected reviewers to workflow logs
+- Calls GitHub API to request reviews (currently in dry-run mode)
+
+#### assignReviewers.yaml
+
+GitHub Actions workflow configuration for automated reviewer assignment.
+
+**Trigger Conditions:**
+- Event: `pull_request_target`
+- Branches: `master`, `main`, release branches matching pattern `202[0-9][0-9][0-9]`
+
+**Required Permissions:**
+- `pull-requests: write` - Required for requesting reviews
+
+**Workflow Steps:**
+1. **Checkout**: Uses `actions/checkout@v5` to access repository files
+2. **Setup Python**: Uses `actions/setup-python@v5` with Python 3.x
+3. **Install Dependencies**: Installs PyYAML and PyGithub via pip
+4. **Assign Reviewers**: Executes `auto-assign.py` script
+5. **Cleanup**: Performs git clean to remove checked out files
+
+**Security Note:**
+Uses `pull_request_target` instead of `pull_request` to access workflow secrets safely, even for PRs from forks.
+
 ## Maintenance
 
 ### Regular Tasks
@@ -315,6 +545,13 @@ The tool implements intelligent rate limiting:
 - Monitor for new contributors
 - Adjust token count based on repository size
 
+#### 4. Maintain GitHub Workflow Integration
+- Review auto-assigned reviewers for accuracy
+- Adjust `NEEDED_REVIEWER_COUNT` based on team capacity
+- Update `REVIEWER_INDEX` path if repository structure changes
+- Monitor workflow logs for errors or rate limiting
+- Keep `auto-assign.py` dependencies up to date (PyYAML, PyGithub)
+
 ### Best Practices
 
 #### For Large Repositories
@@ -334,6 +571,42 @@ The tool implements intelligent rate limiting:
 - Keep contributor data up to date
 - Review CODEOWNERS output before committing
 - Coordinate with team leads on ownership changes
+- Test workflow integration in a development branch first
+
+#### Deploying the GitHub Workflow
+To enable automatic reviewer assignment:
+
+1. **Copy workflow files to repository:**
+```bash
+# Create workflow directory
+mkdir -p .github/workflows
+mkdir -p .github/.code-reviewers
+
+# Copy workflow file
+cp workflow_scripts/assignReviewers.yaml .github/workflows/
+
+# Copy auto-assign script
+cp workflow_scripts/auto-assign.py .github/.code-reviewers/
+```
+
+2. **Generate and place reviewer index:**
+```bash
+# Run the codeowners tool and save output
+codeowners-cli --repo . \
+  --contributors_file contributors.yaml \
+  --folder_presets_file folder_presets.yaml \
+  > .github/.code-reviewers/pr_reviewer-by-files.yml
+```
+
+3. **Configure workflow permissions:**
+- Ensure repository has `pull-requests: write` permission enabled
+- Workflow uses `GITHUB_TOKEN` automatically provided by GitHub Actions
+
+4. **Customize workflow settings (optional):**
+Edit `.github/workflows/assignReviewers.yaml`:
+- `NEEDED_REVIEWER_COUNT`: Number of reviewers to assign (default: 3)
+- `INCLUDE_CONTRIBUTORS_TIES`: Include tied contributors (default: True)
+- Branch patterns: Adjust trigger branches as needed
 
 ### Data Management
 
@@ -351,7 +624,7 @@ The tool implements intelligent rate limiting:
 
 ---
 
-**Version:** 0.0.4  
-**Last Updated:** 2024  
+**Version:** 0.0.5  
+**Last Updated:** December 2024  
 **Maintainer:** Development Team
 

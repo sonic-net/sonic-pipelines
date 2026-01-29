@@ -69,10 +69,10 @@ def get_folder_settings(folder: str, preset_folders) -> FolderSettings:
 
     # Ignore all subfolders of the explicitly defined folders
     if any(is_subfolder(prefix, folder) for prefix in preset_folders):
-        return FolderSettings(FolderType.IGNORE, set(), [])
+        return FolderSettings(FolderType.IGNORE, {}, [])
 
     # Regular folder is the default
-    return FolderSettings(FolderType.REGULAR, set(), [])
+    return FolderSettings(FolderType.REGULAR, {}, [])
 
 
 async def get_repo_folders(
@@ -174,7 +174,7 @@ async def load_folder_metadata(
         for folder_name, value in yaml.safe_load(contents).items():
             loaded_folders[folder_name] = FolderSettings(
                 folder_type=FolderType[value["type"]],
-                owners=set(value.get("owners", [])),
+                owners=value.get("owners", {}),
                 children=[],
             )
         preset_folders.update(loaded_folders)

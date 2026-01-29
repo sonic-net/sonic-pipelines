@@ -113,11 +113,51 @@ python3 main.py --help
 The `codeowners-cli` command supports various options:
 
 - `--repo`: Path to the local Git repository
-- `--contributors_file`: Path to the contributors YAML file
+- `--contributors_file`: Path to the contributors YAML file (default: `contributors.yaml`)
 - `--folder_presets_file`: YAML file with the preset folder information
-- `--active_after`: Date from which to consider contributors active (YYYY-MM-DD)
-- `--max_owners`: Maximum number of owners per folder
-- `--log_level`: Log level of the output
+- `--active_after`: Date from which to consider contributors active (YYYY-MM-DD, default: 730 days ago)
+- `--max_owners`: Maximum number of owners per folder (default: 3)
+- `--log_level`: Log level of the output (choices: debug, info, warning, error, critical)
+
+## Output Format
+
+The tool generates a YAML file mapping folder paths to code owners with their contribution weights:
+
+```yaml
+/:
+  owner1: 1505
+  owner2: 892
+  owner3: 678
+/src/:
+  owner1: 2000
+  owner4: 453
+/tests/:
+  owner2: 1200
+  owner5: 987
+```
+
+**Weight Values:**
+- Integer values represent the total number of changed lines (additions + deletions) from Git history
+- Higher values indicate more significant contributions to that folder
+- `.inf` indicates preset owners with infinite priority (from folder_presets.yaml)
+- Calculated weights are always integers; manual preset weights can be integers or floats
+
+**Folder Presets Format:**
+The `folder_presets.yaml` file now uses a dictionary format for owners with weights:
+
+```yaml
+/.git:
+  type: IGNORE
+/tests/dash:
+  owners:
+    congh: .inf
+    nikamirrr: .inf
+  type: CLOSED_OWNERS
+/tests/ntp:
+  owners:
+    nikamirrr: .inf
+  type: OPEN_OWNERS
+```
 
 ## Maintenance
 
@@ -134,10 +174,66 @@ __Be careful not to duplicate emails.__
 - Contributors YAML file
 - GitHub API access (for contributor validation)
 
+## GitHub Workflow Integration
+
+The tool includes GitHub Actions workflows for automatic reviewer assignment on pull requests.
+
+### Setup
+
+1. **Install workflow files:**
+```bash
+# Copy workflow to your repository
+cp workflow_scripts/assignReviewers.yaml .github/workflows/
+cp workflow_scripts/auto-assign.py .github/.code-reviewers/
+
+# Generate reviewer index
+codeowners-cli --repo . \
+  --contributors_file contributors.yaml \
+  --folder_presets_file folder_presets.yaml \
+  > .github/.code-reviewers/pr_reviewer-by-files.yml
+```
+
+2. **Commit the files:**
+```bash
+git add .github/
+git commit -m "Add auto-assign reviewers workflow"
+git push
+```
+
+### Workflow Features
+
+- **Automatic Trigger:** Activates on pull requests to `master`, `main`, or release branches
+- **Smart Selection:** Uses BFS algorithm to find appropriate reviewers based on changed files
+- **Hierarchical Search:** Traverses up directory tree if specific folder lacks reviewers
+- **Tie Handling:** Optionally includes all contributors with equal scores
+- **Configurable:** Adjust reviewer count and selection logic via environment variables
+
+### Configuration Options
+
+Edit `.github/workflows/assignReviewers.yaml` to customize:
+
+- `REVIEWER_INDEX`: Path to the reviewer mapping file (default: `.github/.code-reviewers/pr_reviewer-by-files.yml`)
+- `NEEDED_REVIEWER_COUNT`: Number of reviewers to assign (default: 3)
+- `INCLUDE_CONTRIBUTORS_TIES`: Include tied contributors (default: True)
+
+### How It Works
+
+1. Analyzes all files changed in the pull request
+2. Maps each changed file to folder paths in the reviewer index
+3. Performs BFS up the directory tree to collect reviewer candidates
+4. Ranks candidates by contribution count
+5. Selects top reviewers (with optional tie-breaking)
+6. Requests reviews from selected users automatically
+
 ## Dependencies
 
+### Core Tool
 - PyYAML >= 6.0.2
 - aiofiles >= 24.1.0
 - aiohttp >= 3.10.11
 - Brotli >= 1.1.0 (optional)
 - aiodns >= 3.2.0 (optional)
+
+### GitHub Workflow (auto-assign.py)
+- PyYAML (pyaml package)
+- PyGithub
