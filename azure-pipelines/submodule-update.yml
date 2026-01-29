@@ -41,7 +41,7 @@ jobs:
         git submodule update --init src/*
         echo $TOKEN | gh auth login --with-token
       env:
-        TOKEN: $(token)
+        TOKEN: $(GITHUB_TOKEN)
       displayName: Setup env
     - ${{ if eq(branch, 'master') }}:
       - bash: |
