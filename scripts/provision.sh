@@ -2,17 +2,26 @@
 
 set -ex
 
+retry() {
+  for i in {1..5}; do
+    "$@" && return 0
+    echo "Retry $i after lock..."
+    sleep 15
+  done
+  return 1
+}
+
 ARCH=$1
 DEFAULT_ARCH=$(dpkg --print-architecture)
 [ -z "$ARCH" ] && [ -f /etc/docker-arch ] && ARCH=$(cat /etc/docker-arch)
 [ -z "$ARCH" ] && ARCH=$DEFAULT_ARCH  
 
 dpkg --configure -a
-apt-get update
-apt-get install -y ca-certificates curl gnupg lsb-release
+retry apt-get update
+retry apt-get install -y ca-certificates curl gnupg lsb-release
 # install git lfs
 curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash
-apt-get install -y git-lfs acl
+retry apt-get install -y git-lfs acl
 
 if [ "$ARCH" == "armhf" ] && [ "$ARCH" != "$DEFAULT_ARCH" ]; then
   dpkg --add-architecture armhf
@@ -22,11 +31,11 @@ mkdir -p /etc/apt/keyrings
 curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg --batch --yes
 echo "deb [arch=$ARCH signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" > /etc/apt/sources.list.d/docker.list
 
-apt-get update
+retry apt-get update
 #apt-get install -y docker-ce:$ARCH docker-ce-cli:$ARCH containerd.io:$ARCH docker-compose-plugin:$ARCH
 # docker-ce 29 docker root don't work.
 # containerd 2.2.1 can't download, pin to 2.2.0
-apt-get install -y docker-ce=5:28.5.2-1~ubuntu.24.04~noble docker-ce-cli=5:28.5.2-1~ubuntu.24.04~noble containerd.io=2.2.0-2~ubuntu.24.04~noble docker-compose-plugin:$ARCH
+retry apt-get install -y docker-ce=5:28.5.2-1~ubuntu.24.04~noble docker-ce-cli=5:28.5.2-1~ubuntu.24.04~noble containerd.io=2.2.0-2~ubuntu.24.04~noble docker-compose-plugin:$ARCH
 
 if [ "$ARCH" == "amd64" ]; then
   # On amd64, reduce the number of random bits for ASLR to 28 from 32. This was
@@ -78,12 +87,12 @@ cat /etc/passwd /etc/group >> /var/log/agent-provision.log || true
 curl -sSL -O https://packages.microsoft.com/config/$(source /etc/os-release && echo "$ID/$VERSION_ID")/packages-microsoft-prod.deb
 dpkg -i packages-microsoft-prod.deb
 rm packages-microsoft-prod.deb
-apt-get update
+retry apt-get update
 echo "intnfs.file.core.windows.net:/intnfs/nfs /nfs aznfs noauto,x-systemd.automount,_netdev,vers=4.1,sec=sys,nconnect=4 0 0" >> /etc/fstab
-apt-get install -y build-essential aznfs nfs-common python3-pip python3-setuptools python3-pip python-is-python3
+retry apt-get install -y build-essential aznfs nfs-common python3-pip python3-setuptools python3-pip python-is-python3
 # Some job need pwsh, Job Validation/Release Task Validation
 if [ "$ARCH" == "amd64" ]; then
-  apt-get install -y powershell
+  retry apt-get install -y powershell
 else
   mkdir -p /opt/microsoft/powershell/7
   wget https://github.com/PowerShell/PowerShell/releases/download/v7.5.4/powershell-7.5.4-linux-arm64.tar.gz
