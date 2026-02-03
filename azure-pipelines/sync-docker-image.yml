@@ -115,7 +115,7 @@ jobs:
       - script: |
           set -ex
 
-          MASTER_MDM_VERSION2.2023.505.1124-45da18-20230505t1700
+          MASTER_MDM_VERSION=2.2023.505.1124-45da18-20230505t1700
           MASTER_MDS_VERSION=mariner_20230517.1
           MASTER_FLUENTD_VERSION=mariner_20230517.1
           geneva_images=(
