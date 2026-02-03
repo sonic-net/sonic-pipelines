@@ -89,9 +89,42 @@ jobs:
           )
           for i in "${k8s_images[@]}"
           do
-            az acr import -n PublicMirror --source k8s.gcr.io/$i --image $i --force -u $user -p $pass
+            # az acr import -n PublicMirror --source k8s.gcr.io/$i --image $i --force -u $user -p $pass
           done
         displayName: push k8s image to PublicMirror
         env:
           user: $(user1)
           pass: $(pass1)
+      - script: |
+          set -ex
+
+          MASTER_UI_DASH_VERSION=v2.7.0
+          MASTER_UI_METRIC_VERSION=v1.0.8
+          kubernetesui_images=(
+            metrics-scraper:${MASTER_UI_METRIC_VERSION} \
+            dashboard:${MASTER_UI_DASH_VERSION}
+          )
+          for i in "${kubernetesui_images[@]}"
+          do
+            az acr import -n PublicMirror --source kubernetesui/$i --image $i --force -u $user -p $pass
+          done
+        displayName: push kubernetesui image to PublicMirror
+        env:
+          user: $(user1)
+          pass: $(pass1)
+      - script: |
+          set -ex
+
+          MASTER_MDM_VERSION2.2023.505.1124-45da18-20230505t1700
+          MASTER_MDS_VERSION=mariner_20230517.1
+          MASTER_FLUENTD_VERSION=mariner_20230517.1
+          geneva_images=(
+            distroless/genevamdm:${MASTER_MDM_VERSION} \
+            distroless/genevamdsd:${MASTER_MDS_VERSION} \
+            distroless/genevafluentd_td-agent:${MASTER_FLUENTD_VERSION}
+          )
+          for i in "${geneva_images[@]}"
+          do
+            az acr import -n PublicMirror --source linuxgeneva-microsoft.azurecr.io/$i --image $i --force -u $user -p $pass
+          done
+        displayName: push linuxgeneva image to PublicMirror
