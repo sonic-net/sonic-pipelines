@@ -90,8 +90,14 @@ jobs:
           do
             echo $i
             az acr import -n PublicMirror --source k8s.gcr.io/$i --image $i --force -u $user -p $pass
+            if [ $? -eq 0]; then
+              echo "Successfully imported k8s.gcr.io/$i to PublicMirror"
+            else
+              echo "Failed to import k8s.gcr.io/$i to PublicMirror"
+              exit 1
+            fi
           done
         displayName: push k8s image to PublicMirror
         env:
-          user: $(user2)
-          pass: $(pass2)
+          user: $(user1)
+          pass: $(pass1)
