@@ -86,7 +86,7 @@ jobs:
             coredns/coredns:${MASTER_COREDNS_VERSION} \
             etcd:${MASTER_ETCD_VERSION}
           )
-          for i in $k8s_images
+          for i in "${k8s_images[@]}"
           do
             echo $i
             az acr import -n PublicMirror --source k8s.gcr.io/$i --image $i --force -u $user -p $pass
