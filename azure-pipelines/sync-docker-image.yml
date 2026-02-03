@@ -78,6 +78,7 @@ jobs:
           MASTER_COREDNS_VERSION=v1.8.4
           MASTER_ETCD_VERSION=3.5.0-0
           k8s_images=(
+            pause:${K8s_GCR_IO_PAUSE_VERSION} \
             pause:${MASTER_PAUSE_VERSION} \
             kube-apiserver:${MASTER_KUBERNETES_CONTAINER_IMAGE_VERSION} \
             kube-controller-manager:${MASTER_KUBERNETES_CONTAINER_IMAGE_VERSION} \
@@ -88,14 +89,7 @@ jobs:
           )
           for i in "${k8s_images[@]}"
           do
-            echo $i
             az acr import -n PublicMirror --source k8s.gcr.io/$i --image $i --force -u $user -p $pass
-            if [ $? -eq 0 ]; then
-              echo "Successfully imported k8s.gcr.io/$i to PublicMirror"
-            else
-              echo "Failed to import k8s.gcr.io/$i to PublicMirror"
-              exit 1
-            fi
           done
         displayName: push k8s image to PublicMirror
         env:
