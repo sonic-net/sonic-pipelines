@@ -69,3 +69,29 @@ jobs:
         env:
           user: $(user1)
           pass: $(pass1)
+      - script: |
+          set -ex
+
+          K8s_GCR_IO_PAUSE_VERSION=3.5
+          MASTER_PAUSE_VERSION=3.5
+          MASTER_KUBERNETES_CONTAINER_IMAGE_VERSION=v1.22.2
+          MASTER_COREDNS_VERSION=v1.8.4
+          MASTER_ETCD_VERSION=3.5.0-0
+          k8s_images=(
+            pause:${MASTER_PAUSE_VERSION} \
+            kube-apiserver:${MASTER_KUBERNETES_CONTAINER_IMAGE_VERSION} \
+            kube-controller-manager:${MASTER_KUBERNETES_CONTAINER_IMAGE_VERSION} \
+            kube-scheduler:${MASTER_KUBERNETES_CONTAINER_IMAGE_VERSION} \
+            kube-proxy:${MASTER_KUBERNETES_CONTAINER_IMAGE_VERSION} \
+            coredns/coredns:${MASTER_COREDNS_VERSION} \
+            etcd:${MASTER_ETCD_VERSION}
+          )
+          for i in $k8s_images
+          do
+            echo $i
+            az acr import -n PublicMirror --source k8s.gcr.io/$i --image $i --force -u $user -p $pass
+          done
+        displayName: push k8s image to PublicMirror
+        env:
+          user: $(user2)
+          pass: $(pass2)
