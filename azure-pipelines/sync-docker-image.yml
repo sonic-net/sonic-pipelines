@@ -60,7 +60,7 @@ jobs:
           for i in $images $SYNC_DOCKER_IMAGE_EXTRA
           do
             source=$i
-            if [[ "$i" == debian* ]] || [[ "$i" == ubuntu* ]];then
+            if [[ "$i" == debian* ]] || [[ "$i" == ubuntu* ]]; then
               source=library/$i
             fi
             # az acr import -n PublicMirror --source docker.io/$source --image $i --force -u $user -p $pass
@@ -90,7 +90,7 @@ jobs:
           do
             echo $i
             az acr import -n PublicMirror --source k8s.gcr.io/$i --image $i --force -u $user -p $pass
-            if [ $? -eq 0]; then
+            if [ $? -eq 0 ]; then
               echo "Successfully imported k8s.gcr.io/$i to PublicMirror"
             else
               echo "Failed to import k8s.gcr.io/$i to PublicMirror"
