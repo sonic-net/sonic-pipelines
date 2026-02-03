@@ -128,3 +128,6 @@ jobs:
             az acr import -n PublicMirror --source linuxgeneva-microsoft.azurecr.io/$i --image $i --force -u $user -p $pass
           done
         displayName: push linuxgeneva image to PublicMirror
+        env:
+          user: $(user1)
+          pass: $(pass1)
