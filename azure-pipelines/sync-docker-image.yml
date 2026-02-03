@@ -101,12 +101,12 @@ jobs:
           MASTER_UI_DASH_VERSION=v2.7.0
           MASTER_UI_METRIC_VERSION=v1.0.8
           kubernetesui_images=(
-            metrics-scraper:${MASTER_UI_METRIC_VERSION} \
-            dashboard:${MASTER_UI_DASH_VERSION}
+            kubernetesui/metrics-scraper:${MASTER_UI_METRIC_VERSION} \
+            kubernetesui/dashboard:${MASTER_UI_DASH_VERSION}
           )
           for i in "${kubernetesui_images[@]}"
           do
-            az acr import -n PublicMirror --source kubernetesui/$i --image $i --force -u $user -p $pass
+            az acr import -n PublicMirror --source docker.io/$i --image $i --force -u $user -p $pass
           done
         displayName: push kubernetesui image to PublicMirror
         env:
