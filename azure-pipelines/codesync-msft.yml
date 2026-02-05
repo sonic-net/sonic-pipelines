@@ -54,6 +54,9 @@ steps:
         git log --format=%H origin/$branch_base | grep $head_commit && continue
         subs=$(cat ../azure-pipelines/codesync.json | jq -r ".\"$branch\"")
         [ -z "$subs" ] && continue
+        if [[ $subs == "all" ]]; then
+          subs=$(git submodule | awk '{print $2}')
+        fi
         git branch -D $branch_base || true
         git clean -xdff && git reset HEAD --hard
         git checkout -b $branch_base --track origin/$branch_base
