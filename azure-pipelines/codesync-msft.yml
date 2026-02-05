@@ -45,6 +45,9 @@ steps:
         if [[ $branch_head == "202506" ]]; then
           branch_head=202505
         fi
+        if [[ $branch_head == "202512" ]]; then
+          branch_head=202511
+        fi
         git ls-remote origin refs/heads/$branch_base || continue
         git ls-remote $remote refs/heads/$branch_head || continue
         head_commit=$(git log -n 1 --format=%H $remote/$branch_head)
