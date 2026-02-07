@@ -5,5 +5,5 @@
     "202412": "src/sonic-utilities src/sonic-swss src/sonic-platform-common src/sonic-platform-daemons src/sonic-sairedis src/sonic-linux-kernel src/sonic-swss-common src/sonic-gnmi",
     "202503": "src/sonic-utilities src/sonic-swss src/sonic-platform-common src/sonic-platform-daemons src/sonic-sairedis src/sonic-linux-kernel",
     "202506": "automation will not do code sync for submodule repos. automation will pickup latest submodule ref.",
-    "202506": "src/sonic-utilities src/sonic-swss src/sonic-platform-common src/sonic-platform-daemons src/sonic-sairedis src/sonic-swss-common src/sonic-dash-api src/sonic-dash-ha src/sonic-host-services"
+    "202506": "src/sonic-utilities src/sonic-swss src/sonic-platform-common src/sonic-platform-daemons src/sonic-sairedis src/sonic-swss-common src/sonic-dash-api src/sonic-dash-ha src/sonic-host-services src/sonic-gnmi"
 }
