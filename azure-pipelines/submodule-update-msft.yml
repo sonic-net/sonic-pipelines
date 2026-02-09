@@ -38,7 +38,7 @@ steps:
         git reset HEAD --hard
         git checkout -b $branch --track origin/$branch
         git submodule sync
-        git submodule update --init $paths
+        [[ ! -z $paths ]] && git submodule update --init $paths
         for path in $paths; do
           module_name=$(echo $path | sed 's#src/##')
           # if some modules break PR build. Add them to ignore_pathes
