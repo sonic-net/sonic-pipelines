@@ -33,7 +33,7 @@ steps:
       for branch in $branches; do
         cd $work_space
         paths=$(cat ../azure-pipelines/codesync.json | jq -r ".\"$branch\"")
-        [ -z "$subs" ] && continue
+        [ -z "$paths" ] && continue
         git submodule deinit -f --all
         rm .git/modules/* -rf
         git reset HEAD --hard
