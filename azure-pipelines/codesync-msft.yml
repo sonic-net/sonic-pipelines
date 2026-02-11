@@ -45,12 +45,15 @@ steps:
         if [[ $branch_head == "202506" ]]; then
           branch_head=202505
         fi
+        if [[ $branch_head == "202512" ]]; then
+          branch_head=202511
+        fi
         git ls-remote origin refs/heads/$branch_base || continue
         git ls-remote $remote refs/heads/$branch_head || continue
         head_commit=$(git log -n 1 --format=%H $remote/$branch_head)
         git log --format=%H origin/$branch_base | grep $head_commit && continue
         subs=$(cat ../azure-pipelines/codesync.json | jq -r ".\"$branch\"")
-        [ -z "$subs" ] && continue
+        
         git branch -D $branch_base || true
         git clean -xdff && git reset HEAD --hard
         git checkout -b $branch_base --track origin/$branch_base
@@ -60,12 +63,14 @@ steps:
         git status
 
         git status | grep "^nothing to commit, working tree clean" || { echo "git not clean, exist!"; exit 1; }
-        for i in {1..10}; do
-          git submodule sync
-          git submodule update --init $subs && break
-          sleep 2
-          [[ $i == 10 ]] && continue 2
-        done
+        if [[ ! -z "$subs" ]]; then
+          for i in {1..10}; do
+            git submodule sync
+            git submodule update --init $subs && break
+            sleep 2
+            [[ $i == 10 ]] && continue 2
+          done
+        fi
         prehead=$(git log -n 1 --pretty=format:'%H')
         git pull $remote $branch_head --no-commit || true
         git status

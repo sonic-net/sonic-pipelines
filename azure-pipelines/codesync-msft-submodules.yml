@@ -44,7 +44,9 @@ steps:
         echo "# $repo" | tee -a $cur_dir/log
         branches=$(cat ../azure-pipelines/codesync.json | jq -r keys[])
         for branch in $branches; do
-          if cat ../azure-pipelines/codesync.json | jq -r ".\"$branch\"" | grep -v $repo; then
+          branch_repos=$(cat ../azure-pipelines/codesync.json | jq -r ".\"$branch\"")
+          [ -z "$branch_repos" ] && continue
+          if echo "$branch_repos" | grep -v $repo; then
             continue
           fi
           branch_base=$branch
