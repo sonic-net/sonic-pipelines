@@ -49,7 +49,7 @@ check_conflict(){
     title=$(echo "$content" | jq .title -r)
     body=$(echo "$content" | jq .body -r)
     git status
-    git commit -m "$title" -m "$body"
+    git commit --signoff -m "$title" -m "$body"
     git status
     commit=$(git log -n 1 --format=%H)
     target_branch=$(echo $branch_label | grep -Eo [0-9]*)
