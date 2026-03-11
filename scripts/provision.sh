@@ -13,6 +13,7 @@ apt-get install -y ca-certificates curl gnupg lsb-release
 # install git lfs
 curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash
 apt-get install -y git-lfs acl
+apt-get install -y libnftables1 nftables
 
 if [ "$ARCH" == "armhf" ] && [ "$ARCH" != "$DEFAULT_ARCH" ]; then
   dpkg --add-architecture armhf
