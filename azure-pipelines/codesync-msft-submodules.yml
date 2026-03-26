@@ -1,3 +1,4 @@
+# code sync for submodules: sonic-net/* -> Azure/sonic-*.msft
 pr: none
 trigger: none
 
@@ -54,6 +55,9 @@ steps:
           origin=origin
           if [[ $branch == "202412" ]]; then
             branch_head=202411
+          fi
+          if [[ $branch == "kubesonic" ]]; then
+            branch_head=master
           fi
           if [[ $branch == "202503" ]]; then
             continue # Stop code sync from 202412 to 202503
