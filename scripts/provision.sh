@@ -38,7 +38,8 @@ if [ "$ARCH" == "amd64" ]; then
   # on this at this time).
   #
   # See also https://stackoverflow.com/a/78302537 and https://stackoverflow.com/a/77895910
-  sysctl -w vm.mmap_rnd_bits=28
+  echo "vm.mmap_rnd_bits = 28" > /etc/sysctl.d/99-sonic-mmap-rnd-bits.conf
+  sysctl -p /etc/sysctl.d/99-sonic-mmap-rnd-bits.conf
 fi
 
 # Customize for armhf
