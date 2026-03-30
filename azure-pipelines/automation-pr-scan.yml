@@ -50,7 +50,9 @@ jobs:
           for repo in $repos $(EXTRA_REPOS); do
             echo ======== working for $repo ========
             echo $repo >> failure_prs.log
-            prs=$(gh pr list -A mssonicbld --label automerge -R $repo -L 100 --json body,title,url,labels,statusCheckRollup,createdAt,baseRefName,comments)
+            automerge_prs=$(gh pr list -A mssonicbld --label automerge -R $repo -L 100 --json body,title,url,labels,statusCheckRollup,createdAt,baseRefName,comments)
+            upgrade_versions_prs=$(gh pr list -A mssonicbld -R $repo -L 100 --search '"Upgrade SONiC package Versions" in:title' --json body,title,url,labels,statusCheckRollup,createdAt,baseRefName,comments)
+            prs=$(jq -sc 'add | unique_by(.url)' <(echo "$automerge_prs") <(echo "$upgrade_versions_prs"))
             c=$(echo $prs | jq length)
             for ((i=0; i<$c; i++)); do
               set +x
@@ -59,6 +61,9 @@ jobs:
               url=$(echo $pr | jq .url -r)
               body=$(echo $pr | jq .body -r)
               title=$(echo $pr | jq .title -r)
+              if echo "$title" | grep -Fq "Upgrade SONiC package Versions" && ! echo $pr | jq -e '.labels[]? | select(.name == "automerge")' > /dev/null; then
+                gh pr edit $url -R $repo --add-label automerge
+              fi
               origin_pr_url=$(echo $pr | jq .comments[].body -r | grep '^Original PR: ' | grep -Eo "https://github.com/.*/pull/[0-9]*" || true)
               created_at=$(echo $pr | jq .createdAt -r)
               checks=$(echo $pr | jq .statusCheckRollup)
