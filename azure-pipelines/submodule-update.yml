@@ -38,7 +38,7 @@ jobs:
         git remote add mssonicbld https://mssonicbld:$TOKEN@github.com/mssonicbld/sonic-buildimage
         git checkout ${{ branch }}
         git fetch mssonicbld
-        git submodule update --init src/*
+        git submodule update --init src/* platform/vpp
         echo $TOKEN | gh auth login --with-token
       env:
         TOKEN: $(GITHUB-TOKEN)
@@ -118,5 +118,5 @@ jobs:
             git reset HEAD~ --hard
             sleep $(INTERVAL)
           fi
-        done < <(git submodule status -- src/*)
+        done < <(git submodule status -- src/* platform/vpp)
       displayName: Update submodules
