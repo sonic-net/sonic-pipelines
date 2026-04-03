@@ -1,4 +1,10 @@
 #!/bin/bash
+#
+# Provision VMSS virtual machine for Azure DevOps agent pool.
+#
+# Usage (VMSS custom script extension):
+#   curl -o provision.sh https://raw.githubusercontent.com/sonic-net/sonic-pipelines/test/scripts/provision.sh && bash provision.sh amd64
+#
 
 set -ex
 
@@ -7,11 +13,12 @@ DEFAULT_ARCH=$(dpkg --print-architecture)
 [ -z "$ARCH" ] && [ -f /etc/docker-arch ] && ARCH=$(cat /etc/docker-arch)
 [ -z "$ARCH" ] && ARCH=$DEFAULT_ARCH  
 
-apt-get update
-apt-get install -y ca-certificates curl gnupg lsb-release
+apt-get -o DPkg::Lock::Timeout=600 update
+apt-get -o DPkg::Lock::Timeout=600 upgrade -y
+apt-get -o DPkg::Lock::Timeout=600 install -y ca-certificates curl gnupg lsb-release
 # install git lfs
 curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash
-apt-get install -y git-lfs acl
+apt-get -o DPkg::Lock::Timeout=600 install -y git-lfs acl
 
 if [ "$ARCH" == "armhf" ] && [ "$ARCH" != "$DEFAULT_ARCH" ]; then
   dpkg --add-architecture armhf
@@ -21,8 +28,8 @@ mkdir -p /etc/apt/keyrings
 curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg --batch --yes
 echo "deb [arch=$ARCH signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" > /etc/apt/sources.list.d/docker.list
 
-apt-get update
-apt-get install -y docker-ce:$ARCH docker-ce-cli:$ARCH containerd.io:$ARCH docker-compose-plugin:$ARCH
+apt-get -o DPkg::Lock::Timeout=600 update
+apt-get -o DPkg::Lock::Timeout=600 install -y docker-ce:$ARCH docker-ce-cli:$ARCH containerd.io:$ARCH docker-compose-plugin:$ARCH
 
 # Customize for armhf
 if [ "$ARCH" == "armhf" ] && [ "$ARCH" != "$DEFAULT_ARCH" ]; then
@@ -59,5 +66,5 @@ usermod -a -G docker azureuser 2>&1 >> /var/log/agent-provision.log || true
 cat /etc/passwd /etc/group >> /var/log/agent-provision.log || true
 
 # Install build tools (and waiting docker ready)
-apt-get install -y build-essential nfs-common python3-pip python3-setuptools python3-pip python-is-python3
+apt-get -o DPkg::Lock::Timeout=600 install -y build-essential nfs-common python3-pip python3-setuptools python3-pip python-is-python3
 pip3 install jinja2 j2cli markupsafe
