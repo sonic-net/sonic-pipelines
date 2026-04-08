@@ -8,6 +8,7 @@ DEFAULT_ARCH=$(dpkg --print-architecture)
 [ -z "$ARCH" ] && ARCH=$DEFAULT_ARCH  
 
 apt-get update
+NEEDRESTART_MODE=l DEBIAN_FRONTEND=noninteractive apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -y upgrade
 apt-get install -y ca-certificates curl gnupg lsb-release
 # install git lfs
 curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash
@@ -55,8 +56,8 @@ else
   systemctl daemon-reload
   systemctl start docker
 fi
-usermod -a -G docker azureuser 2>&1 >> /var/log/agent-provision.log || true
-cat /etc/passwd /etc/group >> /var/log/agent-provision.log || true
+usermod -a -G docker azureuser || true
+cat /etc/passwd /etc/group || true
 
 # Install build tools (and waiting docker ready)
 apt-get install -y build-essential nfs-common python3-pip python3-setuptools python3-pip python-is-python3
