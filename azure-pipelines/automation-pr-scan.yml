@@ -117,6 +117,7 @@ jobs:
                   echo "    Already commented to retry" >> skip_prs.log
                 fi
                 if $sonic_build_failure && $operate && [[ $created_at < $date_3d_ago ]] && ! $retried; then
+                  comment_pr "$url" "This cherry pick PR has been failed for more than 3 days. The SONiC BuildBot will attempt to retry."
                   comment_pr "$url" "/azpw retry"
                   echo "    Commented to retry." >> skip_prs.log
                 fi
