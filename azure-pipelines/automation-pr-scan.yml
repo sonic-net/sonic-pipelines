@@ -39,12 +39,19 @@ jobs:
         # more than 30 days, close PR
         date_3d_ago=$(date --date "3 day ago" -u +"%FT%TZ")
         date_10d_ago=$(date --date "10 day ago" -u +"%FT%TZ")
-        date_26d_ago=$(date --date "26 day ago" -u +"%FT%TZ")
-        date_30d_ago=$(date --date "30 day ago" -u +"%FT%TZ")
+        date_1m_ago=$(date --date "1 month ago" -u +"%FT%TZ")
         date_now=$(date -u +"%T")
         operate=false
         [[ "$date_now" > "22:00:00" ]] && operate=true
-        repos="sonic-net/sonic-buildimage sonic-net/sonic-utilities sonic-net/sonic-swss sonic-net/sonic-sairedis sonic-net/sonic-swss-common sonic-net/sonic-dbsyncd sonic-net/sonic-gnmi sonic-net/sonic-host-services sonic-net/sonic-linkmgrd sonic-net/sonic-linux-kernel sonic-net/sonic-mgmt-common sonic-net/sonic-mgmt-framework sonic-net/sonic-platform-common sonic-net/sonic-platform-daemons sonic-net/sonic-py-swsssdk sonic-net/sonic-restapi sonic-net/sonic-snmpagent sonic-net/sonic-wpa-supplicant sonic-net/sonic-dhcp-relay sonic-net/sonic-dhcpmon sonic-net/sonic-dash-api sonic-net/sonic-dash-ha sonic-net/sonic-bmp sonic-net/sonic-ztp Azure/sonic-swss.msft Azure/sonic-sairedis.msft Azure/sonic-utilities.msft Azure/sonic-platform-daemons.msft Azure/sonic-platform-common.msft Azure/sonic-linux-kernel.msft Azure/SAI.msft Azure/sonic-buildimage-msft Azure/sonic-mgmt.msft Azure/sonic-swss-common.msft Azure/sonic-host-services.msft Azure/sonic-gnmi.msft Azure/sonic-dash-api.msft Azure/sonic-dash-ha.msft"
+        comment_watermark='<div align="right"><sub>---Powered by SONiC BuildBot</sub></div>'
+        comment_pr() {
+          local pr_url=$1
+          local comment_body=$2
+          local full_body=$(printf "%s\n\n%s" "$comment_body" "$comment_watermark")
+          gh pr comment "$pr_url" --body "$full_body"
+        }
+        # repos="sonic-net/sonic-buildimage sonic-net/sonic-utilities sonic-net/sonic-swss sonic-net/sonic-sairedis sonic-net/sonic-swss-common sonic-net/sonic-dbsyncd sonic-net/sonic-gnmi sonic-net/sonic-host-services sonic-net/sonic-linkmgrd sonic-net/sonic-linux-kernel sonic-net/sonic-mgmt-common sonic-net/sonic-mgmt-framework sonic-net/sonic-platform-common sonic-net/sonic-platform-daemons sonic-net/sonic-py-swsssdk sonic-net/sonic-restapi sonic-net/sonic-snmpagent sonic-net/sonic-wpa-supplicant sonic-net/sonic-dhcp-relay sonic-net/sonic-dhcpmon sonic-net/sonic-dash-api sonic-net/sonic-dash-ha sonic-net/sonic-bmp sonic-net/sonic-ztp Azure/sonic-swss.msft Azure/sonic-sairedis.msft Azure/sonic-utilities.msft Azure/sonic-platform-daemons.msft Azure/sonic-platform-common.msft Azure/sonic-linux-kernel.msft Azure/SAI.msft Azure/sonic-buildimage-msft Azure/sonic-mgmt.msft Azure/sonic-swss-common.msft Azure/sonic-host-services.msft Azure/sonic-gnmi.msft Azure/sonic-dash-api.msft Azure/sonic-dash-ha.msft"
+        repos="sonic-net/sonic-buildimage sonic-net/sonic-swss sonic-net/sonic-swss-common"
         rm -rf failure_prs.log skip_prs.log
         rc=0
           for repo in $repos $(EXTRA_REPOS); do
@@ -52,7 +59,7 @@ jobs:
             echo $repo >> failure_prs.log
             automerge_prs=$(gh pr list -A mssonicbld --label automerge -R $repo -L 100 --json body,title,url,labels,statusCheckRollup,createdAt,baseRefName,comments)
             upgrade_versions_prs=$(gh pr list -A mssonicbld -R $repo -L 100 --search '"Upgrade SONiC package Versions" in:title' --json body,title,url,labels,statusCheckRollup,createdAt,baseRefName,comments)
-            prs=$(jq -sc 'add | unique_by(.url)' <(echo "$automerge_prs") <(echo "$upgrade_versions_prs"))
+            prs=$(jq -sc --arg date_1m_ago "$date_1m_ago" 'add | unique_by(.url) | map(select(.createdAt >= $date_1m_ago))' <(echo "$automerge_prs") <(echo "$upgrade_versions_prs"))
             c=$(echo $prs | jq length)
             for ((i=0; i<$c; i++)); do
               set +x
@@ -72,36 +79,59 @@ jobs:
               cc=$(echo $checks | jq length)
               set -x
               pr_success=true
+              sonic_build_failure=false
               check_name=''
               for ((j=0; j<$cc; j++)); do
                 set +x
                 check=$(echo $checks | jq .[$j])
                 check_name=$(echo $check | jq .name -r)
                 echo $check | jq [.name,.status,.conclusion]
-                echo $check | jq .status -r | grep -i queued && pr_success=false || continue
-                echo $check | jq .conclusion -r | grep -i -e failure -e cancelled && pr_success=false || continue
-                set -x
-                if echo $check_name | grep -i -e ms_conflict -e ms_checker; then
-                  # check ms_
-                  $operate && [[ $date_3d_ago > $(echo $check | jq -r .startedAt) ]] && gh pr comment $url --body "@liushilongbuaa, please check $check_name"
+                # Skip optional checks when determining PR success
+                if echo "$check_name" | grep -i OPTIONAL > /dev/null; then
+                  continue
                 fi
-                if echo $check_name | grep -i -e "Azure.sonic" -e "sonic-net.sonic" | grep -v '('; then
-                  echo $check | jq .status | grep -i -e in_progress -e queued && continue
-                  # rerun PR checker
-                  $operate && echo $check | jq .conclusion -r | grep -i -e failure -e cancelled && gh pr comment $url --body "/azp run $check_name"
+                if echo $check | jq .status -r | grep -i -e queued > /dev/null; then
+                  pr_success=false
+                  continue
+                fi
+                if echo $check | jq .conclusion -r | grep -i -e failure -e cancelled > /dev/null; then
+                  pr_success=false
+                  if echo $check_name | grep -i -e "Azure.sonic" -e "sonic-net.sonic" | grep -v '('; then
+                    sonic_build_failure=true
+                  fi
+                  if echo $check_name | grep -i -e ms_conflict -e ms_checker; then
+                  # check ms_
+                    $operate && [[ $date_3d_ago > $(echo $check | jq -r .startedAt) ]] && comment_pr "$url" "@liushilongbuaa, please check $check_name"
+                  fi
+                  continue
                 fi
               done
-              # If auto cherry pick PRs failed, comment in original PR and close cherry pick PR
-              if [ -n "$origin_pr_url" ] && [[ $created_at < $date_3d_ago ]] && ! $pr_success;then
-                author=$(gh pr view $origin_pr_url --json author | jq .author.login -r)
-                echo "Original author will check."
-                $operate && [[ $created_at > $date_10d_ago ]] && gh pr comment $origin_pr_url --body "@$author cherry pick PR didn't pass PR checker. Please check!!!<br>$url"
-                # $operate && [[ $created_at < $date_26d_ago ]] && gh pr comment $origin_pr_url --body "@$author cherry pick PR didn't pass PR checker. Please check!!! Auto cherry pick PR will be closed in 3 days.<br>$url"
-                # $operate && [[ $created_at < $date_30d_ago ]] && echo "$url Closed" && gh pr close $url
-              fi
+              # If auto cherry pick PRs failed
               if ! $pr_success; then
                 echo "    $url" >> skip_prs.log
                 echo $pr | jq '.statusCheckRollup[] | "        "+.status+" "+.conclusion+"  "+.name' -r >> skip_prs.log
+                comments_in_prs=$(echo $pr | jq .comments)
+                retried=false
+                if echo "$comments_in_prs" | jq -e '.[]? | select(((.author.login // "") == "mssonicbld") and ((.body // "") | test("^/azpw retry(\\s|$)"; "i")))' > /dev/null; then
+                  retried=true
+                  echo "    Already commented to retry" >> skip_prs.log
+                fi
+                if $sonic_build_failure && [[ $created_at < $date_3d_ago ]] && ! $retried; then
+                  comment_pr "$url" "This cherry pick PR has been opened for more than 3 days. The mssonicbld will attempt to retry."
+                  gh pr comment "$url" --body "/azpw retry"
+                  echo "    Commented to retry." >> skip_prs.log
+                fi
+                if [ -n "$origin_pr_url" ] && [[ $created_at < $date_3d_ago ]] && $retried && $sonic_build_failure; then
+                  author=$(gh pr view $origin_pr_url --json author | jq .author.login -r)
+                  origin_comments=$(gh pr view $origin_pr_url --json comments | jq .comments)
+                  if ! echo "$origin_comments" | jq -e '.[]? | select(((.author.login // "") == "mssonicbld") and ((.body // "") | test("cherry pick PR didn.t pass PR checker after retry"; "i")))' > /dev/null; then
+                    [[ $created_at > $date_10d_ago ]] && comment_pr "$origin_pr_url" "@$author cherry pick PR didn't pass PR checker after retry. Please help check! Thanks.<br>$url"
+                    [[ $created_at > $date_10d_ago ]] && comment_pr "$url" "The cherry pick PR didn't pass PR checker after retry. Left a comment in original PR $origin_pr_url to notify author."
+                    [[ $created_at > $date_10d_ago ]] && echo "    Commented original PR to check cherry pick PR after retry." >> skip_prs.log
+                  else
+                    echo "    Original PR already has check-cherry-pick reminder comment." >> skip_prs.log
+                  fi
+                fi
                 continue
               fi
               # merge the PR
