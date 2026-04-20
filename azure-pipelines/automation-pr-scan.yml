@@ -38,7 +38,7 @@ jobs:
         # more than 26 days, comment @author PR will be closed
         # more than 30 days, close PR
         date_3d_ago=$(date --date "3 day ago" -u +"%FT%TZ")
-        date_10d_ago=$(date --date "10 day ago" -u +"%FT%TZ")
+        date_15d_ago=$(date --date "15 day ago" -u +"%FT%TZ")
         date_1m_ago=$(date --date "1 month ago" -u +"%FT%TZ")
         date_now=$(date -u +"%T")
         operate=false
@@ -127,9 +127,9 @@ jobs:
                   origin_comments=$(gh pr view $origin_pr_url --json comments | jq .comments)
                   release_owner=$(echo "$release_owners" | jq -r --arg base_ref "$base_ref" '.[$base_ref] // empty')
                   if ! echo "$origin_comments" | jq -e '.[]? | select(((.author.login // "") == "mssonicbld") and ((.body // "") | test("cherry pick PR didn.t pass PR checker after retry"; "i")))' > /dev/null; then
-                    [[ $created_at > $date_10d_ago ]] && comment_pr "$origin_pr_url" "@$author cherry pick PR didn't pass PR checker after retry. Please help check! Thanks.<br>$url"
-                    [[ $created_at > $date_10d_ago ]] && comment_pr "$url" "@$release_owner The cherry pick PR didn't pass PR checker after retry. Left a comment in original PR $origin_pr_url to notify author."
-                    [[ $created_at > $date_10d_ago ]] && echo "    Commented original PR to check cherry pick PR after retry." >> skip_prs.log
+                    [[ $created_at > $date_15d_ago ]] && comment_pr "$origin_pr_url" "@$author cherry pick PR didn't pass PR checker after retry. Please help check! Thanks.<br>$url"
+                    [[ $created_at > $date_15d_ago ]] && comment_pr "$url" "@$release_owner The cherry pick PR didn't pass PR checker after retry. Left a comment in original PR $origin_pr_url to notify author."
+                    [[ $created_at > $date_15d_ago ]] && echo "    Commented original PR to check cherry pick PR after retry." >> skip_prs.log
                   else
                     echo "    Original PR already has check-cherry-pick reminder comment." >> skip_prs.log
                   fi
