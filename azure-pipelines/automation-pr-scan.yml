@@ -15,7 +15,7 @@ jobs:
     - group: sonicbld
   timeoutInMinutes: 60
   steps:
-    - checkout: none
+    - checkout: self
     - script: |
         set -ex
         curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
@@ -52,6 +52,7 @@ jobs:
         }
         # repos="sonic-net/sonic-buildimage sonic-net/sonic-utilities sonic-net/sonic-swss sonic-net/sonic-sairedis sonic-net/sonic-swss-common sonic-net/sonic-dbsyncd sonic-net/sonic-gnmi sonic-net/sonic-host-services sonic-net/sonic-linkmgrd sonic-net/sonic-linux-kernel sonic-net/sonic-mgmt-common sonic-net/sonic-mgmt-framework sonic-net/sonic-platform-common sonic-net/sonic-platform-daemons sonic-net/sonic-py-swsssdk sonic-net/sonic-restapi sonic-net/sonic-snmpagent sonic-net/sonic-wpa-supplicant sonic-net/sonic-dhcp-relay sonic-net/sonic-dhcpmon sonic-net/sonic-dash-api sonic-net/sonic-dash-ha sonic-net/sonic-bmp sonic-net/sonic-ztp Azure/sonic-swss.msft Azure/sonic-sairedis.msft Azure/sonic-utilities.msft Azure/sonic-platform-daemons.msft Azure/sonic-platform-common.msft Azure/sonic-linux-kernel.msft Azure/SAI.msft Azure/sonic-buildimage-msft Azure/sonic-mgmt.msft Azure/sonic-swss-common.msft Azure/sonic-host-services.msft Azure/sonic-gnmi.msft Azure/sonic-dash-api.msft Azure/sonic-dash-ha.msft"
         repos="sonic-net/sonic-buildimage sonic-net/sonic-swss sonic-net/sonic-swss-common"
+        release_owners=$(cat azure-pipelines/release-owners_github_account.json)
         rm -rf failure_prs.log skip_prs.log
         rc=0
           for repo in $repos $(EXTRA_REPOS); do
@@ -124,9 +125,10 @@ jobs:
                 if [ -n "$origin_pr_url" ] && [[ $created_at < $date_3d_ago ]] && $retried && $sonic_build_failure; then
                   author=$(gh pr view $origin_pr_url --json author | jq .author.login -r)
                   origin_comments=$(gh pr view $origin_pr_url --json comments | jq .comments)
+                  release_owner=$(echo "$release_owners" | jq -r --arg base_ref "$base_ref" '.[$base_ref] // empty')
                   if ! echo "$origin_comments" | jq -e '.[]? | select(((.author.login // "") == "mssonicbld") and ((.body // "") | test("cherry pick PR didn.t pass PR checker after retry"; "i")))' > /dev/null; then
                     [[ $created_at > $date_10d_ago ]] && comment_pr "$origin_pr_url" "@$author cherry pick PR didn't pass PR checker after retry. Please help check! Thanks.<br>$url"
-                    [[ $created_at > $date_10d_ago ]] && comment_pr "$url" "The cherry pick PR didn't pass PR checker after retry. Left a comment in original PR $origin_pr_url to notify author."
+                    [[ $created_at > $date_10d_ago ]] && comment_pr "$url" "@$release_owner The cherry pick PR didn't pass PR checker after retry. Left a comment in original PR $origin_pr_url to notify author."
                     [[ $created_at > $date_10d_ago ]] && echo "    Commented original PR to check cherry pick PR after retry." >> skip_prs.log
                   else
                     echo "    Original PR already has check-cherry-pick reminder comment." >> skip_prs.log
