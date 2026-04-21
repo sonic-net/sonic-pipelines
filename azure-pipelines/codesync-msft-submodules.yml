@@ -69,6 +69,9 @@ steps:
           if [[ $branch == "202603" ]]; then
             branch_head=202511
           fi
+          if [[ $branch == "000002" ]]; then
+            branch_head=202511
+          fi
           echo "- $branch" | tee -a $cur_dir/log
           git ls-remote --exit-code $origin refs/heads/$branch_head || { echo "  - no branch: $origin" | tee -a $cur_dir/log; continue; }
           git ls-remote --exit-code base refs/heads/$branch_base || { echo "  - no branch: base" | tee -a $cur_dir/log; continue; }
