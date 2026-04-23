@@ -243,6 +243,7 @@ jobs:
                   release_owner=$(echo "$release_owners" | jq -r --arg release_owner_key "$release_owner_key" '.[$release_owner_key] // empty')
                   comment_pr "$url" "The change is not in $base_branch yet. @$author, please manually create the cherry pick PR for branch $base_branch.<br>You can ping the release branch owner(github account: ${release_owner}) to approve your cherry pick PR.<br>If this change is already in $base_branch, please comment \"already in $base_branch\". Thanks!"
                   echo "Commented to let author manually create cherry pick PR and ask release owner for approval for $url" >> label_scan.log
+                fi
               fi
             done <<< "$cherry_pick_conflict_labels"
             echo "\n" >> label_scan.log
