@@ -15,7 +15,7 @@ jobs:
     - group: sonicbld
   timeoutInMinutes: 60
   steps:
-    - checkout: none
+    - checkout: self
     - script: |
         set -ex
         curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
@@ -38,13 +38,21 @@ jobs:
         # more than 26 days, comment @author PR will be closed
         # more than 30 days, close PR
         date_3d_ago=$(date --date "3 day ago" -u +"%FT%TZ")
-        date_10d_ago=$(date --date "10 day ago" -u +"%FT%TZ")
-        date_26d_ago=$(date --date "26 day ago" -u +"%FT%TZ")
-        date_30d_ago=$(date --date "30 day ago" -u +"%FT%TZ")
+        date_15d_ago=$(date --date "15 day ago" -u +"%FT%TZ")
+        date_1m_ago=$(date --date "1 month ago" -u +"%FT%TZ")
         date_now=$(date -u +"%T")
         operate=false
         [[ "$date_now" > "22:00:00" ]] && operate=true
-        repos="sonic-net/sonic-buildimage sonic-net/sonic-utilities sonic-net/sonic-swss sonic-net/sonic-sairedis sonic-net/sonic-swss-common sonic-net/sonic-dbsyncd sonic-net/sonic-gnmi sonic-net/sonic-host-services sonic-net/sonic-linkmgrd sonic-net/sonic-linux-kernel sonic-net/sonic-mgmt-common sonic-net/sonic-mgmt-framework sonic-net/sonic-platform-common sonic-net/sonic-platform-daemons sonic-net/sonic-py-swsssdk sonic-net/sonic-restapi sonic-net/sonic-snmpagent sonic-net/sonic-wpa-supplicant sonic-net/sonic-dhcp-relay sonic-net/sonic-dhcpmon sonic-net/sonic-dash-api sonic-net/sonic-dash-ha sonic-net/sonic-bmp sonic-net/sonic-ztp Azure/sonic-swss.msft Azure/sonic-sairedis.msft Azure/sonic-utilities.msft Azure/sonic-platform-daemons.msft Azure/sonic-platform-common.msft Azure/sonic-linux-kernel.msft Azure/SAI.msft Azure/sonic-buildimage-msft Azure/sonic-mgmt.msft Azure/sonic-swss-common.msft Azure/sonic-host-services.msft Azure/sonic-gnmi.msft Azure/sonic-dash-api.msft Azure/sonic-dash-ha.msft"
+        comment_watermark='<div align="right"><sub>---Powered by SONiC BuildBot</sub></div>'
+        comment_pr() {
+          local pr_url=$1
+          local comment_body=$2
+          local full_body=$(printf "%s\n\n%s" "$comment_body" "$comment_watermark")
+          gh pr comment "$pr_url" --body "$full_body"
+        }
+        # repos="sonic-net/sonic-buildimage sonic-net/sonic-utilities sonic-net/sonic-swss sonic-net/sonic-sairedis sonic-net/sonic-swss-common sonic-net/sonic-dbsyncd sonic-net/sonic-gnmi sonic-net/sonic-host-services sonic-net/sonic-linkmgrd sonic-net/sonic-linux-kernel sonic-net/sonic-mgmt-common sonic-net/sonic-mgmt-framework sonic-net/sonic-platform-common sonic-net/sonic-platform-daemons sonic-net/sonic-py-swsssdk sonic-net/sonic-restapi sonic-net/sonic-snmpagent sonic-net/sonic-wpa-supplicant sonic-net/sonic-dhcp-relay sonic-net/sonic-dhcpmon sonic-net/sonic-dash-api sonic-net/sonic-dash-ha sonic-net/sonic-bmp sonic-net/sonic-ztp Azure/sonic-swss.msft Azure/sonic-sairedis.msft Azure/sonic-utilities.msft Azure/sonic-platform-daemons.msft Azure/sonic-platform-common.msft Azure/sonic-linux-kernel.msft Azure/SAI.msft Azure/sonic-buildimage-msft Azure/sonic-mgmt.msft Azure/sonic-swss-common.msft Azure/sonic-host-services.msft Azure/sonic-gnmi.msft Azure/sonic-dash-api.msft Azure/sonic-dash-ha.msft"
+        repos="sonic-net/sonic-buildimage sonic-net/sonic-swss sonic-net/sonic-swss-common"
+        release_owners=$(cat azure-pipelines/release-owners_github_account.json)
         rm -rf failure_prs.log skip_prs.log
         rc=0
           for repo in $repos $(EXTRA_REPOS); do
@@ -52,7 +60,7 @@ jobs:
             echo $repo >> failure_prs.log
             automerge_prs=$(gh pr list -A mssonicbld --label automerge -R $repo -L 100 --json body,title,url,labels,statusCheckRollup,createdAt,baseRefName,comments)
             upgrade_versions_prs=$(gh pr list -A mssonicbld -R $repo -L 100 --search '"Upgrade SONiC package Versions" in:title' --json body,title,url,labels,statusCheckRollup,createdAt,baseRefName,comments)
-            prs=$(jq -sc 'add | unique_by(.url)' <(echo "$automerge_prs") <(echo "$upgrade_versions_prs"))
+            prs=$(jq -sc --arg date_1m_ago "$date_1m_ago" 'add | unique_by(.url) | map(select(.createdAt >= $date_1m_ago))' <(echo "$automerge_prs") <(echo "$upgrade_versions_prs"))
             c=$(echo $prs | jq length)
             for ((i=0; i<$c; i++)); do
               set +x
@@ -72,36 +80,61 @@ jobs:
               cc=$(echo $checks | jq length)
               set -x
               pr_success=true
+              sonic_build_failure=false
               check_name=''
               for ((j=0; j<$cc; j++)); do
                 set +x
                 check=$(echo $checks | jq .[$j])
                 check_name=$(echo $check | jq .name -r)
                 echo $check | jq [.name,.status,.conclusion]
-                echo $check | jq .status -r | grep -i queued && pr_success=false || continue
-                echo $check | jq .conclusion -r | grep -i -e failure -e cancelled && pr_success=false || continue
-                set -x
-                if echo $check_name | grep -i -e ms_conflict -e ms_checker; then
-                  # check ms_
-                  $operate && [[ $date_3d_ago > $(echo $check | jq -r .startedAt) ]] && gh pr comment $url --body "@liushilongbuaa, please check $check_name"
+                # Skip optional checks when determining PR success
+                if echo "$check_name" | grep -i OPTIONAL > /dev/null; then
+                  continue
                 fi
-                if echo $check_name | grep -i -e "Azure.sonic" -e "sonic-net.sonic" | grep -v '('; then
-                  echo $check | jq .status | grep -i -e in_progress -e queued && continue
-                  # rerun PR checker
-                  $operate && echo $check | jq .conclusion -r | grep -i -e failure -e cancelled && gh pr comment $url --body "/azp run $check_name"
+                if echo $check | jq .status -r | grep -i -e queued > /dev/null; then
+                  pr_success=false
+                  continue
+                fi
+                if echo $check | jq .conclusion -r | grep -i -e failure -e cancelled > /dev/null; then
+                  pr_success=false
+                  if echo $check_name | grep -i -e "Azure.sonic" -e "sonic-net.sonic" | grep -v '('; then
+                    sonic_build_failure=true
+                  fi
+                  if echo $check_name | grep -i -e ms_conflict -e ms_checker; then
+                  # check ms_
+                    $operate && [[ $date_3d_ago > $(echo $check | jq -r .startedAt) ]] && comment_pr "$url" "@liushilongbuaa, please check $check_name"
+                  fi
+                  continue
                 fi
               done
-              # If auto cherry pick PRs failed, comment in original PR and close cherry pick PR
-              if [ -n "$origin_pr_url" ] && [[ $created_at < $date_3d_ago ]] && ! $pr_success;then
-                author=$(gh pr view $origin_pr_url --json author | jq .author.login -r)
-                echo "Original author will check."
-                $operate && [[ $created_at > $date_10d_ago ]] && gh pr comment $origin_pr_url --body "@$author cherry pick PR didn't pass PR checker. Please check!!!<br>$url"
-                # $operate && [[ $created_at < $date_26d_ago ]] && gh pr comment $origin_pr_url --body "@$author cherry pick PR didn't pass PR checker. Please check!!! Auto cherry pick PR will be closed in 3 days.<br>$url"
-                # $operate && [[ $created_at < $date_30d_ago ]] && echo "$url Closed" && gh pr close $url
-              fi
+              # If auto cherry pick PRs failed
               if ! $pr_success; then
                 echo "    $url" >> skip_prs.log
                 echo $pr | jq '.statusCheckRollup[] | "        "+.status+" "+.conclusion+"  "+.name' -r >> skip_prs.log
+                comments_in_prs=$(echo $pr | jq .comments)
+                retried=false
+                if echo "$comments_in_prs" | jq -e '.[]? | select(((.author.login // "") == "mssonicbld") and ((.body // "") | test("^/azpw retry(\\s|$)"; "i")))' > /dev/null; then
+                  retried=true
+                  echo "    Already commented to retry" >> skip_prs.log
+                fi
+                if $sonic_build_failure && [[ $created_at < $date_3d_ago ]] && ! $retried; then
+                  comment_pr "$url" "This cherry pick PR has been opened for more than 3 days. The mssonicbld will attempt to retry."
+                  gh pr comment "$url" --body "/azpw retry"
+                  echo "    Commented to retry." >> skip_prs.log
+                fi
+                if [ -n "$origin_pr_url" ] && [[ $created_at < $date_3d_ago ]] && $retried && $sonic_build_failure; then
+                  author=$(gh pr view $origin_pr_url --json author | jq .author.login -r)
+                  origin_comments=$(gh pr view $origin_pr_url --json comments | jq .comments)
+                  release_owner_key=$(echo "$base_ref" | sed -E 's/^msft-//' | grep -Eo '[0-9]{6}' | head -n1 || true)
+                  release_owner=$(echo "$release_owners" | jq -r --arg release_owner_key "$release_owner_key" '.[$release_owner_key] // empty')
+                  if ! echo "$origin_comments" | jq -e '.[]? | select(((.author.login // "") == "mssonicbld") and ((.body // "") | test("cherry pick PR didn.t pass PR checker after retry"; "i")))' > /dev/null; then
+                    [[ $created_at > $date_15d_ago ]] && comment_pr "$origin_pr_url" "@$author cherry pick PR didn't pass PR checker after retry. Please help check! Thanks.<br>$url"
+                    [[ $created_at > $date_15d_ago ]] && comment_pr "$url" "@$release_owner The cherry pick PR didn't pass PR checker after retry. Left a comment in original PR $origin_pr_url to notify author."
+                    [[ $created_at > $date_15d_ago ]] && echo "    Commented original PR to check cherry pick PR after retry." >> skip_prs.log
+                  else
+                    echo "    Original PR already has check-cherry-pick reminder comment." >> skip_prs.log
+                  fi
+                fi
                 continue
               fi
               # merge the PR
@@ -122,12 +155,105 @@ jobs:
           done
         if (( rc >= 10 )); then exit $rc; fi
         exit 0
-      displayName: scaning
+      displayName: cherry pick scanning
     - script: |
         set -ex
         [ -f skip_prs.log ] && cat skip_prs.log
         echo ====================================
         [ -f failure_prs.log ] && cat failure_prs.log
-      displayName: show result
+      displayName: show cherry pick scanning result
+      condition: always()
+    - script: |
+        set -ex
+        two_month_ago=$(date --date "2 month ago" -u +"%FT%TZ")
+
+        comment_watermark='<div align="right"><sub>---Powered by SONiC BuildBot</sub></div>'
+        comment_pr() {
+          local pr_url=$1
+          local comment_body=$2
+          local full_body=$(printf "%s\n\n%s" "$comment_body" "$comment_watermark")
+          gh pr comment "$pr_url" --body "$full_body"
+        }
+        # repos="sonic-net/sonic-buildimage sonic-net/sonic-utilities sonic-net/sonic-swss sonic-net/sonic-sairedis sonic-net/sonic-swss-common sonic-net/sonic-dbsyncd sonic-net/sonic-gnmi sonic-net/sonic-host-services sonic-net/sonic-linkmgrd sonic-net/sonic-linux-kernel sonic-net/sonic-mgmt-common sonic-net/sonic-mgmt-framework sonic-net/sonic-platform-common sonic-net/sonic-platform-daemons sonic-net/sonic-py-swsssdk sonic-net/sonic-restapi sonic-net/sonic-snmpagent sonic-net/sonic-wpa-supplicant sonic-net/sonic-dhcp-relay sonic-net/sonic-dhcpmon sonic-net/sonic-dash-api sonic-net/sonic-dash-ha sonic-net/sonic-bmp sonic-net/sonic-ztp Azure/sonic-swss.msft Azure/sonic-sairedis.msft Azure/sonic-utilities.msft Azure/sonic-platform-daemons.msft Azure/sonic-platform-common.msft Azure/sonic-linux-kernel.msft Azure/SAI.msft Azure/sonic-buildimage-msft Azure/sonic-mgmt.msft Azure/sonic-swss-common.msft Azure/sonic-host-services.msft Azure/sonic-gnmi.msft Azure/sonic-dash-api.msft Azure/sonic-dash-ha.msft"
+        repos="sonic-net/sonic-buildimage"
+        release_owners=$(cat azure-pipelines/release-owners_github_account.json)
+        for repo in $repos $(EXTRA_REPOS); do
+          echo ======== working for $repo ========
+          echo "=======Results for $repo======" >> label_scan.log
+          prs=$(gh pr list -R $repo --state merged -L 200 --json url,labels,mergedAt,author,comments | jq -c --arg two_month_ago "$two_month_ago" '[.[] | select(.mergedAt >= $two_month_ago and ((.author.login // "") != "mssonicbld"))]')
+          c=$(echo "$prs" | jq length)
+          for ((i=0; i<$c; i++)); do
+            pr=$(echo "$prs" | jq .[$i])
+            url=$(echo $pr | jq .url -r)
+            author=$(echo $pr | jq .author.login -r)
+            comments=$(echo $pr | jq .comments)
+            labels=$(echo $pr | jq .labels[].name -r)
+            approved_labels=$(echo "$labels" | grep -E "Approved for " || true)
+            cherry_pick_conflict_labels=$(echo "$labels" | grep -E "Cherry Pick Conflict_" || true)
+            if [[ -z "$approved_labels" ]] && [[ -z "$cherry_pick_conflict_labels" ]]; then
+              continue
+            fi
+            # for each approved label
+            while IFS= read -r approved_label; do
+              base_branch=$(echo $approved_label | sed -n 's/^Approved for \([^ ]*\) Branch$/\1/ip')
+              [[ -z "$base_branch" ]] && continue
+              if echo "$labels" | grep -E "Included in $base_branch Branch|Created PR to $base_branch Branch" > /dev/null; then
+                if echo "$cherry_pick_conflict_labels" | grep -E "Cherry Pick Conflict_$base_branch" > /dev/null; then
+                  comment_pr "$url" "The cherry pick conflict has been handled manually. Removing cherry pick conflict label..."
+                  gh pr edit "$url" --remove-label "Cherry Pick Conflict_$base_branch"
+                  echo "Removed cherry pick conflict label for $url" >> label_scan.log
+                  cherry_pick_conflict_labels=$(echo "$cherry_pick_conflict_labels" | grep -Ev "Cherry Pick Conflict_$base_branch" || true)
+                fi
+                continue
+              fi
+              if echo "$labels" | grep -E "Cherry Pick Conflict_$base_branch" > /dev/null; then
+                if echo "$comments" | jq -e --arg base_branch "$base_branch" '.[]? | select(((.author.login // "") != "mssonicbld") and ((.body // "") | test("already in " + $base_branch; "i")))' > /dev/null; then
+                   comment_pr "$url" "The change is already in $base_branch. Removing cherry pick conflict label and adding included label."
+                   gh pr edit "$url" --remove-label "Cherry Pick Conflict_$base_branch"
+                   gh pr edit "$url" --add-label "Included in $base_branch Branch"
+                   echo "Removed cherry pick conflict label and added included label for $url" >> label_scan.log
+                fi
+                if ! echo "$comments" | jq -e '.[]? | select(((.author.login // "") == "mssonicbld") and ((.body // "") | test("please manually create the cherry pick PR"; "i")))' > /dev/null; then
+                  comment_pr "$url" "This PR is approved for branch $base_branch. No cherry pick PR has been created because of code conflict. @$author, please manually create the cherry pick PR.<br>If this change is already in $base_branch, please comment \"already in $base_branch\". Thanks!"
+                  echo "Commented to let author manually create cherry pick PR for $url" >> label_scan.log
+                fi
+                cherry_pick_conflict_labels=$(echo "$cherry_pick_conflict_labels" | grep -Ev "Cherry Pick Conflict_$base_branch" || true)
+                continue
+              fi
+              if ! echo "$comments" | jq -e --arg base_branch "$base_branch" '.[]? | select(((.author.login // "") == "mssonicbld") and ((.body // "") | test("Cherry-pick PR to " + $base_branch; "i")))' > /dev/null; then
+                if echo "$comments" | jq -e '.[]? | select(((.author.login // "") == "mssonicbld") and ((.body // "") | test("Removing approved label and adding it again to trigger cherry pick workflow"; "i")))' > /dev/null; then
+                  comment_pr "$url" "Cherry pick PR is not created after readding the approved label. @yijingyan2, please help check if the cherry pick workflow is working. Thanks!"
+                  echo "Commented to let yijingyan2 check cherry pick workflow for $url" >> label_scan.log
+                  continue
+                fi
+                comment_pr "$url" "This PR is approved for branch $base_branch, but no cherry pick PR has been created. Removing approved label and adding it again to trigger cherry pick workflow."
+                gh pr edit "$url" --remove-label "$approved_label"
+                gh pr edit "$url" --add-label "$approved_label"
+                echo "Removed and readded approved label to trigger cherry pick workflow for $url" >> label_scan.log
+                continue
+              fi
+            done <<< "$approved_labels"
+            # for each cherry pick conflict label without approved label
+            while IFS= read -r conflict_label; do
+              base_branch=$(echo $conflict_label | sed -n 's/^Cherry Pick Conflict_\([^ ]*\)$/\1/ip')
+              [[ -z "$base_branch" ]] && continue
+              if ! echo "$comments" | jq -e '.[]? | select(((.author.login // "") == "mssonicbld") and ((.body // "") | test("please manually create the cherry pick PR"; "i")))' > /dev/null; then
+                if ! echo "$comments" | jq -e --arg base_branch "$base_branch" '.[]? | select(((.author.login // "") != "mssonicbld") and ((.body // "") | test("already in " + $base_branch; "i")))' > /dev/null; then
+                  release_owner_key=$(echo "$base_ref" | sed -E 's/^msft-//' | grep -Eo '[0-9]{6}' | head -n1 || true)
+                  release_owner=$(echo "$release_owners" | jq -r --arg release_owner_key "$release_owner_key" '.[$release_owner_key] // empty')
+                  comment_pr "$url" "The change is not in $base_branch yet. @$author, please manually create the cherry pick PR for branch $base_branch.<br>You can ping the release branch owner(github account: ${release_owner}) to approve your cherry pick PR.<br>If this change is already in $base_branch, please comment \"already in $base_branch\". Thanks!"
+                  echo "Commented to let author manually create cherry pick PR and ask release owner for approval for $url" >> label_scan.log
+                fi
+              fi
+            done <<< "$cherry_pick_conflict_labels"
+            echo "\n" >> label_scan.log
+          done
+          echo "===============" >> label_scan.log
+        done
+      displayName: label scanning
+    - script: |
+        set -ex
+        [ -f label_scan.log ] && cat label_scan.log
+      displayName: show label scanning result
       condition: always()
   
