@@ -176,6 +176,7 @@ jobs:
         }
         # repos="sonic-net/sonic-buildimage sonic-net/sonic-utilities sonic-net/sonic-swss sonic-net/sonic-sairedis sonic-net/sonic-swss-common sonic-net/sonic-dbsyncd sonic-net/sonic-gnmi sonic-net/sonic-host-services sonic-net/sonic-linkmgrd sonic-net/sonic-linux-kernel sonic-net/sonic-mgmt-common sonic-net/sonic-mgmt-framework sonic-net/sonic-platform-common sonic-net/sonic-platform-daemons sonic-net/sonic-py-swsssdk sonic-net/sonic-restapi sonic-net/sonic-snmpagent sonic-net/sonic-wpa-supplicant sonic-net/sonic-dhcp-relay sonic-net/sonic-dhcpmon sonic-net/sonic-dash-api sonic-net/sonic-dash-ha sonic-net/sonic-bmp sonic-net/sonic-ztp Azure/sonic-swss.msft Azure/sonic-sairedis.msft Azure/sonic-utilities.msft Azure/sonic-platform-daemons.msft Azure/sonic-platform-common.msft Azure/sonic-linux-kernel.msft Azure/SAI.msft Azure/sonic-buildimage-msft Azure/sonic-mgmt.msft Azure/sonic-swss-common.msft Azure/sonic-host-services.msft Azure/sonic-gnmi.msft Azure/sonic-dash-api.msft Azure/sonic-dash-ha.msft"
         repos="sonic-net/sonic-buildimage"
+        release_owners=$(cat azure-pipelines/release-owners_github_account.json)
         for repo in $repos $(EXTRA_REPOS); do
           echo ======== working for $repo ========
           echo "=======Results for $repo======" >> label_scan.log
@@ -188,7 +189,8 @@ jobs:
             comments=$(echo $pr | jq .comments)
             labels=$(echo $pr | jq .labels[].name -r)
             approved_labels=$(echo "$labels" | grep -E "Approved for " || true)
-            if [[ -z "$approved_labels" ]]; then
+            cherry_pick_conflict_labels=$(echo "$labels" | grep -E "Cherry Pick Conflict_" || true)
+            if [[ -z "$approved_labels" ]] && [[ -z "$cherry_pick_conflict_labels" ]]; then
               continue
             fi
             # for each approved label
@@ -196,6 +198,12 @@ jobs:
               base_branch=$(echo $approved_label | sed -n 's/^Approved for \([^ ]*\) Branch$/\1/ip')
               [[ -z "$base_branch" ]] && continue
               if echo "$labels" | grep -E "Included in $base_branch Branch|Created PR to $base_branch Branch" > /dev/null; then
+                if echo "$cherry_pick_conflict_labels" | grep -E "Cherry Pick Conflict_$base_branch" > /dev/null; then
+                  comment_pr "$url" "The cherry pick conflict has been handled manually. Removing cherry pick conflict label..."
+                  gh pr edit "$url" --remove-label "Cherry Pick Conflict_$base_branch"
+                  echo "Removed cherry pick conflict label for $url" >> label_scan.log
+                  cherry_pick_conflict_labels=$(echo "$cherry_pick_conflict_labels" | grep -Ev "Cherry Pick Conflict_$base_branch" || true)
+                fi
                 continue
               fi
               if echo "$labels" | grep -E "Cherry Pick Conflict_$base_branch" > /dev/null; then
@@ -209,6 +217,7 @@ jobs:
                   comment_pr "$url" "This PR is approved for branch $base_branch. No cherry pick PR has been created because of code conflict. @$author, please manually create the cherry pick PR.<br>If this change is already in $base_branch, please comment \"already in $base_branch\". Thanks!"
                   echo "Commented to let author manually create cherry pick PR for $url" >> label_scan.log
                 fi
+                cherry_pick_conflict_labels=$(echo "$cherry_pick_conflict_labels" | grep -Ev "Cherry Pick Conflict_$base_branch" || true)
                 continue
               fi
               if ! echo "$comments" | jq -e --arg base_branch "$base_branch" '.[]? | select(((.author.login // "") == "mssonicbld") and ((.body // "") | test("Cherry-pick PR to " + $base_branch; "i")))' > /dev/null; then
@@ -224,6 +233,18 @@ jobs:
                 continue
               fi
             done <<< "$approved_labels"
+            # for each cherry pick conflict label without approved label
+            while IFS= read -r conflict_label; do
+              base_branch=$(echo $conflict_label | sed -n 's/^Cherry Pick Conflict_\([^ ]*\)$/\1/ip')
+              [[ -z "$base_branch" ]] && continue
+              if ! echo "$comments" | jq -e '.[]? | select(((.author.login // "") == "mssonicbld") and ((.body // "") | test("please manually create the cherry pick PR"; "i")))' > /dev/null; then
+                if ! echo "$comments" | jq -e --arg base_branch "$base_branch" '.[]? | select(((.author.login // "") != "mssonicbld") and ((.body // "") | test("already in " + $base_branch; "i")))' > /dev/null; then
+                  release_owner_key=$(echo "$base_ref" | sed -E 's/^msft-//' | grep -Eo '[0-9]{6}' | head -n1 || true)
+                  release_owner=$(echo "$release_owners" | jq -r --arg release_owner_key "$release_owner_key" '.[$release_owner_key] // empty')
+                  comment_pr "$url" "The change is not in $base_branch yet. @$author, please manually create the cherry pick PR for branch $base_branch.<br>You can ping the release branch owner(github account: ${release_owner}) to approve your cherry pick PR.<br>If this change is already in $base_branch, please comment \"already in $base_branch\". Thanks!"
+                  echo "Commented to let author manually create cherry pick PR and ask release owner for approval for $url" >> label_scan.log
+              fi
+            done <<< "$cherry_pick_conflict_labels"
             echo "\n" >> label_scan.log
           done
           echo "===============" >> label_scan.log
