@@ -167,7 +167,7 @@ jobs:
       condition: always()
     - script: |
         set -ex
-        two_month_ago=$(date --date "2 month ago" -u +"%FT%TZ")
+        one_month_ago=$(date --date "1 month ago" -u +"%FT%TZ")
 
         comment_watermark='<div align="right"><sub>---Powered by SONiC BuildBot</sub></div>'
         comment_pr() {
@@ -181,7 +181,7 @@ jobs:
         for repo in $repos $(EXTRA_REPOS); do
           echo ======== working for $repo ========
           echo "=======Results for $repo======" >> label_scan.log
-          prs=$(gh pr list -R $repo --state merged -L 200 --json url,labels,mergedAt,author,comments | jq -c --arg two_month_ago "$two_month_ago" '[.[] | select(.mergedAt >= $two_month_ago and ((.author.login // "") != "mssonicbld"))]')
+          prs=$(gh pr list -R $repo --state merged -L 200 --json url,labels,mergedAt,author,comments | jq -c --arg one_month_ago "$one_month_ago" '[.[] | select(.mergedAt >= $one_month_ago and ((.author.login // "") != "mssonicbld"))]')
           c=$(echo "$prs" | jq length)
           for ((i=0; i<$c; i++)); do
             pr=$(echo "$prs" | jq .[$i])
@@ -198,7 +198,7 @@ jobs:
             while IFS= read -r approved_label; do
               base_branch=$(echo $approved_label | sed -n 's/^Approved for \([^ ]*\) Branch$/\1/ip')
               [[ -z "$base_branch" ]] && continue
-              if echo "$labels" | grep -E "Included in $base_branch Branch|Created PR to $base_branch Branch" > /dev/null; then
+              if echo "$labels" | grep -iE "Included in $base_branch Branch|Created PR to $base_branch Branch" > /dev/null; then
                 if echo "$cherry_pick_conflict_labels" | grep -E "Cherry Pick Conflict_$base_branch" > /dev/null; then
                   comment_pr "$url" "The cherry pick conflict has been handled manually. Removing cherry pick conflict label..."
                   gh pr edit "$url" --remove-label "Cherry Pick Conflict_$base_branch"
@@ -238,9 +238,15 @@ jobs:
             while IFS= read -r conflict_label; do
               base_branch=$(echo $conflict_label | sed -n 's/^Cherry Pick Conflict_\([^ ]*\)$/\1/ip')
               [[ -z "$base_branch" ]] && continue
+              if echo "$labels" | grep -iE "Included in $base_branch Branch|Created PR to $base_branch Branch" > /dev/null; then
+                comment_pr "$url" "The change is already in $base_branch. Removing cherry pick conflict label..."
+                gh pr edit "$url" --remove-label "Cherry Pick Conflict_$base_branch"
+                echo "Removed cherry pick conflict label for $url" >> label_scan.log
+                continue
+              fi
               if ! echo "$comments" | jq -e '.[]? | select(((.author.login // "") == "mssonicbld") and ((.body // "") | test("please manually create the cherry pick PR"; "i")))' > /dev/null; then
                 if ! echo "$comments" | jq -e --arg base_branch "$base_branch" '.[]? | select(((.author.login // "") != "mssonicbld") and ((.body // "") | test("already in " + $base_branch; "i")))' > /dev/null; then
-                  release_owner_key=$(echo "$base_ref" | sed -E 's/^msft-//' | grep -Eo '[0-9]{6}' | head -n1 || true)
+                  release_owner_key=$(echo "$base_branch" | sed -E 's/^msft-//' | grep -Eo '[0-9]{6}' | head -n1 || true)
                   release_owner=$(echo "$release_owners" | jq -r --arg release_owner_key "$release_owner_key" '.[$release_owner_key] // empty')
                   comment_pr "$url" "The change is not in $base_branch yet. @$author, please manually create the cherry pick PR for branch $base_branch.<br>You can ping the release branch owner(github account: $release_owner) to approve your cherry pick PR.<br>If this change is already in $base_branch, please comment \"already in $base_branch\". Thanks!"
                   echo "Commented to let author manually create cherry pick PR and ask release owner for approval for $url" >> label_scan.log
