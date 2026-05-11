@@ -132,3 +132,4 @@ steps:
     env:
       URL: $(TEAMS-MSG-URL)
     displayName: show result and send alert
+    continueOnError: true
