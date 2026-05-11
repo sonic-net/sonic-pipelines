@@ -4,7 +4,7 @@ pr: none
 parameters:
 - name: repos
   type: string
-  default: 'sonic-net/sonic-buildimage sonic-net/sonic-utilities sonic-net/sonic-swss sonic-net/sonic-sairedis sonic-net/sonic-swss-common sonic-net/sonic-dbsyncd sonic-net/sonic-gnmi sonic-net/sonic-host-services sonic-net/sonic-linkmgrd sonic-net/sonic-linux-kernel sonic-net/sonic-mgmt-common sonic-net/sonic-mgmt-framework sonic-net/sonic-platform-common sonic-net/sonic-platform-daemons sonic-net/sonic-py-swsssdk sonic-net/sonic-restapi sonic-net/sonic-snmpagent sonic-net/sonic-wpa-supplicant sonic-net/sonic-dhcp-relay sonic-net/sonic-dhcpmon sonic-net/sonic-dash-api sonic-net/sonic-dash-ha sonic-net/sonic-bmp sonic-net/sonic-ztp Azure/sonic-swss.msft Azure/sonic-sairedis.msft Azure/sonic-utilities.msft Azure/sonic-platform-daemons.msft Azure/sonic-platform-common.msft Azure/sonic-linux-kernel.msft Azure/SAI.msft Azure/sonic-buildimage-msft Azure/sonic-mgmt.msft Azure/sonic-swss-common.msft Azure/sonic-host-services.msft Azure/sonic-gnmi.msft Azure/sonic-dash-api.msft Azure/sonic-dash-ha.msft'
+  default: 'sonic-net/sonic-buildimage sonic-net/sonic-mgmt sonic-net/sonic-utilities sonic-net/sonic-swss sonic-net/sonic-sairedis sonic-net/sonic-swss-common sonic-net/sonic-dbsyncd sonic-net/sonic-gnmi sonic-net/sonic-host-services sonic-net/sonic-linkmgrd sonic-net/sonic-linux-kernel sonic-net/sonic-mgmt-common sonic-net/sonic-mgmt-framework sonic-net/sonic-platform-common sonic-net/sonic-platform-daemons sonic-net/sonic-py-swsssdk sonic-net/sonic-restapi sonic-net/sonic-snmpagent sonic-net/sonic-wpa-supplicant sonic-net/sonic-dhcp-relay sonic-net/sonic-dhcpmon sonic-net/sonic-dash-api sonic-net/sonic-dash-ha sonic-net/sonic-bmp sonic-net/sonic-ztp Azure/sonic-swss.msft Azure/sonic-sairedis.msft Azure/sonic-utilities.msft Azure/sonic-platform-daemons.msft Azure/sonic-platform-common.msft Azure/sonic-linux-kernel.msft Azure/SAI.msft Azure/sonic-buildimage-msft Azure/sonic-mgmt.msft Azure/sonic-swss-common.msft Azure/sonic-host-services.msft Azure/sonic-gnmi.msft Azure/sonic-dash-api.msft Azure/sonic-dash-ha.msft'
 
 schedules:
 - cron: "11 * * * *"
@@ -60,6 +60,11 @@ jobs:
           for repo in $repos $(EXTRA_REPOS); do
             echo ======== working for $repo ========
             echo $repo >> failure_prs.log
+            merge_op=true
+            if $repo == "sonic-net/sonic-mgmt"; then
+              # For sonic-mgmt repo, it has its own github workflow to merge the cherry pick PR
+              merge_op=false
+            fi
             automerge_prs=$(gh pr list -A mssonicbld --label automerge -R $repo -L 100 --json body,title,url,labels,statusCheckRollup,createdAt,baseRefName,comments)
             upgrade_versions_prs=$(gh pr list -A mssonicbld -R $repo -L 100 --search '"Upgrade SONiC package Versions" in:title' --json body,title,url,labels,statusCheckRollup,createdAt,baseRefName,comments)
             prs=$(jq -sc --arg date_1m_ago "$date_1m_ago" 'add | unique_by(.url) | map(select(.createdAt >= $date_1m_ago))' <(echo "$automerge_prs") <(echo "$upgrade_versions_prs"))
@@ -89,8 +94,8 @@ jobs:
                 check=$(echo $checks | jq .[$j])
                 check_name=$(echo $check | jq .name -r)
                 echo $check | jq [.name,.status,.conclusion]
-                # Skip optional checks when determining PR success
-                if echo "$check_name" | grep -i OPTIONAL > /dev/null; then
+                # Skip optional and vulnerability scan checks when determining PR success
+                if echo "$check_name" | grep -iE "OPTIONAL|vulnerability scan" > /dev/null; then
                   continue
                 fi
                 if echo $check | jq .status -r | grep -i -e queued > /dev/null; then
@@ -140,6 +145,10 @@ jobs:
                 continue
               fi
               # merge the PR
+              if ! $merge_op; then
+                echo "    Skipping merge for $url because sonic-mgmt has its own workflow to merge." >> skip_prs.log
+                continue
+              fi
               echo ========Merging  PR========
               opt="--squash"
               if echo $title | grep "^\[code sync\]";then
@@ -167,7 +176,7 @@ jobs:
       condition: always()
     - script: |
         set -ex
-        one_month_ago=$(date --date "1 month ago" -u +"%FT%TZ")
+        one_week_ago=$(date --date "1 week ago" -u +"%FT%TZ")
 
         comment_watermark='<div align="right"><sub>---Powered by SONiC BuildBot</sub></div>'
         comment_pr() {
@@ -181,7 +190,7 @@ jobs:
         for repo in $repos $(EXTRA_REPOS); do
           echo ======== working for $repo ========
           echo "=======Results for $repo======" >> label_scan.log
-          prs=$(gh pr list -R $repo --state merged -L 200 --json url,labels,mergedAt,author,comments | jq -c --arg one_month_ago "$one_month_ago" '[.[] | select(.mergedAt >= $one_month_ago and ((.author.login // "") != "mssonicbld"))]')
+          prs=$(gh pr list -R $repo --state merged -L 200 --json url,labels,mergedAt,author,comments | jq -c --arg one_week_ago "$one_week_ago" '[.[] | select(.mergedAt >= $one_week_ago and ((.author.login // "") != "mssonicbld"))]')
           c=$(echo "$prs" | jq length)
           for ((i=0; i<$c; i++)); do
             pr=$(echo "$prs" | jq .[$i])
