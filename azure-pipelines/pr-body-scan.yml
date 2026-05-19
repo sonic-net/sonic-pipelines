@@ -22,7 +22,6 @@ parameters:
     - group: sonicbld
   timeoutInMinutes: 60
   steps:
-    - checkout: self
     - script: |
         set -ex
         curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
@@ -36,9 +35,8 @@ parameters:
         TOKEN: $(GITHUB-TOKEN)
       displayName: install dependencies
     - script: |
-        set -ex
-        date_3d_ago=$(date --date "3 days ago" -u +"%FT%TZ")
-        date_now=$(date -u +"%T")
+        set -e
+        date_3d_ago=$(date --date "3 days ago" -u +"%Y-%m-%d")
 
         comment_watermark='<div align="right"><sub>---Powered by SONiC BuildBot</sub></div>'
         comment_pr() {
@@ -53,9 +51,7 @@ parameters:
         for repo in $repos $(EXTRA_REPOS); do
           echo ======== working for $repo ========
           echo ======= Result for $repo ====== >> cherry_pick_scan.log
-          open_prs=$(gh pr list -R $repo --state open -L 150 --json url,labels,body,author,comments,updatedAt | jq -c --arg date_3d_ago "$date_3d_ago" '[.[] | select(.updatedAt >= $date_3d_ago and ((.author.login // "") != "mssonicbld"))]')
-          merged_prs=$(gh pr list -R $repo --state merged -L 300 --json url,labels,body,author,comments,updatedAt | jq -c --arg date_3d_ago "$date_3d_ago" '[.[] | select(.updatedAt >= $date_3d_ago and ((.author.login // "") != "mssonicbld"))]')
-          prs=$(jq -sc 'add | unique_by(.url)' <(echo "$open_prs") <(echo "$merged_prs"))
+          prs=$(gh pr list -R "$repo" --state all -L 300 --search "updated:>=$date_3d_ago -author:mssonicbld" --json url,labels,body,author,updatedAt)
           c=$(echo $prs | jq length)
           for ((i=0; i<$c; i++)); do
             set +x
@@ -92,6 +88,8 @@ parameters:
               msg="This PR has backport request for branch(es): $all_branches."
               [[ -n "$branches_already_added" ]] && msg="$msg<br><br>Request label(s) for branch(es) $branches_already_added already exists."
               if gh pr edit "$url" --add-label "$labels_to_add"; then
+                labels_added_now=$(echo "$labels_to_add" | tr ',' '\n')
+                labels=$(printf "%s\n%s\n" "$labels" "$labels_added_now" | sed '/^$/d' | sort -fu)
                 msg="$msg<br>Added label(s) for branch(es) $branches_to_add."
                 comment_pr "$url" "$msg"
                 echo "Added labels for branch(es) $branches_to_add for $url" >> cherry_pick_scan.log
@@ -99,7 +97,6 @@ parameters:
                 echo "Failed to add label(s) for branch(es) $branches_to_add for $url"
               fi
             fi
-            labels=$(gh pr view "$url" --json labels | jq -r '.labels[].name')
             pr_number=$(echo "$url" | grep -Eo '[0-9]+$')
             request_labels_created_by_bot=$(gh api "repos/$repo/issues/$pr_number/events?per_page=100" --paginate | jq -r '.[] | select(.event == "labeled" and (.actor.login // "") == "mssonicbld" and (.label.name // "" | test("^Request for (msft-)?[0-9]{6} Branch$"))) | .label.name' | sort -u)
             branches_with_request_label=$(echo "$labels" | grep -oP '(?<=Request for )(?:msft-)?\d{6}(?= Branch)' || true)
