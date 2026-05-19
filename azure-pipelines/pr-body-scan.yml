@@ -94,7 +94,7 @@ parameters:
                 comment_pr "$url" "$msg"
                 echo "Added labels for branch(es) $branches_to_add for $url" >> cherry_pick_scan.log
               else
-                echo "Failed to add label(s) for branch(es) $branches_to_add for $url"
+                echo "Failed to add label(s) for branch(es) $branches_to_add for $url" >> cherry_pick_scan.log
               fi
             fi
             pr_number=$(echo "$url" | grep -Eo '[0-9]+$')
