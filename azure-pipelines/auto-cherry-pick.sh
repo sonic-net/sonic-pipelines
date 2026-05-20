@@ -35,7 +35,7 @@ check_conflict(){
     fi
     git remote update
     git status
-    if git log head/$PR_BASE_BRANCH..head/$PR_BASE_BRANCH -p | grep -Eo "^\+Subproject commit "; then
+    if git log head/$PR_BASE_BRANCH..$PR_COMMIT_SHA -p | grep -Eo "^\+Subproject commit "; then
         echo "PR contains submodule change"
         gh pr comment $PR_URL --body "Auto cherry pick don't support submodule update. Please manually cherry pick!"
         return 251
