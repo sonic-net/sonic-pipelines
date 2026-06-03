@@ -12,6 +12,7 @@ parameters:
   type: object
   default:
   - master
+  - 202605
   - 202511
   - 202505
   - 202411
