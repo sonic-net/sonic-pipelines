@@ -23,7 +23,7 @@ DEFAULT_ARCH=$(dpkg --print-architecture)
 
 apt-get update
 apt-get -y purge needrestart || true
-NEEDRESTART_MODE=l DEBIAN_FRONTEND=noninteractive apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -y upgrade
+NEEDRESTART_MODE=l DEBIAN_FRONTEND=noninteractive apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -y dist-upgrade
 apt-get install -y ca-certificates curl gnupg lsb-release
 
 apt-get update
