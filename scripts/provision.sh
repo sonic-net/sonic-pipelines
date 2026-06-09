@@ -7,22 +7,15 @@ DEFAULT_ARCH=$(dpkg --print-architecture)
 [ -z "$ARCH" ] && [ -f /etc/docker-arch ] && ARCH=$(cat /etc/docker-arch)
 [ -z "$ARCH" ] && ARCH=$DEFAULT_ARCH
 
-echo "Waiting for cloud-init to finish..."
-echo "Before cloud-init wait"
-if timeout 300 cloud-init status --wait; then
-  echo "After cloud-init wait"
-else
-  cloud_init_wait_rc=$?
-  echo "cloud-init wait exited with code ${cloud_init_wait_rc}, continuing"
-fi
-cloud_init_state=$(cloud-init status 2>/dev/null || true)
-[ -z "$cloud_init_state" ] && cloud_init_state="unknown"
-echo "cloud-init finished with status: $cloud_init_state"
-
+echo "Killing background apt services..."
 systemctl stop apt-daily.service apt-daily-upgrade.service unattended-upgrades.service 2>/dev/null || true
 systemctl stop apt-daily.timer apt-daily-upgrade.timer 2>/dev/null || true
 systemctl disable apt-daily.timer apt-daily-upgrade.timer 2>/dev/null || true
 systemctl kill --kill-who=all apt-daily.service apt-daily-upgrade.service 2>/dev/null || true
+killall -9 apt-get 2>/dev/null || true
+killall -9 python3 2>/dev/null || true
+sleep 2
+echo "Background services killed, proceeding with provisioning..."
 
 wait_apt() {
   local i=0
