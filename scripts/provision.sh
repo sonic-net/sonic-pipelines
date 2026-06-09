@@ -11,7 +11,7 @@ NEEDRESTART_MODE=l DEBIAN_FRONTEND=noninteractive apt-get -o Dpkg::Options::="--
 apt-get install -y ca-certificates curl gnupg lsb-release
 
 apt-get update
-apt-get install -y acl || sleep 3000
+apt-get install -y acl
 
 # install git lfs
 curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash
