@@ -7,9 +7,50 @@ DEFAULT_ARCH=$(dpkg --print-architecture)
 [ -z "$ARCH" ] && [ -f /etc/docker-arch ] && ARCH=$(cat /etc/docker-arch)
 [ -z "$ARCH" ] && ARCH=$DEFAULT_ARCH  
 
-apt-get update
+apt_update_retry() {
+  local attempt
+  for attempt in 1 2 3; do
+    if apt-get update; then
+      return 0
+    fi
+    echo "apt-get update failed on attempt $attempt, retrying..." >&2
+  done
+  return 1
+}
+
+apt_install_retry() {
+  local attempt
+  for attempt in 1 2 3; do
+    if apt-get install -y "$@"; then
+      return 0
+    fi
+    echo "apt-get install failed on attempt $attempt for packages: $*" >&2
+    apt_update_retry || true
+  done
+  return 1
+}
+
+dump_pkg_diagnostics() {
+  local pkg="$1"
+  echo "===== apt diagnostics for package: $pkg =====" >&2
+  echo "ARCH(default/current): $DEFAULT_ARCH/$ARCH" >&2
+  lsb_release -a 2>/dev/null || true
+  dpkg --print-architecture || true
+  dpkg --print-foreign-architectures || true
+  apt-cache policy "$pkg" || true
+  apt-cache madison "$pkg" || true
+  grep -R "^deb " /etc/apt/sources.list /etc/apt/sources.list.d/*.list 2>/dev/null || true
+  grep -R "^Types\\|^URIs\\|^Suites\\|^Components" /etc/apt/sources.list.d/*.sources 2>/dev/null || true
+  echo "===== end apt diagnostics =====" >&2
+}
+
+apt_update_retry
 NEEDRESTART_MODE=l DEBIAN_FRONTEND=noninteractive apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -y upgrade
-apt-get install -y ca-certificates curl gnupg lsb-release acl
+apt_install_retry ca-certificates curl gnupg lsb-release
+if ! apt_install_retry acl; then
+  dump_pkg_diagnostics acl
+  echo "acl install failed during provisioning; continuing without acl." >&2
+fi
 
 # install git lfs
 curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash
