@@ -7,9 +7,45 @@ DEFAULT_ARCH=$(dpkg --print-architecture)
 [ -z "$ARCH" ] && [ -f /etc/docker-arch ] && ARCH=$(cat /etc/docker-arch)
 [ -z "$ARCH" ] && ARCH=$DEFAULT_ARCH  
 
+wait_for_cloud_init() {
+  if command -v cloud-init >/dev/null 2>&1; then
+    cloud-init status --wait || true
+  fi
+}
+
+wait_for_apt_lock() {
+  local waited=0
+  local timeout=600
+
+  while true; do
+    if command -v fuser >/dev/null 2>&1; then
+      if ! fuser /var/lib/dpkg/lock-frontend /var/lib/dpkg/lock /var/lib/apt/lists/lock >/dev/null 2>&1; then
+        return 0
+      fi
+    else
+      if ! pgrep -x apt >/dev/null 2>&1 && ! pgrep -x apt-get >/dev/null 2>&1 && ! pgrep -x dpkg >/dev/null 2>&1 && ! pgrep -f unattended-upgrades >/dev/null 2>&1; then
+        return 0
+      fi
+    fi
+
+    sleep 5
+    waited=$((waited + 5))
+    if [ "$waited" -ge "$timeout" ]; then
+      echo "apt/dpkg lock held for more than ${timeout}s, giving up." >&2
+      return 1
+    fi
+  done
+}
+
+wait_apt_ready() {
+  wait_for_cloud_init
+  wait_for_apt_lock
+}
+
 apt_update_retry() {
   local attempt
   for attempt in 1 2 3; do
+    wait_apt_ready
     if apt-get update; then
       return 0
     fi
@@ -21,6 +57,7 @@ apt_update_retry() {
 apt_install_retry() {
   local attempt
   for attempt in 1 2 3; do
+    wait_apt_ready
     if apt-get install -y "$@"; then
       return 0
     fi
@@ -54,8 +91,8 @@ fi
 
 # install git lfs
 curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash
-apt-get update
-apt-get install -y git-lfs
+apt_update_retry
+apt_install_retry git-lfs
 
 if [ "$ARCH" == "armhf" ] && [ "$ARCH" != "$DEFAULT_ARCH" ]; then
   dpkg --add-architecture armhf
@@ -65,8 +102,8 @@ mkdir -p /etc/apt/keyrings
 curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg --batch --yes
 echo "deb [arch=$ARCH signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" > /etc/apt/sources.list.d/docker.list
 
-apt-get update
-apt-get install -y docker-ce:$ARCH docker-ce-cli:$ARCH containerd.io:$ARCH docker-compose-plugin:$ARCH
+apt_update_retry
+apt_install_retry docker-ce:$ARCH docker-ce-cli:$ARCH containerd.io:$ARCH docker-compose-plugin:$ARCH
 
 # Customize for armhf
 if [ "$ARCH" == "armhf" ] && [ "$ARCH" != "$DEFAULT_ARCH" ]; then
