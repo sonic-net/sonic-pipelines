@@ -1,28 +1,41 @@
 #!/bin/bash
 
 set -ex
-
+echo "start"
 ARCH=$1
 DEFAULT_ARCH=$(dpkg --print-architecture)
 [ -z "$ARCH" ] && [ -f /etc/docker-arch ] && ARCH=$(cat /etc/docker-arch)
 [ -z "$ARCH" ] && ARCH=$DEFAULT_ARCH  
 
+echo "Waiting for cloud-init to finish..."
 cloud-init status --wait || true
-echo "cloud-init finished with status: $(cloud-init status)"
+cloud_init_state=$(cloud-init status 2>/dev/null || echo "unknown")
+echo "cloud-init finished with status: $cloud_init_state"
+
+systemctl stop apt-daily.service apt-daily-upgrade.service unattended-upgrades.service 2>/dev/null || true
+systemctl stop apt-daily.timer apt-daily-upgrade.timer 2>/dev/null || true
+systemctl disable apt-daily.timer apt-daily-upgrade.timer 2>/dev/null || true
+systemctl kill --kill-who=all apt-daily.service apt-daily-upgrade.service 2>/dev/null || true
 
 wait_apt() {
   local i=0
-  while sudo fuser /var/lib/dpkg/lock-frontend \
-                  /var/lib/dpkg/lock \
-                  /var/lib/apt/lists/lock >/dev/null 2>&1; do
+  while fuser /var/lib/dpkg/lock-frontend \
+              /var/lib/dpkg/lock \
+              /var/lib/apt/lists/lock >/dev/null 2>&1; do
+    if [ $((i % 15)) -eq 0 ]; then
+      echo "Waiting for apt/dpkg locks... ${i}s elapsed"
+    fi
     sleep 5
     i=$((i+5))
     [ $i -ge 600 ] && { echo "apt locked >10min, giving up"; return 1; }
   done
 }
 
+wait_apt
 apt-get update
+wait_apt
 NEEDRESTART_MODE=l DEBIAN_FRONTEND=noninteractive apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -y upgrade
+wait_apt
 apt-get install -y ca-certificates curl gnupg lsb-release
 
 wait_apt
@@ -32,6 +45,7 @@ apt-get install -y acl
 
 # install git lfs
 curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash
+wait_apt
 apt-get update
 wait_apt
 apt-get install -y git-lfs
