@@ -7,15 +7,42 @@ DEFAULT_ARCH=$(dpkg --print-architecture)
 [ -z "$ARCH" ] && [ -f /etc/docker-arch ] && ARCH=$(cat /etc/docker-arch)
 [ -z "$ARCH" ] && ARCH=$DEFAULT_ARCH
 
-echo "Killing background apt services..."
-systemctl stop apt-daily.service apt-daily-upgrade.service unattended-upgrades.service 2>/dev/null || true
-systemctl stop apt-daily.timer apt-daily-upgrade.timer 2>/dev/null || true
-systemctl disable apt-daily.timer apt-daily-upgrade.timer 2>/dev/null || true
-systemctl kill --kill-who=all apt-daily.service apt-daily-upgrade.service 2>/dev/null || true
-killall -9 apt-get 2>/dev/null || true
-killall -9 python3 2>/dev/null || true
-sleep 2
-echo "Background services killed, proceeding with provisioning..."
+start_health_stub() {
+  cat >/usr/local/bin/health-stub.py <<'PYEOF'
+import http.server, socketserver
+class H(http.server.BaseHTTPRequestHandler):
+    def do_GET(self):
+        if self.path.startswith('/health'):
+            self.send_response(200); self.end_headers(); self.wfile.write(b'OK\n')
+        else:
+            self.send_response(404); self.end_headers()
+    def log_message(self, *a, **k): pass
+socketserver.TCPServer.allow_reuse_address = True
+with socketserver.TCPServer(('127.0.0.1', 8080), H) as s:
+    s.serve_forever()
+PYEOF
+  cat >/etc/systemd/system/health-stub.service <<'UEOF'
+[Unit]
+Description=Provisioning health stub on :8080/health
+After=network.target
+[Service]
+ExecStart=/usr/bin/python3 /usr/local/bin/health-stub.py
+Restart=always
+RestartSec=2
+[Install]
+WantedBy=multi-user.target
+UEOF
+  systemctl daemon-reload
+  systemctl enable --now health-stub.service
+  for i in 1 2 3 4 5 6 7 8 9 10; do
+    curl -fsS http://127.0.0.1:8080/health && break
+    sleep 1
+  done
+}
+start_health_stub
+ 
+echo "Waiting for cloud-init to finish..."
+cloud-init status --wait || true
 
 wait_apt() {
   local i=0
