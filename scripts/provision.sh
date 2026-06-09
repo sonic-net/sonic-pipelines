@@ -7,92 +7,34 @@ DEFAULT_ARCH=$(dpkg --print-architecture)
 [ -z "$ARCH" ] && [ -f /etc/docker-arch ] && ARCH=$(cat /etc/docker-arch)
 [ -z "$ARCH" ] && ARCH=$DEFAULT_ARCH  
 
-wait_for_cloud_init() {
-  if command -v cloud-init >/dev/null 2>&1; then
-    cloud-init status --wait || true
-  fi
-}
+cloud-init status --wait || true
+echo "cloud-init finished with status: $(cloud-init status)"
 
-wait_for_apt_lock() {
-  local waited=0
-  local timeout=600
-
-  while true; do
-    if command -v fuser >/dev/null 2>&1; then
-      if ! fuser /var/lib/dpkg/lock-frontend /var/lib/dpkg/lock /var/lib/apt/lists/lock >/dev/null 2>&1; then
-        return 0
-      fi
-    else
-      if ! pgrep -x apt >/dev/null 2>&1 && ! pgrep -x apt-get >/dev/null 2>&1 && ! pgrep -x dpkg >/dev/null 2>&1 && ! pgrep -f unattended-upgrades >/dev/null 2>&1; then
-        return 0
-      fi
-    fi
-
+wait_apt() {
+  local i=0
+  while sudo fuser /var/lib/dpkg/lock-frontend \
+                  /var/lib/dpkg/lock \
+                  /var/lib/apt/lists/lock >/dev/null 2>&1; do
     sleep 5
-    waited=$((waited + 5))
-    if [ "$waited" -ge "$timeout" ]; then
-      echo "apt/dpkg lock held for more than ${timeout}s, giving up." >&2
-      return 1
-    fi
+    i=$((i+5))
+    [ $i -ge 600 ] && { echo "apt locked >10min, giving up"; return 1; }
   done
-}
-
-wait_apt_ready() {
-  wait_for_cloud_init
-  wait_for_apt_lock
-}
-
-apt_update_retry() {
-  local attempt
-  for attempt in 1 2 3; do
-    wait_apt_ready
-    if apt-get update; then
-      return 0
-    fi
-    echo "apt-get update failed on attempt $attempt, retrying..."
-  done
-  return 1
-}
-
-apt_install_retry() {
-  local attempt
-  for attempt in 1 2 3; do
-    wait_apt_ready
-    if apt-get install -y "$@"; then
-      return 0
-    fi
-    echo "apt-get install failed on attempt $attempt for packages: $*"
-    apt_update_retry || true
-  done
-  return 1
-}
-
-dump_pkg_diagnostics() {
-  local pkg="$1"
-  echo "===== apt diagnostics for package: $pkg ====="
-  echo "ARCH(default/current): $DEFAULT_ARCH/$ARCH"
-  lsb_release -a 2>/dev/null || true
-  dpkg --print-architecture || true
-  dpkg --print-foreign-architectures || true
-  apt-cache policy "$pkg" || true
-  apt-cache madison "$pkg" || true
-  grep -R "^deb " /etc/apt/sources.list /etc/apt/sources.list.d/*.list 2>/dev/null || true
-  grep -R "^Types\\|^URIs\\|^Suites\\|^Components" /etc/apt/sources.list.d/*.sources 2>/dev/null || true
-  echo "===== end apt diagnostics =====" >&2
 }
 
 apt-get update
 NEEDRESTART_MODE=l DEBIAN_FRONTEND=noninteractive apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -y upgrade
 apt-get install -y ca-certificates curl gnupg lsb-release
-if ! apt_install_retry acl; then
-  dump_pkg_diagnostics acl
-  echo "acl install failed during provisioning; continuing without acl."
-fi
+
+wait_apt
+apt-get update
+wait_apt
+apt-get install -y acl
 
 # install git lfs
 curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash
-apt_update_retry
-apt_install_retry git-lfs
+apt-get update
+wait_apt
+apt-get install -y git-lfs
 
 if [ "$ARCH" == "armhf" ] && [ "$ARCH" != "$DEFAULT_ARCH" ]; then
   dpkg --add-architecture armhf
@@ -102,8 +44,9 @@ mkdir -p /etc/apt/keyrings
 curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg --batch --yes
 echo "deb [arch=$ARCH signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" > /etc/apt/sources.list.d/docker.list
 
-apt_update_retry
-apt_install_retry docker-ce:$ARCH docker-ce-cli:$ARCH containerd.io:$ARCH docker-compose-plugin:$ARCH
+apt-get update
+wait_apt
+apt-get install -y docker-ce:$ARCH docker-ce-cli:$ARCH containerd.io:$ARCH docker-compose-plugin:$ARCH
 
 # Customize for armhf
 if [ "$ARCH" == "armhf" ] && [ "$ARCH" != "$DEFAULT_ARCH" ]; then
@@ -140,5 +83,6 @@ usermod -a -G docker azureuser || true
 cat /etc/passwd /etc/group || true
 
 # Install build tools (and waiting docker ready)
+wait_apt
 apt-get install -y build-essential nfs-common python3-pip python3-setuptools python3-pip python-is-python3
 pip3 install jinja2 j2cli markupsafe
