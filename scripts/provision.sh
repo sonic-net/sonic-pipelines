@@ -7,15 +7,22 @@ DEFAULT_ARCH=$(dpkg --print-architecture)
 [ -z "$ARCH" ] && [ -f /etc/docker-arch ] && ARCH=$(cat /etc/docker-arch)
 [ -z "$ARCH" ] && ARCH=$DEFAULT_ARCH  
 
-echo "Waiting for cloud-init to finish..."
-cloud-init status --wait || true
-cloud_init_state=$(cloud-init status 2>/dev/null || echo "unknown")
-echo "cloud-init finished with status: $cloud_init_state"
+# echo "Waiting for cloud-init to finish..."
+# echo "Before cloud-init wait"
+# if timeout 300 cloud-init status --wait; then
+#   echo "After cloud-init wait"
+# else
+#   cloud_init_wait_rc=$?
+#   echo "cloud-init wait exited with code ${cloud_init_wait_rc}, continuing"
+# fi
+# cloud_init_state=$(cloud-init status 2>/dev/null || true)
+# [ -z "$cloud_init_state" ] && cloud_init_state="unknown"
+# echo "cloud-init finished with status: $cloud_init_state"
 
-systemctl stop apt-daily.service apt-daily-upgrade.service unattended-upgrades.service 2>/dev/null || true
-systemctl stop apt-daily.timer apt-daily-upgrade.timer 2>/dev/null || true
-systemctl disable apt-daily.timer apt-daily-upgrade.timer 2>/dev/null || true
-systemctl kill --kill-who=all apt-daily.service apt-daily-upgrade.service 2>/dev/null || true
+# systemctl stop apt-daily.service apt-daily-upgrade.service unattended-upgrades.service 2>/dev/null || true
+# systemctl stop apt-daily.timer apt-daily-upgrade.timer 2>/dev/null || true
+# systemctl disable apt-daily.timer apt-daily-upgrade.timer 2>/dev/null || true
+# systemctl kill --kill-who=all apt-daily.service apt-daily-upgrade.service 2>/dev/null || true
 
 wait_apt() {
   local i=0
@@ -41,7 +48,7 @@ apt-get install -y ca-certificates curl gnupg lsb-release
 wait_apt
 apt-get update
 wait_apt
-apt-get install -y acl
+apt-get install -y acl || sleep 3000
 
 # install git lfs
 curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash
