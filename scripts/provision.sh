@@ -13,7 +13,7 @@ apt_update_retry() {
     if apt-get update; then
       return 0
     fi
-    echo "apt-get update failed on attempt $attempt, retrying..." >&2
+    echo "apt-get update failed on attempt $attempt, retrying..."
   done
   return 1
 }
@@ -24,7 +24,7 @@ apt_install_retry() {
     if apt-get install -y "$@"; then
       return 0
     fi
-    echo "apt-get install failed on attempt $attempt for packages: $*" >&2
+    echo "apt-get install failed on attempt $attempt for packages: $*"
     apt_update_retry || true
   done
   return 1
@@ -32,8 +32,8 @@ apt_install_retry() {
 
 dump_pkg_diagnostics() {
   local pkg="$1"
-  echo "===== apt diagnostics for package: $pkg =====" >&2
-  echo "ARCH(default/current): $DEFAULT_ARCH/$ARCH" >&2
+  echo "===== apt diagnostics for package: $pkg ====="
+  echo "ARCH(default/current): $DEFAULT_ARCH/$ARCH"
   lsb_release -a 2>/dev/null || true
   dpkg --print-architecture || true
   dpkg --print-foreign-architectures || true
@@ -44,12 +44,12 @@ dump_pkg_diagnostics() {
   echo "===== end apt diagnostics =====" >&2
 }
 
-apt_update_retry
+apt-get update
 NEEDRESTART_MODE=l DEBIAN_FRONTEND=noninteractive apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -y upgrade
-apt_install_retry ca-certificates curl gnupg lsb-release
+apt-get install -y ca-certificates curl gnupg lsb-release
 if ! apt_install_retry acl; then
   dump_pkg_diagnostics acl
-  echo "acl install failed during provisioning; continuing without acl." >&2
+  echo "acl install failed during provisioning; continuing without acl."
 fi
 
 # install git lfs
