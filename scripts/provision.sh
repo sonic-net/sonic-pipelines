@@ -6,6 +6,16 @@ export DEBIAN_FRONTEND=noninteractive
 export NEEDRESTART_MODE=a
 export NEEDRESTART_SUSPEND=1
 
+apt-get -y purge --auto-remove needrestart || true
+apt-mark hold needrestart || true
+ 
+mkdir -p /etc/needrestart/conf.d
+cat > /etc/needrestart/conf.d/99-no-prompt.conf <<'EOF'
+$nrconf{restart} = 'a';
+$nrconf{kernelhints} = 0;
+$nrconf{ucodehints} = 0;
+EOF
+
 ARCH=$1
 DEFAULT_ARCH=$(dpkg --print-architecture)
 [ -z "$ARCH" ] && [ -f /etc/docker-arch ] && ARCH=$(cat /etc/docker-arch)
@@ -72,3 +82,8 @@ cat /etc/passwd /etc/group || true
 # Install build tools (and waiting docker ready)
 apt-get install -y build-essential nfs-common python3-pip python3-setuptools python3-pip python-is-python3
 pip3 install jinja2 j2cli markupsafe
+
+if [ -f /var/run/reboot-required ]; then
+   echo "Kernel/libs upgraded — rebooting"
+   systemctl reboot
+ fi
