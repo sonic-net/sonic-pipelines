@@ -118,7 +118,7 @@ jobs:
                 comment_pr "$url" "The backport request for branch(es) $branches_to_remove has been removed from PR description. Removed label(s)...."
                 echo "Removed labels for branch(es) $labels_to_remove for $url" >> cherry_pick_scan.log
               else
-                echo "Failed to remove label(s) for branch(es) $branches_to_remove for $url"
+                echo "Failed to remove label(s) for branch(es) $branches_to_remove for $url" >> cherry_pick_scan.log
               fi
             fi
           done
@@ -128,5 +128,54 @@ jobs:
         set -ex
         [ -f cherry_pick_scan.log ] && cat cherry_pick_scan.log
       displayName: show cherry pick scanning result
+      condition: always()
+    - script: |
+        set -ex
+        rm -f workflow_scan.log
+        comment_watermark='<div align="right"><sub>---Powered by SONiC BuildBot</sub></div>'
+        comment_pr() {
+          local pr_url=$1
+          local comment_body=$2
+          local full_body=$(printf "%s\n\n%s" "$comment_body" "$comment_watermark")
+          gh pr comment "$pr_url" --body "$full_body"
+        }
+        repos="${{ parameters.repos }}"
+        for repo in $repos $(EXTRA_REPOS); do
+          echo ======== checking waiting workflow runs for $repo ========
+          repo_owner=$(echo "$repo" | cut -d'/' -f1)
+          repo_name=$(echo "$repo" | cut -d'/' -f2)
+          waiting_runs=$(gh run list -R "$repo" --status action_required --json name,headSha --jq '.[] | select(.name == "CodeQL" or .name == "Semgrep") | .headSha' | sort -u)
+          for run in $waiting_runs; do
+            pr_info=$(gh pr list -R "$repo" --search "$run" --state open --json url,comments,reviewDecision,headRefOid --jq '.[0] // empty')
+            if [[ -n "$pr_info" ]]; then
+              pr_url=$(printf '%s' "$pr_info" | jq -r .url)
+              pr_head_sha=$(printf '%s' "$pr_info" | jq -r .headRefOid)
+              if [[ "$run" != "$pr_head_sha" ]]; then
+                echo "Workflow run $run is not the latest commit ($pr_head_sha) for $pr_url, skipping..." >> workflow_scan.log
+                continue
+              fi
+              pr_comments=$(printf '%s' "$pr_info" | jq -c .comments)
+              pr_review_decision=$(printf '%s' "$pr_info" | jq -r .reviewDecision)
+              if [[ "$pr_review_decision" == "APPROVED" ]]; then
+                comment_pr "$pr_url" "Hi @$${repo_name}-maintainers, this approved PR has workflow run(s) waiting for approval. Please help review. Thanks!"
+                echo "Approved PR $pr_url has workflow run $run waiting for approval, left comment to notify maintainers." >> workflow_scan.log
+                continue
+              fi
+              pending_msg="Hi, there are workflow run(s) waiting for approval, you may be first-time contributor. I will notify maintainers to help approve once PR is approved. Thanks!"
+              if echo "$pr_comments" | jq -e '.[]? | select(((.author.login // "") == "mssonicbld") and ((.body // "") | test("workflow run\\(s\\) waiting for approval"; "i")))' > /dev/null; then
+                echo "Already commented about waiting workflow run for $pr_url, skipping..." >> workflow_scan.log
+              else
+                comment_pr "$pr_url" "$pending_msg"
+                echo "Left comment to notify contributor for $pr_url about waiting workflow run(s)." >> workflow_scan.log
+              fi
+            fi
+          done
+        done
+      displayName: scan for action required workflows
+      condition: always()
+    - script: |
+        set -ex
+        [ -f workflow_scan.log ] && cat workflow_scan.log
+      displayName: show action required workflow scanning result
       condition: always()
     
