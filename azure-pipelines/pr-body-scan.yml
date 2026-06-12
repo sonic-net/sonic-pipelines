@@ -142,8 +142,7 @@ jobs:
         repos="${{ parameters.repos }}"
         for repo in $repos $(EXTRA_REPOS); do
           echo ======== checking waiting workflow runs for $repo ========
-          repo_owner=$(echo "$repo" | cut -d'/' -f1)
-          repo_name=$(echo "$repo" | cut -d'/' -f2)
+          repo_maintainer=${repo}-maintainer
           waiting_runs=$(gh run list -R "$repo" --status action_required --json name,headSha --jq '.[] | select(.name == "CodeQL" or .name == "Semgrep") | .headSha' | sort -u)
           for run in $waiting_runs; do
             pr_info=$(gh pr list -R "$repo" --search "$run" --state open --json url,comments,reviewDecision,headRefOid --jq '.[0] // empty')
@@ -157,7 +156,7 @@ jobs:
               pr_comments=$(printf '%s' "$pr_info" | jq -c .comments)
               pr_review_decision=$(printf '%s' "$pr_info" | jq -r .reviewDecision)
               if [[ "$pr_review_decision" == "APPROVED" ]]; then
-                comment_pr "$pr_url" "Hi @$${repo_name}-maintainers, this approved PR has workflow run(s) waiting for approval. Please help review. Thanks!"
+                comment_pr "$pr_url" "Hi @$repo_maintainer, this approved PR has workflow run(s) waiting for approval. Please help review. Thanks!"
                 echo "Approved PR $pr_url has workflow run $run waiting for approval, left comment to notify maintainers." >> workflow_scan.log
                 continue
               fi
