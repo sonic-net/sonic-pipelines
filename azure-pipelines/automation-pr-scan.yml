@@ -236,6 +236,10 @@ jobs:
                 continue
               fi
               if ! echo "$comments" | jq -e --arg base_branch "$base_branch" '.[]? | select(((.author.login // "") == "mssonicbld") and ((.body // "") | test("Cherry-pick PR to " + $base_branch; "i")))' > /dev/null; then
+                if echo "$comments" | jq -e '.[]? | select(((.author.login // "") == "mssonicbld") and ((.body // "") | test("submodule update. Please manually cherry pick!"; "i")))' > /dev/null; then
+                  echo "submodule update detected, skip for $url" >> label_scan.log
+                  continue
+                fi
                 if echo "$comments" | jq -e '.[]? | select(((.author.login // "") == "mssonicbld") and ((.body // "") | test("Removing approved label and adding it again to trigger cherry pick workflow"; "i")))' > /dev/null; then
                   comment_pr "$url" "Cherry pick PR is not created after readding the approved label. @yijingyan2, please help check if the cherry pick workflow is working. Thanks!"
                   echo "Commented to let yijingyan2 check cherry pick workflow for $url" >> label_scan.log
