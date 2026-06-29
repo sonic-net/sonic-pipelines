@@ -81,7 +81,10 @@ cat /etc/passwd /etc/group || true
 
 # Install build tools (and waiting docker ready)
 apt-get install -y build-essential nfs-common python3-pip python3-setuptools python3-pip python-is-python3
-pip3 install jinja2 j2cli markupsafe
+
+# Install uv (system-wide) and use it to install Python packages without pip
+curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR=/usr/local/bin sh
+uv pip install --system jinja2 j2cli markupsafe
 
 if [ -f /var/run/reboot-required ]; then
    echo "Kernel/libs upgraded — rebooting"
