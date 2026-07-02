@@ -39,6 +39,9 @@ check_conflict(){
     git status
     contains_submodule=""
     if [[ "$PR_MERGED" == "true" ]];then
+        # PR_COMMIT_SHA is the squash/merge commit on master. Fetch it directly
+        # so git reset can resolve it regardless of how far master has moved on.
+        git fetch head $PR_COMMIT_SHA
         git reset $PR_COMMIT_SHA --hard
         if git show HEAD | grep -Eo "^\+Subproject commit "; then
             contains_submodule="true"
