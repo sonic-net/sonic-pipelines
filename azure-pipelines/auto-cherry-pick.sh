@@ -34,6 +34,7 @@ check_conflict(){
         newpr_base="$ORG/$REPO"
     fi
     git remote update
+    git fetch head $PR_BASE_BRANCH --depth=100
     git status
     git checkout -b $PR_BASE_BRANCH --track head/$PR_BASE_BRANCH
     git status
