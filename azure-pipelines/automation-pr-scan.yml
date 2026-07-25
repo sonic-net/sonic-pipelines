@@ -79,7 +79,7 @@ jobs:
               if echo "$title" | grep -Fq "Upgrade SONiC package Versions" && ! echo $pr | jq -e '.labels[]? | select(.name == "automerge")' > /dev/null; then
                 gh pr edit $url -R $repo --add-label automerge
               fi
-              origin_pr_url=$(echo $pr | jq .comments[].body -r | grep '^Original PR: ' | grep -Eo "https://github.com/.*/pull/[0-9]*" || true)
+              origin_pr_url=$(echo $pr | jq .comments[].body -r | grep '^Original PR: ' | grep -Eo "https://github.com/.*/pull/[0-9]*" | head -n1 || true)
               created_at=$(echo $pr | jq .createdAt -r)
               checks=$(echo $pr | jq .statusCheckRollup)
               base_ref=$(echo $pr | jq .baseRefName -r)
