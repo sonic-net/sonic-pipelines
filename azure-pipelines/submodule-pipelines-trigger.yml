@@ -101,7 +101,7 @@ stages:
       buildimageSha: $[ stageDependencies.ResolveCommit.Resolve.outputs['resolve.buildimageSha'] ]
     jobs:
     - ${{ each pipeline in level.pipelines }}:
-      - job:
+      - job: trigger_${{ replace(replace(pipeline.key, '/', '_'), '-', '_') }}
         pool: sonic-ubuntu-1c
         displayName: '${{ pipeline.key }}'
         timeoutInMinutes: 540
