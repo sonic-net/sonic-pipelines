@@ -32,6 +32,10 @@ steps:
       pushd sonic-buildimage-msft
       [ -z "$branches" ] && exit 1
       for branch in $branches; do
+        if [[ ",${SKIP_BRANCHES//[[:space:]]/}," == *",$branch,"* ]]; then
+          echo "======Skipping code sync for $branch======"
+          continue
+        fi
         branch_base=$branch
         branch_head=$branch
         remote=head
