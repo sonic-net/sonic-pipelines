@@ -9,6 +9,9 @@
 trigger: none
 pr: none
 
+variables:
+- group: sonicbld
+
 parameters:
 - name: targetProject
   type: string
@@ -16,11 +19,25 @@ parameters:
 - name: VSbBuildPipelineId
   type: string
   default: '142'
+- name: validationBranch
+  type: string
+  default: 'commit-validation'
 - name: levels
   type: object
   default:
-  - name: level0
+  - name: prerequisites
     dependsOn: [ResolveCommit]
+    pipelines:
+      docker_slave_trixie: '3006'
+      docker_slave_bookworm: '1148'
+      sonic_buildimage_ubuntu22_04: '1055'
+  - name: buildimage
+    dependsOn: [ResolveCommit, prerequisites]
+    timeoutInMinutes: 900
+    pipelines:
+      buildimage_vs: '142'
+  - name: level0
+    dependsOn: [ResolveCommit, buildimage]
     pipelines:
       common_libs: '465'
       src/sonic-dash-api: '1318'
@@ -104,29 +121,42 @@ stages:
       - job: trigger_${{ replace(replace(pipeline.key, '/', '_'), '-', '_') }}
         pool: sonic-ubuntu-1c
         displayName: '${{ pipeline.key }}'
-        timeoutInMinutes: 540
+        timeoutInMinutes: ${{ coalesce(level.timeoutInMinutes, 540) }}
         steps:
-        - checkout: none
+        - checkout: self
         - bash: |
             set -e
             command -v az >/dev/null || curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
           displayName: 'Install Azure CLI'
         - task: AzureCLI@2
           displayName: 'Trigger ${{ pipeline.key }} pipeline'
+          env:
+            GH_TOKEN: $(GITHUB-TOKEN)
           inputs:
             azureSubscription: 'mssonic-automation-umi'
             scriptType: bash
             scriptLocation: inlineScript
             inlineScript: |
-              set -e
+              set -euo pipefail
               az extension add --name azure-devops --yes
               export AZURE_DEVOPS_EXT_PAT=$(az account get-access-token \
                 --resource 499b84ac-1321-427f-aa17-267ca6975798 --query accessToken -o tsv)
+              VALIDATION_BRANCH='${{ parameters.validationBranch }}'
+              VALIDATION_BRANCH="${VALIDATION_BRANCH#refs/heads/}"
+              if [ -z "$VALIDATION_BRANCH" ] || [ "$VALIDATION_BRANCH" = master ]; then
+                echo "Refusing to update or queue master; validationBranch must be non-master"
+                exit 1
+              fi
+              VALIDATION_BRANCH_REF="refs/heads/$VALIDATION_BRANCH"
+              rm -rf buildimage
               git clone https://github.com/sonic-net/sonic-buildimage buildimage
               cd buildimage
               git checkout $(buildimageSha)
-              mkdir -p "$(Pipeline.Workspace)/commits"
-              if [ "${{ pipeline.key }}" = "common_libs" ]; then
+              if [ "${{ pipeline.key }}" = "common_libs" ] || \
+                [ "${{ pipeline.key }}" = "docker_slave_trixie" ] || \
+                [ "${{ pipeline.key }}" = "docker_slave_bookworm" ] || \
+                [ "${{ pipeline.key }}" = "sonic_buildimage_ubuntu22_04" ] || \
+                [ "${{ pipeline.key }}" = "buildimage_vs" ]; then
                 SHA=$(git rev-parse HEAD)
               else
                 SHA=$(git ls-tree HEAD '${{ pipeline.key }}' | awk '{print $3}')
@@ -136,12 +166,19 @@ stages:
                 exit 1
               fi
               echo "Pinned commit for ${{ pipeline.key }}: $SHA"
+              REPOSITORY_TYPE=$(az pipelines show --id ${{ pipeline.value }} --project ${{ parameters.targetProject }} --organization "$(System.CollectionUri)" --query repository.type -o tsv)
+              REPOSITORY_NAME=$(az pipelines show --id ${{ pipeline.value }} --project ${{ parameters.targetProject }} --organization "$(System.CollectionUri)" --query repository.name -o tsv)
+              if [ "$REPOSITORY_TYPE" != GitHub ] || [ -z "$REPOSITORY_NAME" ]; then
+                echo "Pipeline ${{ pipeline.value }} does not have a supported GitHub repository"
+                exit 1
+              fi
+              python3 "$(Build.SourcesDirectory)/azure-pipelines/scripts/update-commit-validation-branch.py" --repository "$REPOSITORY_NAME" --branch "$VALIDATION_BRANCH" --commit "$SHA"
               run_pipeline() {
                 RUN_ID=$(az pipelines run \
                   --id ${{ pipeline.value }} \
                   --project ${{ parameters.targetProject }} \
                   --commit-id $SHA \
-                  --branch refs/heads/master \
+                  --branch "$VALIDATION_BRANCH_REF" \
                   --organization "$(System.CollectionUri)" \
                   --query id -o tsv)
                 if [ -z "$RUN_ID" ]; then
@@ -232,8 +269,11 @@ stages:
               fi
               # Publish the validated commit as a pipeline artifact for the CreatePR stage
               SAFE_KEY=$(echo '${{ pipeline.key }}' | tr '/' '_')
-              echo "${{ pipeline.key }}=$SHA" > "$(Pipeline.Workspace)/commits/${SAFE_KEY}"
-        - publish: $(Pipeline.Workspace)/commits
+              COMMIT_DIR="$(Agent.TempDirectory)/commit-record"
+              rm -rf "$COMMIT_DIR"
+              mkdir -p "$COMMIT_DIR"
+              echo "${{ pipeline.key }}=$SHA" > "$COMMIT_DIR/${SAFE_KEY}"
+        - publish: $(Agent.TempDirectory)/commit-record
           artifact: commits_${{ level.name }}_${{ replace(pipeline.key, '/', '_') }}
           displayName: 'Publish commit record'
   
@@ -243,8 +283,6 @@ stages:
   - ${{ each level in parameters.levels }}:
     - ${{ level.name }}
   condition: succeeded()
-  variables:
-  - group: sonicbld
   jobs:
   - job: CreatePR
     pool: sonic-ubuntu-1c
@@ -284,6 +322,7 @@ stages:
           echo "$RECORD"
 
           # Clone latest master to base the PR on
+          rm -rf buildimage
           git clone --depth=1 https://github.com/sonic-net/sonic-buildimage buildimage
           cd buildimage
           git config user.email "sonicbld@microsoft.com"
