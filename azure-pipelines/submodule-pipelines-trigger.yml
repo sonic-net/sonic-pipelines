@@ -2,8 +2,8 @@
 # sonic-buildimage. Level 0 runs first; only after every Level-0 pipeline succeeds does
 # Level 1 start, then Level 2, and so on.
 #
-# Finds the latest successful run of the sonic-buildimage official pipeline, reads the
-# commit it built, then for each level resolves every submodule SHA pinned at that commit
+# Resolves the latest sonic-buildimage master commit, then for each level resolves every
+# submodule SHA pinned at that commit
 # and queues the matching pipeline, waiting for the whole level to finish before the next.
 
 trigger: none
@@ -16,9 +16,6 @@ parameters:
 - name: targetProject
   type: string
   default: build
-- name: VSbBuildPipelineId
-  type: string
-  default: '142'
 - name: validationBranch
   type: string
   default: 'commit-validation'
@@ -79,38 +76,16 @@ stages:
     steps:
     - checkout: none
     - bash: |
-        set -e
-        command -v az >/dev/null || curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
-      displayName: 'Install Azure CLI'
-    - task: AzureCLI@2
+        set -euo pipefail
+        SHA=$(git ls-remote https://github.com/sonic-net/sonic-buildimage.git refs/heads/master | awk '{print $1}')
+        if [ -z "$SHA" ]; then
+          echo "Could not resolve the latest sonic-buildimage master commit"
+          exit 1
+        fi
+        echo "Latest sonic-buildimage master commit: $SHA"
+        echo "##vso[task.setvariable variable=buildimageSha;isOutput=true]$SHA"
       name: resolve
-      displayName: 'Resolve sonic-buildimage commit'
-      inputs:
-        azureSubscription: 'mssonic-automation-umi'
-        scriptType: bash
-        scriptLocation: inlineScript
-        inlineScript: |
-          set -e
-          az extension add --name azure-devops --yes
-          AZURE_DEVOPS_EXT_PAT=$(az account get-access-token \
-            --resource 499b84ac-1321-427f-aa17-267ca6975798 --query accessToken -o tsv)
-          export AZURE_DEVOPS_EXT_PAT
-          SHA=$(az pipelines runs list \
-            --pipeline-ids ${{ parameters.VSbBuildPipelineId }} \
-            --project ${{ parameters.targetProject }} \
-            --organization "$(System.CollectionUri)" \
-            --branch refs/heads/master \
-            --result succeeded \
-            --status completed \
-            --top 1 \
-            --query-order FinishTimeDesc \
-            --query "[0].sourceVersion" -o tsv)
-          if [ -z "$SHA" ]; then
-            echo "No successful run found for pipeline ${{ parameters.VSbBuildPipelineId }}"
-            exit 1
-          fi
-          echo "sonic-buildimage commit from latest successful run: $SHA"
-          echo "##vso[task.setvariable variable=buildimageSha;isOutput=true]$SHA"
+      displayName: 'Resolve latest sonic-buildimage master commit'
 - ${{ each level in parameters.levels }}:
   - stage: ${{ level.name }}
     dependsOn: ${{ level.dependsOn }}

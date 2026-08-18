@@ -10,9 +10,8 @@ commits.
 
 ## What it does
 
-1. **Resolve the buildimage commit.** Finds the latest *successful* run of the
-   `sonic-buildimage` official build pipeline (`VSbBuildPipelineId`, default `142`) on
-   `master` and reads the commit (`sourceVersion`) it built.
+1. **Resolve the buildimage commit.** Reads the latest commit on the `sonic-buildimage`
+   `master` branch and uses that exact SHA throughout the run.
 2. **Trigger submodules, level by level.** For each dependency level, in order, it resolves
    every submodule's pinned SHA, creates or force-updates the repository's non-master
    validation branch at that SHA, and queues the matching build pipeline on that branch.
@@ -27,12 +26,12 @@ commits.
 
 ```
 ResolveCommit
-   └─> prerequisites ─> buildimage ─> level0 ─> level1 ─> level2 ─> level3 ─> CreatePR
+   └─> prerequisites ─> level0 ─> level1 ─> level2 ─> level3 ─> CreatePR
 ```
 
-Each validation stage depends on `ResolveCommit` (to read the buildimage SHA output) **and**
-on the previous stage (to enforce ordering). `CreatePR` depends on `ResolveCommit` and all
-validation stages, and runs only on `succeeded()`.
+Each `levelN` stage depends on `ResolveCommit` (to read the buildimage SHA output) **and**
+on the previous level (to enforce ordering). `CreatePR` depends on `ResolveCommit` and all
+levels, and runs only on `succeeded()`.
 
 ## Dependency levels
 
@@ -41,26 +40,24 @@ Within a level, all submodule pipelines run **in parallel** (one job each).
 
 | Level | Submodules (path → pipeline id) |
 |-------|----------------------------------|
-| prerequisites | `docker_slave_trixie` (3006), `docker_slave_bookworm` (1148), `sonic_buildimage_ubuntu22_04` (1055) |
-| buildimage | `buildimage_vs` (142) |
+| prerequisites | `docker_slave_trixie` (3006), `docker_slave_bookworm` (1148), `sonic-buildimage-ubuntu22.04` (1055) |
 | level0 | `common_libs` (465), `src/sonic-dash-api` (1318) |
 | level1 | `platform/vpp` (1016), `src/sonic-swss-common` (9), `src/sonic-platform-common` (42), `src/sonic-platform-daemons` (41), `src/sonic-host-services` (935), `src/sonic-mgmt-framework` (130), `src/sonic-mgmt-common` (127), `src/sonic-snmpagent` (106), `src/sonic-dbsyncd` (110) |
 | level2 | `src/sonic-sairedis` (12), `src/sonic-gnmi` (934), `src/sonic-utilities` (55), `src/sonic-bmp` (1565), `src/sonic-dash-ha` (2351), `src/linkmgrd` (388), `src/dhcpmon` (901), `src/dhcprelay` (487), `src/sonic-stp` (84), `src/wpasupplicant/sonic-wpa-supplicant` (5) |
 | level3 | `src/sonic-swss` (15) |
 
-> `docker_slave_trixie`, `docker_slave_bookworm`, `sonic_buildimage_ubuntu22_04`,
-> `buildimage_vs`, and `common_libs` are buildimage pipelines rather than submodule
-> gitlinks, so they use the buildimage commit itself (`git rev-parse HEAD`). All other
-> entries resolve their pinned commit via `git ls-tree <buildimageSha> <path>`.
+> `docker_slave_trixie`, `docker_slave_bookworm`, `sonic_buildimage_ubuntu22_04`, and
+> `common_libs` are buildimage pipelines rather than submodule gitlinks, so they use the
+> buildimage commit itself (`git rev-parse HEAD`). All other entries resolve their pinned commit via
+> `git ls-tree <buildimageSha> <path>`.
 
 ## Parameters
 
 | Name | Type | Default | Description |
 |------|------|---------|-------------|
 | `targetProject` | string | `build` | Azure DevOps project that hosts the submodule pipelines. |
-| `VSbBuildPipelineId` | string | `142` | Pipeline id of the `sonic-buildimage` official build, used to resolve the reference commit. |
 | `validationBranch` | string | `commit-validation` | Non-master branch used to queue component pipelines. Empty and `master` values are rejected before any component run is queued. |
-| `levels` | object | see above | Ordered list of levels; each has `name`, `dependsOn` (list), a `pipelines` map of `submodule-path: pipeline-id`, and may override `timeoutInMinutes`. |
+| `levels` | object | see above | Ordered list of levels; each has `name`, `dependsOn` (list), and a `pipelines` map of `submodule-path: pipeline-id`. |
 
 ## How a submodule job works
 
@@ -79,9 +76,8 @@ For each `submodule-path: pipeline-id` in a level:
 5. Publish the validated `path=sha` record as a pipeline artifact
    (`commits_<level>_<safe-path>`) for the `CreatePR` stage.
 
-Jobs use `timeoutInMinutes: 540` (9h) by default — this is the ceiling for a single
-component build plus queue/poll time. The `buildimage` stage overrides the timeout to
-`900` minutes (15h) for its `buildimage_vs` job.
+Each job has `timeoutInMinutes: 540` (9h) — this is the ceiling for a single submodule
+build plus queue/poll time.
 
 ## Requirements
 
@@ -103,8 +99,7 @@ The pipeline expects the following to already exist in the Azure DevOps org / ta
 ## Running it
 
 Trigger the pipeline manually (or on a schedule) from Azure DevOps. To override a default,
-supply the parameter at queue time — e.g. point at a different reference build with
-`VSbBuildPipelineId`, queue component runs against another branch with
+supply the parameter at queue time — e.g. queue component runs against another branch with
 `validationBranch`, or target a different project with `targetProject`.
 
 ## Adding or reordering a submodule
@@ -120,8 +115,8 @@ Edit the `levels` parameter default:
 ## The validation PR
 
 `CreatePR` assembles all published `path=sha` records, commits them to a
-`validated-submodule-commits` tracking file on the fixed `validated-submodules` branch in
-the `mssonicbld` fork, and opens (or updates) a PR targeting `master` titled
+`validated-submodule-commits` tracking file on the `validated-submodules` branch in the
+`mssonicbld` fork, and opens (or updates) a PR titled
 `[validated] Submodule pipeline runs passed for <buildimageSha>` with the `automerge` label.
 If a PR for the branch already exists, the branch is force-pushed and the existing PR is
 re-labeled instead of failing.
