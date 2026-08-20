@@ -2,9 +2,8 @@
 # sonic-buildimage. Level 0 runs first; only after every Level-0 pipeline succeeds does
 # Level 1 start, then Level 2, and so on.
 #
-# Resolves the latest sonic-buildimage master commit, then for each level resolves every
-# submodule SHA pinned at that commit
-# and queues the matching pipeline, waiting for the whole level to finish before the next.
+# Resolves the latest sonic-buildimage master commit, updates every repository's validation
+# branch to its pinned commit, then queues the matching pipelines level by level.
 
 trigger: none
 pr: none
@@ -86,9 +85,68 @@ stages:
         echo "##vso[task.setvariable variable=buildimageSha;isOutput=true]$SHA"
       name: resolve
       displayName: 'Resolve latest sonic-buildimage master commit'
+- stage: PrepareBranches
+  dependsOn: ResolveCommit
+  variables:
+    buildimageSha: $[ stageDependencies.ResolveCommit.Resolve.outputs['resolve.buildimageSha'] ]
+  jobs:
+  - job: UpdateValidationBranches
+    pool: sonic-ubuntu-1c
+    steps:
+    - checkout: self
+    - bash: |
+        set -e
+        command -v az >/dev/null || curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+      displayName: 'Install Azure CLI'
+    - task: AzureCLI@2
+      displayName: 'Update all validation branches'
+      env:
+        GH_TOKEN: $(GITHUB-TOKEN)
+        LEVELS_JSON: ${{ convertToJson(parameters.levels) }}
+      inputs:
+        azureSubscription: 'mssonic-automation-umi'
+        scriptType: bash
+        scriptLocation: inlineScript
+        inlineScript: |
+          set -euo pipefail
+          az extension add --name azure-devops --yes
+          VALIDATION_BRANCH='${{ parameters.validationBranch }}'
+          VALIDATION_BRANCH="${VALIDATION_BRANCH#refs/heads/}"
+          if [ -z "$VALIDATION_BRANCH" ] || [ "$VALIDATION_BRANCH" = master ]; then
+            echo "Refusing to update master; validationBranch must be non-master"
+            exit 1
+          fi
+          rm -rf buildimage
+          git clone https://github.com/sonic-net/sonic-buildimage buildimage
+          cd buildimage
+          git checkout $(buildimageSha)
+          while IFS=$'\t' read -r PIPELINE_KEY PIPELINE_ID; do
+            case "$PIPELINE_KEY" in
+              common_libs|docker_slave_trixie|docker_slave_bookworm|sonic_buildimage_ubuntu22_04|buildimage_vs)
+                SHA=$(git rev-parse HEAD)
+                ;;
+              *)
+                SHA=$(git ls-tree HEAD "$PIPELINE_KEY" | awk '{print $3}')
+                ;;
+            esac
+            if [ -z "$SHA" ]; then
+              echo "No pinned commit found for $PIPELINE_KEY at $(buildimageSha); the path is likely wrong or the submodule was removed"
+              exit 1
+            fi
+            REPOSITORY_TYPE=$(az pipelines show --id "$PIPELINE_ID" --project ${{ parameters.targetProject }} --organization "$(System.CollectionUri)" --query repository.type -o tsv)
+            REPOSITORY_NAME=$(az pipelines show --id "$PIPELINE_ID" --project ${{ parameters.targetProject }} --organization "$(System.CollectionUri)" --query repository.name -o tsv)
+            if [ "$REPOSITORY_TYPE" != GitHub ] || [ -z "$REPOSITORY_NAME" ]; then
+              echo "Pipeline $PIPELINE_ID does not have a supported GitHub repository"
+              exit 1
+            fi
+            python3 "$(Build.SourcesDirectory)/azure-pipelines/scripts/update-commit-validation-branch.py" --repository "$REPOSITORY_NAME" --branch "$VALIDATION_BRANCH" --commit "$SHA"
+          done < <(python3 -c 'import json, os; levels = json.loads(os.environ["LEVELS_JSON"]); [print(f"{key}\t{value}") for level in levels for key, value in level["pipelines"].items()]')
 - ${{ each level in parameters.levels }}:
   - stage: ${{ level.name }}
-    dependsOn: ${{ level.dependsOn }}
+    dependsOn:
+    - PrepareBranches
+    - ${{ each dependency in level.dependsOn }}:
+      - ${{ dependency }}
     variables:
       buildimageSha: $[ stageDependencies.ResolveCommit.Resolve.outputs['resolve.buildimageSha'] ]
     jobs:
@@ -141,13 +199,6 @@ stages:
                 exit 1
               fi
               echo "Pinned commit for ${{ pipeline.key }}: $SHA"
-              REPOSITORY_TYPE=$(az pipelines show --id ${{ pipeline.value }} --project ${{ parameters.targetProject }} --organization "$(System.CollectionUri)" --query repository.type -o tsv)
-              REPOSITORY_NAME=$(az pipelines show --id ${{ pipeline.value }} --project ${{ parameters.targetProject }} --organization "$(System.CollectionUri)" --query repository.name -o tsv)
-              if [ "$REPOSITORY_TYPE" != GitHub ] || [ -z "$REPOSITORY_NAME" ]; then
-                echo "Pipeline ${{ pipeline.value }} does not have a supported GitHub repository"
-                exit 1
-              fi
-              python3 "$(Build.SourcesDirectory)/azure-pipelines/scripts/update-commit-validation-branch.py" --repository "$REPOSITORY_NAME" --branch "$VALIDATION_BRANCH" --commit "$SHA"
               run_pipeline() {
                 RUN_ID=$(az pipelines run \
                   --id ${{ pipeline.value }} \

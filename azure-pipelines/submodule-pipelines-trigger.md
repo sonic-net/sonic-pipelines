@@ -12,13 +12,15 @@ commits.
 
 1. **Resolve the buildimage commit.** Reads the latest commit on the `sonic-buildimage`
    `master` branch and uses that exact SHA throughout the run.
-2. **Trigger submodules, level by level.** For each dependency level, in order, it resolves
-   every submodule's pinned SHA, creates or force-updates the repository's non-master
-   validation branch at that SHA, and queues the matching build pipeline on that branch.
-   A level must fully succeed before the next level starts.
-3. **Retry on failure.** If a triggered run fails, it retries the *failed stages in the same
+2. **Prepare validation branches.** Resolves every configured pipeline's GitHub repository,
+   then creates or force-updates all non-master validation branches to their pinned commits.
+   No component pipeline is queued until every repository branch is ready, so pipelines that
+   checkout other component repositories see the commits from the same validation run.
+3. **Trigger submodules, level by level.** Queues each dependency level against the prepared
+   validation branches. A level must fully succeed before the next level starts.
+4. **Retry on failure.** If a triggered run fails, it retries the *failed stages in the same
    run* (via the Azure DevOps REST timeline + stage `retry` API) once before giving up.
-4. **Open a validation PR.** After all levels pass, the `CreatePR` stage collects the
+5. **Open a validation PR.** After all levels pass, the `CreatePR` stage collects the
    validated commits, writes them to a tracking file, and opens a PR to
    `sonic-net/sonic-buildimage` (from the `mssonicbld` fork) with the **`automerge`** label.
 
@@ -26,12 +28,12 @@ commits.
 
 ```
 ResolveCommit
-   └─> prerequisites ─> level0 ─> level1 ─> level2 ─> level3 ─> CreatePR
+   └─> PrepareBranches ─> prerequisites ─> buildimage ─> level0 ─> level1 ─> level2 ─> level3 ─> CreatePR
 ```
 
-Each `levelN` stage depends on `ResolveCommit` (to read the buildimage SHA output) **and**
-on the previous level (to enforce ordering). `CreatePR` depends on `ResolveCommit` and all
-levels, and runs only on `succeeded()`.
+Every trigger stage depends on `PrepareBranches`, `ResolveCommit` (to read the buildimage SHA
+output), and its configured predecessor (to enforce ordering). `CreatePR` depends on
+`ResolveCommit` and all levels, and runs only on `succeeded()`.
 
 ## Dependency levels
 
@@ -66,8 +68,8 @@ For each `submodule-path: pipeline-id` in a level:
 1. Clone `sonic-buildimage`, check out the resolved buildimage SHA, and read the submodule's
    pinned commit. A missing pinned commit is treated as a **configuration error** and fails
    the job (wrong path or a removed/renamed submodule).
-2. Resolve the pipeline's GitHub repository and create or force-update
-   `validationBranch` at the pinned commit. Queue the submodule pipeline at that commit
+2. Queue the submodule pipeline at that commit using the branch prepared by the
+   `PrepareBranches` stage
    (`az pipelines run --id <pipeline-id> --commit-id <sha> --branch refs/heads/<validationBranch>`).
 3. Poll run status every 600s until `completed`; treat `succeeded` **or**
    `partiallySucceeded` as pass.
