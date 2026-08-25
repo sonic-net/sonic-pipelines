@@ -97,7 +97,7 @@ create_pr(){
     echo $result | grep "already exists" && return 0 || true
     new_pr_url=$(echo $result | grep -Eo https://github.com.*)
     gh pr comment $new_pr_url --body "Original PR: $PR_URL"
-    echo $new_pr_url | grep 'github.com/Azure' && sleep 1 && gh pr comment $new_pr_url --body "/azp run"
+    echo $new_pr_url | grep 'github.com/Azure' && sleep 10 && gh pr comment $new_pr_url --body "/azp run"
     sleep 1
     gh pr edit $PR_URL --add-label "Created PR to $branch_label Branch"
     sleep 1
