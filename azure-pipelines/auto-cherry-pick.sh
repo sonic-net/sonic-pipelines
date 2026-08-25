@@ -52,11 +52,8 @@ check_conflict(){
         git reset HEAD~
         git add . -f
         if git diff --cached --quiet; then
-            included_label=$(gh label list -R "$ORG/$REPO" --json name --jq '.[].name' | grep -iE "^Included in $branch_label [Bb]ranch$" | head -n1 || true)
-            [[ -z "$included_label" ]] && included_label="Included in $branch_label Branch"
-            gh pr edit $PR_URL --remove-label "Cherry Pick Conflict_$branch_label" || true
-            gh pr edit $PR_URL --add-label "$included_label"
-            gh pr comment $PR_URL --body "No cherry-pick PR is needed for $branch_label because the merged commit contains no changes. Added the \`$included_label\` label."
+            gh pr comment "$PR_URL" --body \
+                "The merged commit contains no changes, so the original PR patch cannot be verified against $branch_label. No cherry-pick PR or included label was created. Please verify the target branch manually."
             return 250
         fi
     else
