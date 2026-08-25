@@ -79,6 +79,16 @@ check_conflict(){
         sleep 1
         return 0
     else
+        if [[ "$PR_MERGED" == "true" ]] && git diff --quiet && git diff --cached --quiet && [[ -z "$(git ls-files -u)" ]]; then
+            git cherry-pick --abort
+            included_label=$(gh label list -R "$ORG/$REPO" --json name --jq '.[].name' | grep -iE "^Included in $branch_label [Bb]ranch$" | head -n1 || true)
+            [[ -z "$included_label" ]] && included_label="Included in $branch_label Branch"
+            gh pr edit $PR_URL --remove-label "Cherry Pick Conflict_$branch_label" || true
+            gh pr edit $PR_URL --add-label "$included_label"
+            gh pr comment $PR_URL --body "No cherry-pick PR is needed for $branch_label because these changes are already present in the target branch. Added the \`$included_label\` label."
+            sleep 1
+            return 250
+        fi
         gh pr edit $PR_URL --add-label "Cherry Pick Conflict_$branch_label" || true
         sleep 1
         return 254
@@ -86,7 +96,11 @@ check_conflict(){
 }
 
 create_pr(){
-    check_conflict "$1"
+    check_conflict "$1" || {
+        check_rc=$?
+        [[ "$check_rc" -eq 250 ]] && return 0
+        return "$check_rc"
+    }
     [[ "$PR_MERGED" != "true" ]] && echo "PR not merged!" && return 0
     git status
     git push mssonicbld HEAD:cherry/$branch_label/$PR_NUMBER -f
@@ -116,7 +130,7 @@ labeled(){
         if gh api "orgs/$ORG/teams/$release_team" &>/dev/null; then
             if ! gh api "orgs/$ORG/teams/$release_team/memberships/$ACTION_SENDER" --jq '.state' 2>/dev/null | grep -q "^active$"; then
                 gh pr edit $PR_URL --remove-label "$ACTION_LABEL"
-                members=$(gh api "orgs/$ORG/teams/$release_team/members" --jq '.[].login' 2>/dev/null | sed 's/^/@/' | tr '\n' ' ')
+                members=$(gh api "orgs/$ORG/teams/$release_team/members" --jq '.[].login' 2>/dev/null | grep -vxF 'mssonicbld' | sed 's/^/@/' | tr '\n' ' ')
                 gh pr comment $PR_URL --body "The label \`$ACTION_LABEL\` can only be added by a member of the @${ORG}/${release_team} team. Removing the label. Please contact one of the release managers: ${members}to approve the cherry pick."
                 return 0
             fi
