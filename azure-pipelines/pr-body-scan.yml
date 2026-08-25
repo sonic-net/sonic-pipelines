@@ -52,7 +52,7 @@ jobs:
         for repo in $repos $(EXTRA_REPOS); do
           echo ======== working for $repo ========
           echo ======= Result for $repo ====== >> cherry_pick_scan.log
-          prs=$(gh pr list -R "$repo" --state all -L 300 --search "updated:>=$date_3d_ago -author:mssonicbld" --json url,labels,body,author,updatedAt,state --jq '[.[] | select(.state != "CLOSED")]')
+          prs=$(gh pr list -R "$repo" --state all -L 300 --search "updated:>=$date_3d_ago -author:mssonicbld" --json url,labels,body,author,updatedAt,state,baseRefName --jq '[.[] | select(.state != "CLOSED" and (.baseRefName == "main" or .baseRefName == "master"))]')
           c=$(echo $prs | jq length)
           for ((i=0; i<$c; i++)); do
             set +x
