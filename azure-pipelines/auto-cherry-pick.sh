@@ -51,6 +51,11 @@ check_conflict(){
         fi
         git reset HEAD~
         git add . -f
+        if git diff --cached --quiet; then
+            gh pr comment "$PR_URL" --body \
+                "The merged commit contains no changes, so the original PR patch cannot be verified against $branch_label. No cherry-pick PR or included label was created. Please verify the target branch manually."
+            return 250
+        fi
     else
         git fetch head +refs/pull/$PR_NUMBER/merge:refs/remotes/pull/$PR_NUMBER/merge
         if git log head/$PR_BASE_BRANCH..$PR_COMMIT_SHA -p | grep -Eo "^\+Subproject commit "; then
@@ -67,7 +72,10 @@ check_conflict(){
     title=$(echo "$content" | jq .title -r)
     body=$(echo "$content" | jq .body -r)
     git status
-    git commit --signoff -m "$title" -m "$body"
+    if ! git commit --signoff -m "$title" -m "$body"; then
+        echo "Failed to create a commit containing PR #$PR_NUMBER changes."
+        return 255
+    fi
     git status
     commit=$(git log -n 1 --format=%H)
     target_branch=$(echo $branch_label | grep -Eo [0-9]*)
