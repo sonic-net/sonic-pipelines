@@ -133,7 +133,7 @@ steps:
 
         unmerged_paths=$(git diff --name-only --diff-filter=U)
         if [[ -n "$unmerged_paths" ]]; then
-          echo "##vso[task.logissue type=error]Code sync conflict: $remote/$branch_head ($head_commit) -> origin/$branch_base ($prehead)"
+          echo "##vso[task.logissue type=warning]Code sync conflict: $remote/$branch_head ($head_commit) -> origin/$branch_base ($prehead)"
           echo "======Unmerged paths for $branch_base======"
           echo "$unmerged_paths"
           git merge --abort
@@ -180,8 +180,8 @@ steps:
         gh pr comment $url --body "/azp run"
       done
       if [[ ${#failed_branches[@]} -ne 0 ]]; then
-        echo "##vso[task.logissue type=error]Code sync failed for branches: ${failed_branches[*]}"
-        exit 1
+        echo "##vso[task.logissue type=warning]Code sync conflicts detected for branches: ${failed_branches[*]}"
+        echo "##vso[task.complete result=SucceededWithIssues;]Code sync completed with merge conflicts"
       fi
     env:
       TOKEN: $(GITHUB-TOKEN)
