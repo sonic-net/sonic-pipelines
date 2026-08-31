@@ -88,8 +88,24 @@ steps:
             branch_head=202605
           fi
           echo "- $branch" | tee -a $cur_dir/log
-          git ls-remote --exit-code $origin refs/heads/$branch_head || { echo "  - no branch: $origin" | tee -a $cur_dir/log; continue; }
-          git ls-remote --exit-code base refs/heads/$branch_base || { echo "  - no branch: base" | tee -a $cur_dir/log; continue; }
+          rc=0
+          git ls-remote --exit-code $origin refs/heads/$branch_head || rc=$?
+          if [[ $rc -ne 0 ]]; then
+            if [[ $rc -eq 2 ]]; then
+              echo "  - no branch: $origin" | tee -a $cur_dir/log
+              continue
+            fi
+            exit $rc
+          fi
+          rc=0
+          git ls-remote --exit-code base refs/heads/$branch_base || rc=$?
+          if [[ $rc -ne 0 ]]; then
+            if [[ $rc -eq 2 ]]; then
+              echo "  - no branch: base" | tee -a $cur_dir/log
+              continue
+            fi
+            exit $rc
+          fi
           head_commit=$(git log -n 1 --format=%H $origin/$branch_head)
           git log --format=%H base/$branch_base | grep $head_commit && continue
           git merge --abort || true
@@ -101,12 +117,18 @@ steps:
           git clean -xdff
           git status | grep "^nothing to commit, working tree clean" || { echo "  - git not clean" | tee -a $cur_dir/log; continue; }
           prehead=$(git log -n 1 --pretty=format:'%H')
-          git pull $origin $branch_head --no-edit || true
+          pull_rc=0
+          git pull $origin $branch_head --no-edit || pull_rc=$?
           git status
-          if git status | grep "You have unmerged paths";then
+          unmerged_paths=$(git diff --name-only --diff-filter=U)
+          if [[ -n "$unmerged_paths" ]]; then
             echo "  - conflict!" | tee -a $cur_dir/log
+            echo "$unmerged_paths"
             git merge --abort
             continue
+          fi
+          if [[ $pull_rc -ne 0 ]]; then
+            exit $pull_rc
           fi
           head=$(git log -n 1 --pretty=format:'%H')
           if [[ $prehead == $head ]];then
@@ -120,9 +142,18 @@ steps:
           # push code
           git push https://mssonicbld:$TOKEN@github.com/mssonicbld/$repo.msft HEAD:sonicbld/$branch-merge -f
           # craete PR
-          url_=$(gh pr create -R Azure/$repo.msft -H mssonicbld:sonicbld/$branch-merge -B $branch_base -t "[code sync] Merge code from sonic-net/$repo:$branch_head to $branch" -b "$body" -l automerge 2>&1; rc=$?)
-          url=$(echo "$url_" | grep -Eo https://github.com/Azure/$repo.msft/pull/[0-9]* )
-          if echo $url_ | grep "already exists:"; then
+          rc=0
+          url_=$(gh pr create -R Azure/$repo.msft -H mssonicbld:sonicbld/$branch-merge -B $branch_base -t "[code sync] Merge code from sonic-net/$repo:$branch_head to $branch" -b "$body" -l automerge 2>&1) || rc=$?
+          if [[ $rc -ne 0 ]] && ! echo "$url_" | grep -q "already exists"; then
+            echo "$url_"
+            exit $rc
+          fi
+          url=$(echo "$url_" | grep -Eo https://github.com/Azure/$repo.msft/pull/[0-9]* || true)
+          if [[ -z "$url" ]]; then
+            echo "$url_"
+            exit 1
+          fi
+          if echo "$url_" | grep -q "already exists:"; then
             gh pr edit $url -b "$body" --add-label automerge
           fi
           echo "  - $url" >> $cur_dir/log
@@ -141,10 +172,10 @@ steps:
       "
       if grep -q '  - conflict!' log; then
         curl $URL -H 'Content-Type: application/json' -d "{\"text\": \"$body\"}"
-        exit 1
+        echo "##vso[task.logissue type=warning]Submodule code sync conflicts detected"
+        echo "##vso[task.complete result=SucceededWithIssues;]Submodule code sync completed with merge conflicts"
       fi
       exit 0
     env:
       URL: $(TEAMS-MSG-URL)
     displayName: show result and send alert
-    continueOnError: true

@@ -31,6 +31,7 @@ steps:
       branches=$(cat azure-pipelines/codesync.json | jq -r keys[])
       pushd sonic-buildimage-msft
       [ -z "$branches" ] && exit 1
+      failed_branches=()
       for branch in $branches; do
         if [[ ",${SKIP_BRANCHES//[[:space:]]/}," == *",$branch,"* ]]; then
           echo "======Skipping code sync for $branch======"
@@ -74,8 +75,18 @@ steps:
         if [[ $branch_head == "202608" ]]; then
           branch_head=202605
         fi
-        git ls-remote origin refs/heads/$branch_base || continue
-        git ls-remote $remote refs/heads/$branch_head || continue
+        rc=0
+        git ls-remote --exit-code origin refs/heads/$branch_base || rc=$?
+        if [[ $rc -ne 0 ]]; then
+          [[ $rc -eq 2 ]] && continue
+          exit $rc
+        fi
+        rc=0
+        git ls-remote --exit-code $remote refs/heads/$branch_head || rc=$?
+        if [[ $rc -ne 0 ]]; then
+          [[ $rc -eq 2 ]] && continue
+          exit $rc
+        fi
         head_commit=$(git log -n 1 --format=%H $remote/$branch_head)
         git log --format=%H origin/$branch_base | grep $head_commit && continue
         subs=$(cat ../azure-pipelines/codesync.json | jq -r ".\"$branch\"")
@@ -90,35 +101,54 @@ steps:
 
         git status | grep "^nothing to commit, working tree clean" || { echo "git not clean, exist!"; exit 1; }
         if [[ ! -z "$subs" ]]; then
+          submodules_ready=false
+          submodule_rc=0
           for i in {1..10}; do
             git submodule sync
-            git submodule update --init $subs && break
+            if git submodule update --init $subs; then
+              submodules_ready=true
+              break
+            else
+              submodule_rc=$?
+            fi
             sleep 2
-            [[ $i == 10 ]] && continue 2
           done
+          if [[ "$submodules_ready" != true ]]; then
+            echo "##vso[task.logissue type=error]Failed to initialize submodules for $branch_base"
+            exit $submodule_rc
+          fi
         fi
         prehead=$(git log -n 1 --pretty=format:'%H')
-        git pull $remote $branch_head --no-commit || true
+        pull_rc=0
+        git pull $remote $branch_head --no-commit || pull_rc=$?
         git status
         git submodule
 
         if ! git status | grep "^nothing to commit, working tree clean";then
           # code conflict
-          git add $subs
+          [[ -z "$subs" ]] || git add $subs
           git reset platform/checkout/cisco-8000.ini
           git checkout platform/checkout/cisco-8000.ini
-          if git status | grep "You have unmerged paths";then
-            continue #TODO add alert
-            CommitID=$(git log $prehead..HEAD --merge --pretty=format:'%H'  | tail -n 1)
-            description="<h1>Please merge $CommitID into sonic-buildimage-msft.Do not Cherry-pick!!!</h1>"
-            description="code conflict: sonic-net/sonic-buildimage:$branch_head -> Azure/sonic-buildimage-msft:$branch_base<br>"
-            description+=$(git log $prehead..HEAD --merge --pretty=format:'%h -%d %s (%cs) [%aN]')
-            assign="Gen-Hwa Chiang <gechiang@microsoft.com>"
-            # update work-item, TODO: authenticate and update workitem.
-            # az boards work-item update --org https://dev.azure.com/mssonic/ --id $ADO_ID --discussion "$description" -f "Custom Field 1=type_A"
-          fi
         fi
-        GIT_EDITOR=true git merge --continue || true
+
+        unmerged_paths=$(git diff --name-only --diff-filter=U)
+        if [[ -n "$unmerged_paths" ]]; then
+          echo "##vso[task.logissue type=warning]Code sync conflict: $remote/$branch_head ($head_commit) -> origin/$branch_base ($prehead)"
+          echo "======Unmerged paths for $branch_base======"
+          echo "$unmerged_paths"
+          git merge --abort
+          failed_branches+=("$branch_base")
+          continue
+        fi
+
+        if [[ $pull_rc -ne 0 ]] && ! git rev-parse --verify -q MERGE_HEAD > /dev/null; then
+          echo "##vso[task.logissue type=error]git pull failed without merge conflicts: $remote/$branch_head -> origin/$branch_base"
+          exit $pull_rc
+        fi
+
+        if git rev-parse --verify -q MERGE_HEAD > /dev/null; then
+          GIT_EDITOR=true git merge --continue
+        fi
 
         head=$(git log -n 1 --pretty=format:'%H')
         if [[ $prehead == $head ]];then
@@ -132,12 +162,27 @@ steps:
         # push code
         git push https://mssonicbld:$TOKEN@github.com/mssonicbld/sonic-buildimage-msft HEAD:sonicbld/$branch_base-merge -f
         # create PR
-        url_=$(gh pr create -R Azure/sonic-buildimage-msft -H mssonicbld:sonicbld/$branch_base-merge -B $branch_base -t "[code sync] Merge code from sonic-net/sonic-buildimage:$branch_head to $branch_base" -b "$body" -l automerge 2>&1; rc=$?)
-        url=$(echo "$url_" | grep -Eo https://github.com/Azure/sonic-buildimage-msft/pull/[0-9]* )
+        rc=0
+        url_=$(gh pr create -R Azure/sonic-buildimage-msft -H mssonicbld:sonicbld/$branch_base-merge -B $branch_base -t "[code sync] Merge code from sonic-net/sonic-buildimage:$branch_head to $branch_base" -b "$body" -l automerge 2>&1) || rc=$?
+        if [[ $rc -ne 0 ]] && ! echo "$url_" | grep -q "already exists"; then
+          echo "##vso[task.logissue type=error]Failed to create the code sync PR for $branch_base"
+          echo "$url_"
+          exit $rc
+        fi
+        url=$(echo "$url_" | grep -Eo https://github.com/Azure/sonic-buildimage-msft/pull/[0-9]* || true)
+        if [[ -z "$url" ]]; then
+          echo "##vso[task.logissue type=error]Failed to create or find the code sync PR for $branch_base"
+          echo "$url_"
+          exit 1
+        fi
 
         sleep 10
         gh pr comment $url --body "/azp run"
       done
+      if [[ ${#failed_branches[@]} -ne 0 ]]; then
+        echo "##vso[task.logissue type=warning]Code sync conflicts detected for branches: ${failed_branches[*]}"
+        echo "##vso[task.complete result=SucceededWithIssues;]Code sync completed with merge conflicts"
+      fi
     env:
       TOKEN: $(GITHUB-TOKEN)
     displayName: 'code merge'
