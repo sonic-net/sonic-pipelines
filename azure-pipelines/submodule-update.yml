@@ -39,7 +39,7 @@ jobs:
         git remote add mssonicbld https://mssonicbld:$TOKEN@github.com/mssonicbld/sonic-buildimage
         git checkout ${{ branch }}
         git fetch mssonicbld
-        git submodule update --init src/* $(if git config -f .gitmodules --get submodule.platform/vpp.url &>/dev/null; then echo platform/vpp; fi)
+        git submodule update --init src/* $(if git config -f .gitmodules --get submodule.platform/vpp.url &>/dev/null; then echo platform/vpp; fi) $(if git config -f .gitmodules --get submodule.platform/alpinevs.url &>/dev/null; then echo platform/alpinevs; fi)
         echo $TOKEN | gh auth login --with-token
       env:
         TOKEN: $(GITHUB-TOKEN)
@@ -119,5 +119,5 @@ jobs:
             git reset HEAD~ --hard
             sleep $(INTERVAL)
           fi
-        done < <(git submodule status -- src/* $(if git config -f .gitmodules --get submodule.platform/vpp.url &>/dev/null; then echo platform/vpp; fi))
+        done < <(git submodule status -- src/* $(if git config -f .gitmodules --get submodule.platform/vpp.url &>/dev/null; then echo platform/vpp; fi) $(if git config -f .gitmodules --get submodule.platform/alpinevs.url &>/dev/null; then echo platform/alpinevs; fi))
       displayName: Update submodules
