@@ -139,7 +139,6 @@ steps:
         url=$(echo "$url_" | grep -Eo https://github.com/Azure/sonic-buildimage-msft/pull/[0-9]* )
 
         sleep 10
-        gh pr comment $url --body "/azp run"
       done
     env:
       TOKEN: $(GITHUB-TOKEN)
