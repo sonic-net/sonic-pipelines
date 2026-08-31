@@ -40,6 +40,9 @@ steps:
         branch_base=$branch
         branch_head=$branch
         remote=head
+        if [[ $branch_head == "master" ]]; then
+          branch_head=master
+        fi
         if [[ $branch_head == "202412" ]]; then
           branch_head=202411
         fi
@@ -177,7 +180,6 @@ steps:
         fi
 
         sleep 10
-        gh pr comment $url --body "/azp run"
       done
       if [[ ${#failed_branches[@]} -ne 0 ]]; then
         echo "##vso[task.logissue type=warning]Code sync conflicts detected for branches: ${failed_branches[*]}"
