@@ -172,7 +172,8 @@ steps:
       "
       if grep -q '  - conflict!' log; then
         curl $URL -H 'Content-Type: application/json' -d "{\"text\": \"$body\"}"
-        exit 1
+        echo "##vso[task.logissue type=warning]Submodule code sync conflicts detected"
+        echo "##vso[task.complete result=SucceededWithIssues;]Submodule code sync completed with merge conflicts"
       fi
       exit 0
     env:
