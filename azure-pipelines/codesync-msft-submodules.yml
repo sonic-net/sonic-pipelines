@@ -39,6 +39,7 @@ steps:
       repos=$(for i in $(cat azure-pipelines/codesync.json | jq .[] -r); do echo $i | sed 's#src/##'; done | sort -u)
       cur_dir=$(pwd)
       sudo rm -rf $cur_dir/log
+      sudo rm -rf $cur_dir/conflicts.jsonl
       for repo in $repos; do
         [ -d $cur_dir/$repo ] || continue
         cd $cur_dir/$repo
@@ -124,9 +125,16 @@ steps:
           if [[ -n "$unmerged_paths" ]]; then
             echo "  - conflict!" | tee -a $cur_dir/log
             echo "$unmerged_paths"
+            description="Repository: Azure/$repo.msft"
+            jq -cn \
+              --arg branch "$branch_base" \
+              --arg commit "$head_commit" \
+              --arg description "$description" \
+              '{branch: $branch, commit: $commit, description: $description}' >> $cur_dir/conflicts.jsonl
             git merge --abort
             continue
           fi
+          continue
           if [[ $pull_rc -ne 0 ]]; then
             exit $pull_rc
           fi
@@ -166,16 +174,28 @@ steps:
   - bash: |
       set -ex
       cat log
-      body="
-      https://dev.azure.com/mssonic/build/_build?definitionId=862\n
-      $(cat log)
-      "
       if grep -q '  - conflict!' log; then
-        curl $URL -H 'Content-Type: application/json' -d "{\"text\": \"$body\"}"
+        set +x
+        printf '%s' "$CERT" | base64 -d > cert.pfx
+        cert=$(openssl pkcs12 -in cert.pfx -nokeys -nodes -passin pass: | openssl x509 -noout -fingerprint -sha1 | sed 's/^.*=//' | tr -d ':' | tr 'A-Z' 'a-z')
+        rm -f cert.pfx
+        while IFS= read -r conflict; do
+          payload=$(echo "$conflict" | jq \
+            --arg name "code_conflict" \
+            --arg client "$(System.CollectionUri)$(System.TeamProject)/_build/results?buildId=$(Build.BuildId)" \
+            '. + {name: $name, client: $client}')
+          response=$(curl --fail-with-body --silent --show-error \
+            -H 'Content-Type: application/json' \
+            -H "thumbprint: $cert" \
+            -X POST https://notice-center.azurewebsites.net/noti_center/notice \
+            -d "$payload")
+          echo "$response" | jq -e '.success == true'
+        done < conflicts.jsonl
+        set -x
         echo "##vso[task.logissue type=warning]Submodule code sync conflicts detected"
         echo "##vso[task.complete result=SucceededWithIssues;]Submodule code sync completed with merge conflicts"
       fi
       exit 0
     env:
-      URL: $(TEAMS-MSG-URL)
+      CERT: $(cert-noti)
     displayName: show result and send alert
