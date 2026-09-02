@@ -45,8 +45,9 @@ check_conflict(){
         REAL_SHA=$(gh api repos/$ORG/$REPO/pulls/$PR_NUMBER --jq .merge_commit_sha)
         git fetch head $REAL_SHA
         git reset $REAL_SHA --hard
-        git reset HEAD~
-        git add . -f
+        # Preserve the merged commit's index, including uninitialized submodule
+        # gitlinks, while moving HEAD back to its parent.
+        git reset HEAD~ --soft
         if git diff --cached --quiet; then
             gh pr comment "$PR_URL" --body \
                 "The merged commit contains no changes, so the original PR patch cannot be verified against $branch_label. No cherry-pick PR or included label was created. Please verify the target branch manually."
