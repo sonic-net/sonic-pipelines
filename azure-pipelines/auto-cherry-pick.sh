@@ -38,7 +38,6 @@ check_conflict(){
     git status
     git checkout -b $PR_BASE_BRANCH --track head/$PR_BASE_BRANCH
     git status
-    contains_submodule=""
     if [[ "$PR_MERGED" == "true" ]];then
         # PR_COMMIT_SHA from the webhook (merge_commit_sha) is GitHub's ephemeral
         # test-merge object, which is deleted after a squash merge. Fetch the real
@@ -46,11 +45,9 @@ check_conflict(){
         REAL_SHA=$(gh api repos/$ORG/$REPO/pulls/$PR_NUMBER --jq .merge_commit_sha)
         git fetch head $REAL_SHA
         git reset $REAL_SHA --hard
-        if git show HEAD | grep -Eo "^\+Subproject commit "; then
-            contains_submodule="true"
-        fi
-        git reset HEAD~
-        git add . -f
+        # Preserve the merged commit's index, including uninitialized submodule
+        # gitlinks, while moving HEAD back to its parent.
+        git reset HEAD~ --soft
         if git diff --cached --quiet; then
             gh pr comment "$PR_URL" --body \
                 "The merged commit contains no changes, so the original PR patch cannot be verified against $branch_label. No cherry-pick PR or included label was created. Please verify the target branch manually."
@@ -58,12 +55,11 @@ check_conflict(){
         fi
     else
         git fetch head +refs/pull/$PR_NUMBER/merge:refs/remotes/pull/$PR_NUMBER/merge
-        if git log head/$PR_BASE_BRANCH..$PR_COMMIT_SHA -p | grep -Eo "^\+Subproject commit "; then
-            contains_submodule="true"
-        fi
         git merge pull/$PR_NUMBER/merge --squash || { echo "PR is Out of Date!"; return 253; }
     fi
-    if [ -n "$contains_submodule" ]; then
+    # A submodule is represented by Git mode 160000. Inspect only the staged PR
+    # patch, not its commit history, which may contain unrelated submodule changes.
+    if git diff --cached --raw | awk '$1 == ":160000" || $2 == "160000" { found=1 } END { exit !found }'; then
         echo "PR contains submodule change"
         gh pr comment $PR_URL --body "Auto cherry pick doesn't support submodule update. Please manually cherry pick!"
         return 251
