@@ -125,12 +125,12 @@ steps:
           if [[ -n "$unmerged_paths" ]]; then
             echo "  - conflict!" | tee -a $cur_dir/log
             echo "$unmerged_paths"
-            description="Repository: Azure/$repo.msft"
+            repo_name="Azure/$repo.msft"
             jq -cn \
+              --arg repo "$repo_name" \
               --arg branch "$branch_base" \
               --arg commit "$head_commit" \
-              --arg description "$description" \
-              '{branch: $branch, commit: $commit, description: $description}' >> $cur_dir/conflicts.jsonl
+              '{repo: $repo, branch: $branch, commit: $commit}' >> $cur_dir/conflicts.jsonl
             git merge --abort
             continue
           fi
