@@ -29,6 +29,8 @@ steps:
   - bash: |
       set -ex
       branches=$(cat azure-pipelines/codesync.json | jq -r keys[])
+      conflicts_file="$(pwd)/code-sync-conflicts.jsonl"
+      rm -f "$conflicts_file"
       pushd sonic-buildimage-msft
       [ -z "$branches" ] && exit 1
       failed_branches=()
@@ -139,10 +141,17 @@ steps:
           echo "##vso[task.logissue type=warning]Code sync conflict: $remote/$branch_head ($head_commit) -> origin/$branch_base ($prehead)"
           echo "======Unmerged paths for $branch_base======"
           echo "$unmerged_paths"
+          jq -cn \
+            --arg repo "Azure/sonic-buildimage-msft" \
+            --arg branch "$branch_base" \
+            --arg commit "$head_commit" \
+            '{repo: $repo, branch: $branch, commit: $commit}' >> "$conflicts_file"
           git merge --abort
           failed_branches+=("$branch_base")
           continue
         fi
+
+        continue
 
         if [[ $pull_rc -ne 0 ]] && ! git rev-parse --verify -q MERGE_HEAD > /dev/null; then
           echo "##vso[task.logissue type=error]git pull failed without merge conflicts: $remote/$branch_head -> origin/$branch_base"
@@ -182,9 +191,27 @@ steps:
         sleep 10
       done
       if [[ ${#failed_branches[@]} -ne 0 ]]; then
+        set +x
+        printf '%s' "$CERT" | base64 -d > cert.pfx
+        cert=$(openssl pkcs12 -in cert.pfx -nokeys -nodes -passin pass: | openssl x509 -noout -fingerprint -sha1 | sed 's/^.*=//' | tr -d ':' | tr 'A-Z' 'a-z')
+        rm -f cert.pfx
+        while IFS= read -r conflict; do
+          payload=$(echo "$conflict" | jq \
+            --arg name "code_conflict" \
+            --arg client "$(System.CollectionUri)$(System.TeamProject)/_build/results?buildId=$(Build.BuildId)" \
+            '. + {name: $name, client: $client}')
+          response=$(curl --fail-with-body --silent --show-error \
+            -H 'Content-Type: application/json' \
+            -H "thumbprint: $cert" \
+            -X POST https://notice-center.azurewebsites.net/noti_center/notice \
+            -d "$payload")
+          echo "$response" | jq -e '.success == true'
+        done < "$conflicts_file"
+        set -x
         echo "##vso[task.logissue type=warning]Code sync conflicts detected for branches: ${failed_branches[*]}"
         echo "##vso[task.complete result=SucceededWithIssues;]Code sync completed with merge conflicts"
       fi
     env:
       TOKEN: $(GITHUB-TOKEN)
+      CERT: $(cert-noti)
     displayName: 'code merge'
