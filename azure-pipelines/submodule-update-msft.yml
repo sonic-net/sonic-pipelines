@@ -50,12 +50,17 @@ steps:
           cd $work_space/$path
           # 1. only keep repos with msft
           git remote -vv
-          git remote -vv | grep -i '\.msft' || continue
-          # 2. only update the same branch with sonic-buildimage-msft
-          git branch -a --contains HEAD | grep "remotes/origin/$branch" || continue
+          module_branch=$branch
+          if [[ "$branch" == "202608" && "$path" == "src/sonic-redfish" ]]; then
+            module_branch=master
+          else
+            git remote -vv | grep -i '\.msft' || continue
+          fi
+          # 2. only update when the current commit belongs to the source branch
+          git branch -a --contains HEAD | grep "remotes/origin/$module_branch" || continue
 
           head=$(git rev-parse HEAD)
-          git checkout $branch
+          git checkout $module_branch
           git pull
           commits=$(git log ${head}..HEAD --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)[%an]%Creset')
           if [[ "$commits" != "" ]];then
