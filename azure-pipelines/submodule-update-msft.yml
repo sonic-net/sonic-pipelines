@@ -32,6 +32,9 @@ steps:
       cd sonic-buildimage-msft
       work_space=$(pwd)
       for branch in $branches; do
+        if [[ "$branch" != "202608" ]]; then
+          continue
+        fi
         cd $work_space
         paths=$(cat ../azure-pipelines/codesync.json | jq -r ".\"$branch\"")
         [ -z "$paths" ] && continue
