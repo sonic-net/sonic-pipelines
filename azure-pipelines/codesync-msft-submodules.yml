@@ -21,6 +21,7 @@ steps:
       repos=$(for i in $(cat azure-pipelines/codesync.json | jq .[] -r); do echo $i | sed 's#src/##'; done | sort -u)
       [ -z $repos ] && exit 1
       for repo in $repos; do
+        [[ "$repo" == "sonic-redfish" ]] && continue
         sudo rm -rf $repo
         git clone https://github.com/sonic-net/$repo
         cd $repo
@@ -41,6 +42,7 @@ steps:
       sudo rm -rf $cur_dir/log
       sudo rm -rf $cur_dir/conflicts.jsonl
       for repo in $repos; do
+        [[ "$repo" == "sonic-redfish" ]] && continue
         [ -d $cur_dir/$repo ] || continue
         cd $cur_dir/$repo
         echo "# $repo" | tee -a $cur_dir/log
