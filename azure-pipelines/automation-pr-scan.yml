@@ -61,10 +61,10 @@ jobs:
             echo ======== working for $repo ========
             echo $repo >> failure_prs.log
             merge_op=true
-            if [[ $repo == "sonic-net/sonic-mgmt" ]]; then
-              # For sonic-mgmt repo, it has its own github workflow to merge the cherry pick PR
-              merge_op=false
-            fi
+            # if [[ $repo == "sonic-net/sonic-mgmt" ]]; then
+            #   # For sonic-mgmt repo, it has its own github workflow to merge the cherry pick PR
+            #   merge_op=false
+            # fi
             automerge_prs=$(gh pr list -A mssonicbld --label automerge -R $repo -L 100 --search "created:>=$date_1m_ago_q" --json body,title,url,labels,statusCheckRollup,createdAt,baseRefName,comments)
             upgrade_versions_prs=$(gh pr list -A mssonicbld -R $repo -L 100 --search "(\"Upgrade SONiC package Versions\" OR \"Upgrade docker-sonic-mgmt package versions\" OR \"Upgrade docker-ptf package versions\") in:title created:>=$date_1m_ago_q" --json body,title,url,labels,statusCheckRollup,createdAt,baseRefName,comments)
             prs=$(jq -sc 'add | unique_by(.url)' <(echo "$automerge_prs") <(echo "$upgrade_versions_prs"))
@@ -147,7 +147,7 @@ jobs:
               fi
               # merge the PR
               if ! $merge_op; then
-                echo "    Skipping merge for $url because sonic-mgmt has its own workflow to merge." >> skip_prs.log
+                echo "    Skipping merge for $url because merge_op is false." >> skip_prs.log
                 continue
               fi
               echo ========Merging  PR========
