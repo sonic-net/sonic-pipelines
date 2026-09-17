@@ -18,6 +18,10 @@ parameters:
   - 202411
   - 202405
   - 202311
+- name: submodule
+  displayName: Submodule path (e.g. src/sonic-swss; one submodule allowed)
+  type: string
+  default: all
 
 variables:
   - group: sonicbld
@@ -39,10 +43,18 @@ jobs:
         git remote add mssonicbld https://mssonicbld:$TOKEN@github.com/mssonicbld/sonic-buildimage
         git checkout ${{ branch }}
         git fetch mssonicbld
-        git submodule update --init src/* $(if git config -f .gitmodules --get submodule.platform/vpp.url &>/dev/null; then echo platform/vpp; fi) $(if git config -f .gitmodules --get submodule.platform/alpinevs.url &>/dev/null; then echo platform/alpinevs; fi)
+        submodules=(src/*)
+        git config -f .gitmodules --get submodule.platform/vpp.url &>/dev/null && submodules+=(platform/vpp)
+        git config -f .gitmodules --get submodule.platform/alpinevs.url &>/dev/null && submodules+=(platform/alpinevs)
+        if [[ "$SUBMODULE" != "all" ]]; then
+          printf '%s\n' "${submodules[@]}" | grep -Fx -- "$SUBMODULE"
+          submodules=("$SUBMODULE")
+        fi
+        git submodule update --init "${submodules[@]}"
         echo $TOKEN | gh auth login --with-token
       env:
         TOKEN: $(GITHUB-TOKEN)
+        SUBMODULE: ${{ parameters.submodule }}
       displayName: Setup env
     - ${{ if eq(branch, 'master') }}:
       - bash: |
@@ -73,6 +85,13 @@ jobs:
         set -e
         cd sonic-buildimage
         work_space=$(pwd)
+        submodules=(src/*)
+        git config -f .gitmodules --get submodule.platform/vpp.url &>/dev/null && submodules+=(platform/vpp)
+        git config -f .gitmodules --get submodule.platform/alpinevs.url &>/dev/null && submodules+=(platform/alpinevs)
+        if [[ "$SUBMODULE" != "all" ]]; then
+          printf '%s\n' "${submodules[@]}" | grep -Fx -- "$SUBMODULE"
+          submodules=("$SUBMODULE")
+        fi
         while read -r line
         do
           path=$(echo $line| awk '{print$2}')
@@ -93,6 +112,18 @@ jobs:
           git pull
           commits=$(git log ${head}..HEAD --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)[%an]%Creset')
           if [[ "$commits" != "" ]];then
+            submodule_head=$(git rev-parse HEAD)
+            pr_branch="submodule-${{ branch }}-$module_name"
+            cd $work_space
+            pr_submodule_head=$(git rev-parse "mssonicbld/$pr_branch:$path" 2>/dev/null || true)
+            if [[ "$pr_submodule_head" == "$submodule_head" ]]; then
+              pr_url=$(gh pr list -R sonic-net/sonic-buildimage -H "mssonicbld:$pr_branch" -B ${{ branch }} --state open --json url --jq '.[0].url')
+              if [[ -n "$pr_url" ]] && gh pr view "$pr_url" --json statusCheckRollup --jq 'any(.statusCheckRollup[]; (.status != null and .status != "COMPLETED") or .state == "PENDING" or .state == "EXPECTED")' | grep -qx true; then
+                echo "Skipping $path because PR checks are still running for $submodule_head"
+                continue
+              fi
+            fi
+
             body="#### Why I did it"$'\n'
             body+="$path"$'\n'
             body+='```'$'\n'
@@ -101,14 +132,13 @@ jobs:
             body+="#### How I did it"$'\n'
             body+="#### How to verify it"$'\n'
             body+="#### Description for the changelog"$'\n'
-            cd $work_space
 
             git add $path
             git commit -s -m "[submodule] Update submodule $module_name to the latest HEAD automatically" || continue
-            git push mssonicbld HEAD:submodule-${{ branch }}-$module_name -f
+            git push mssonicbld HEAD:$pr_branch -f
             label=""
             echo $(automerge_branches) | grep ${{ branch }} && label=",automerge"
-            result=$(gh pr create -R sonic-net/sonic-buildimage -H mssonicbld:submodule-${{ branch }}-$module_name -B ${{ branch }} -t "[submodule][${{ branch }}] Update submodule $module_name to the latest HEAD automatically" -l "Submodule Update :arrow_double_up:$label" -b "$body" 2>&1 || true)
+            result=$(gh pr create -R sonic-net/sonic-buildimage -H "mssonicbld:$pr_branch" -B ${{ branch }} -t "[submodule][${{ branch }}] Update submodule $module_name to the latest HEAD automatically" -l "Submodule Update :arrow_double_up:$label" -b "$body" 2>&1 || true)
             if echo $result | grep "already exists:"; then
               pr_url=$(echo $result | awk -F"already exists:" '{print$2}')
               gh pr edit $pr_url -b "$body"
@@ -119,5 +149,7 @@ jobs:
             git reset HEAD~ --hard
             sleep $(INTERVAL)
           fi
-        done < <(git submodule status -- src/* $(if git config -f .gitmodules --get submodule.platform/vpp.url &>/dev/null; then echo platform/vpp; fi) $(if git config -f .gitmodules --get submodule.platform/alpinevs.url &>/dev/null; then echo platform/alpinevs; fi))
+        done < <(git submodule status -- "${submodules[@]}")
+      env:
+        SUBMODULE: ${{ parameters.submodule }}
       displayName: Update submodules
