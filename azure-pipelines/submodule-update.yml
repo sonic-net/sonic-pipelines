@@ -19,7 +19,7 @@ parameters:
   - 202405
   - 202311
 - name: submodule
-  displayName: Submodule path (e.g. src/sonic-swss; one submodule allowed)
+  displayName: Submodule path (e.g. src/sonic-swss; one submodule allowed; use "all" to update all)
   type: string
   default: all
 
@@ -117,7 +117,7 @@ jobs:
             cd $work_space
             pr_submodule_head=$(git rev-parse "mssonicbld/$pr_branch:$path" 2>/dev/null || true)
             if [[ "$pr_submodule_head" == "$submodule_head" ]]; then
-              pr_url=$(gh pr list -R sonic-net/sonic-buildimage -H "mssonicbld:$pr_branch" -B ${{ branch }} --state open --json url --jq '.[0].url')
+              pr_url=$(gh api --method GET repos/sonic-net/sonic-buildimage/pulls -f state=open -f head="mssonicbld:$pr_branch" -f base=${{ branch }} --jq '.[0].html_url')
               if [[ -n "$pr_url" ]] && gh pr view "$pr_url" --json statusCheckRollup --jq 'any(.statusCheckRollup[]; (.status != null and .status != "COMPLETED") or .state == "PENDING" or .state == "EXPECTED")' | grep -qx true; then
                 echo "Skipping $path because PR checks are still running for $submodule_head"
                 continue
