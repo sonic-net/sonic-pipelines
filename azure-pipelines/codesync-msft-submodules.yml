@@ -150,7 +150,7 @@ steps:
           body='```<br>'$body'<br>```'
           # push code
           git push https://mssonicbld:$TOKEN@github.com/mssonicbld/$repo.msft HEAD:sonicbld/$branch-merge -f
-          # craete PR
+          # create PR
           rc=0
           url_=$(gh pr create -R Azure/$repo.msft -H mssonicbld:sonicbld/$branch-merge -B $branch_base -t "[code sync] Merge code from sonic-net/$repo:$branch_head to $branch" -b "$body" -l automerge 2>&1) || rc=$?
           if [[ $rc -ne 0 ]] && ! echo "$url_" | grep -q "already exists"; then
@@ -163,7 +163,16 @@ steps:
             exit 1
           fi
           if echo "$url_" | grep -q "already exists:"; then
-            gh pr edit $url -b "$body" --add-label automerge
+            pr_number=${url##*/}
+            gh api --method PATCH \
+              "repos/Azure/${repo}.msft/pulls/${pr_number}" \
+              -f body="$body" \
+              --silent
+            printf '%s' '{"labels":["automerge"]}' | \
+              gh api --method POST \
+                "repos/Azure/${repo}.msft/issues/${pr_number}/labels" \
+                --input - \
+                --silent
           fi
           echo "  - $url" >> $cur_dir/log
           sleep 10
