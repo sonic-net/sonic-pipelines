@@ -163,7 +163,9 @@ steps:
             exit 1
           fi
           if echo "$url_" | grep -q "already exists:"; then
-            gh pr edit $url -b "$body" --add-label automerge
+            pr_number=${url##*/}
+            gh api --method PATCH repos/Azure/$repo.msft/pulls/$pr_number -f body="$body"
+            gh api --method POST repos/Azure/$repo.msft/issues/$pr_number/labels -f 'labels[]=automerge'
           fi
           echo "  - $url" >> $cur_dir/log
           sleep 10
