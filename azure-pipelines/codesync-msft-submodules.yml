@@ -136,7 +136,9 @@ steps:
               --arg repo "$repo_name" \
               --arg branch "$branch_base" \
               --arg commit "$head_commit" \
-              '{repo: $repo, branch: $branch, commit: $commit}' >> $cur_dir/conflicts.jsonl
+              --arg upstream_repo "sonic-net/$repo" \
+              --arg upstream_branch "$branch_head" \
+              '{repo: $repo, branch: $branch, commit: $commit, upstream_repo: $upstream_repo, upstream_branch: $upstream_branch}' >> $cur_dir/conflicts.jsonl
             git merge --abort
             continue
           fi
