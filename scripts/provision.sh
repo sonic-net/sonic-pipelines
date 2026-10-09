@@ -9,6 +9,10 @@ DEFAULT_ARCH=$(dpkg --print-architecture)
 
 dpkg --configure -a
 apt-get update
+DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=a \
+  apt-get upgrade -y --with-new-pkgs \
+  -o Dpkg::Options::="--force-confdef" \
+  -o Dpkg::Options::="--force-confold"
 apt-get install -y ca-certificates curl gnupg lsb-release
 # install git lfs
 curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash
