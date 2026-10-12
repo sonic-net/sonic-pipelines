@@ -17,7 +17,7 @@ ingest_kcsb = KustoConnectionStringBuilder.with_az_cli_authentication(ingest_clu
 ingest_client = QueuedIngestClient(ingest_kcsb)
 
 url="https://api.github.com/graphql"
-timestamp = datetime.datetime.now(datetime.UTC)
+timestamp = datetime.datetime.now(datetime.timezone.utc)
 timeoffset = datetime.timedelta(minutes=5)
 until = (timestamp - timeoffset).replace(tzinfo=pytz.UTC)
 if 'END_TIMESTAMP' in os.environ and os.environ['END_TIMESTAMP']:
@@ -29,7 +29,7 @@ if 'TIMEDELTA_IN_MINUTES' in os.environ and os.environ['TIMEDELTA_IN_MINUTES']:
 window_in_days = 10
 
 def kusto_ingest(database='build', table='', mapping='', lines=[]):
-    now = datetime.datetime.now(datetime.UTC).isoformat().replace(':','_')
+    now = datetime.datetime.now(datetime.timezone.utc).isoformat().replace(':','_')
     if lines:
         tmpfile = f"{database}_{table}_{now}.json"
         with open(tmpfile, "w") as file:
