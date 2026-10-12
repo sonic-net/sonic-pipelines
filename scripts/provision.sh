@@ -98,5 +98,6 @@ else
   chmod +x /opt/microsoft/powershell/7/pwsh
   pwsh -v
 fi
-pip3 install jinjanator --break-system-packages
+curl -LsSf https://astral.sh/uv/0.13.0/install.sh | env UV_UNMANAGED_INSTALL=/usr/local/bin sh
+UV_TOOL_DIR=/opt/uv/tools UV_TOOL_BIN_DIR=/usr/local/bin uv tool install jinjanator
 mkdir -p /nfs
