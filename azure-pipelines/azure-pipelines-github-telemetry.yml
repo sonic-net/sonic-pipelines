@@ -23,7 +23,7 @@ variables:
 
 stages:
 - stage: Build
-  pool: sonicso1ES-amd64
+  pool: sonic-ubuntu-1c
   jobs:
   - job: Build
     timeoutInMinutes: 120
@@ -47,8 +47,9 @@ stages:
           set -ex
           az account show
           sudo apt-get update
-          sudo apt-get install -y python3-pip jq
-          sudo pip3 install --break-system-package azure-storage-queue azure-storage-blob pytz python-dateutil azure.core azure.kusto.data azure.kusto.ingest
+          sudo apt-get install -y jq
+          uv venv "$(Agent.TempDirectory)/github-telemetry-venv"
+          uv pip install --python "$(Agent.TempDirectory)/github-telemetry-venv/bin/python" azure-storage-queue azure-storage-blob pytz python-dateutil azure-core azure-kusto-data azure-kusto-ingest
     - task: AzureCLI@2
       displayName: Upload RP into kusto
       inputs:
@@ -61,7 +62,7 @@ stages:
           azcopy cp "$(PUBLISH_URL_PREFIX)/info/pullrequests.json" ./pullrequests.json --overwrite=true
           timestamp=$(jq -r '.timestamp' pullrequests.json)
           echo "Get timestamp: $timestamp"
-          python3 azure-pipelines/scripts/publish-github-prs.py $GITHUB_TOKEN $timestamp
+          "$(Agent.TempDirectory)/github-telemetry-venv/bin/python" azure-pipelines/scripts/publish-github-prs.py "$GITHUB_TOKEN" "$timestamp"
       env:
         GITHUB_TOKEN: $(GITHUB-TOKEN)
     - task: AzureCLI@2
