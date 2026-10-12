@@ -31,7 +31,7 @@ apt-get update
 #apt-get install -y docker-ce:$ARCH docker-ce-cli:$ARCH containerd.io:$ARCH docker-compose-plugin:$ARCH
 # docker-ce 29 docker root don't work.
 # containerd 2.2.1 can't download, pin to 2.2.0
-apt-get install -y docker-ce=5:28.5.2-1~ubuntu.24.04~noble docker-ce-cli=5:28.5.2-1~ubuntu.24.04~noble containerd.io=2.2.0-2~ubuntu.24.04~noble docker-compose-plugin:$ARCH
+apt-get install -y --allow-downgrades docker-ce=5:28.5.2-1~ubuntu.24.04~noble docker-ce-cli=5:28.5.2-1~ubuntu.24.04~noble containerd.io=2.2.0-2~ubuntu.24.04~noble docker-compose-plugin:$ARCH
 
 if [ "$ARCH" == "amd64" ]; then
   # On amd64, reduce the number of random bits for ASLR to 28 from 32. This was
@@ -100,4 +100,3 @@ else
 fi
 pip3 install jinjanator --break-system-packages
 mkdir -p /nfs
-
