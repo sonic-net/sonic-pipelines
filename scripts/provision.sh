@@ -92,8 +92,8 @@ if [ "$ARCH" == "amd64" ]; then
   apt-get install -y powershell
 else
   mkdir -p /opt/microsoft/powershell/7
-  wget https://github.com/PowerShell/PowerShell/releases/download/v7.5.5/powershell-7.5.5-linux-arm64.tar.gz
-  tar -xzf powershell-7.5.5-linux-arm64.tar.gz -C /opt/microsoft/powershell/7
+  wget https://github.com/PowerShell/PowerShell/releases/download/v7.5.10/powershell-7.5.10-linux-arm64.tar.gz
+  tar -xzf powershell-7.5.10-linux-arm64.tar.gz -C /opt/microsoft/powershell/7
   ln -s /opt/microsoft/powershell/7/pwsh /usr/bin/pwsh
   chmod +x /opt/microsoft/powershell/7/pwsh
   pwsh -v
