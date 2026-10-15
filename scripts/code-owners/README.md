@@ -117,6 +117,12 @@ The `codeowners-cli` command supports various options:
 - `--folder_presets_file`: YAML file with the preset folder information
 - `--active_after`: Date from which to consider contributors active (YYYY-MM-DD, default: 730 days ago)
 - `--max_owners`: Maximum number of owners per folder (default: 3)
+- `--half_life_days`: Weight each commit by `0.5 ** (age_days / half_life_days)` so recent changes count more (default: 0, no decay). Weights are rounded to integers
+- `--normalize`: `max` divides each weight by the folder's top weight, `share` by the folder total (default: `none`, raw weights)
+- `--reviews_file`: JSON file or directory of merged PRs with changed files and approvals (see sonic-tsc `pr_reviewer/dump_reviews.sh`). Each approver is credited once per PR per folder (PR author and bots ignored, same decay); requires `--normalize max`. Final score = `change_weight` * change score + (1 - `change_weight`) * approval score
+- `--change_weight`: default 0.6
+- `--reviews_out`: write raw approval weights per folder
+- `--full_tree`: List every folder that has owners. By default a folder is omitted when its owners are a subset of its parent's, which collapses the output to `/` when `--max_owners` is large
 - `--log_level`: Log level of the output (choices: debug, info, warning, error, critical)
 
 ## Output Format

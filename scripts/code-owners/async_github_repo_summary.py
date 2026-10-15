@@ -283,6 +283,7 @@ class AsyncGitHubRepoSummary:
         repo: str,
         active_after: datetime,
         max_owners: int,
+        half_life_days: float = 0,
     ):
         """Initialize the repository analysis with configuration parameters.
 
@@ -295,6 +296,8 @@ class AsyncGitHubRepoSummary:
             repo: GitHub repository name.
             active_after: Cutoff date for considering contributors active.
             max_owners: Maximum number of owners per folder.
+            half_life_days: Half-life in days of the recency decay applied
+                to each commit's changes. 0 disables the decay.
         """
         self.contributors = contributors
         self.repo_folders = repo_folders
@@ -312,6 +315,8 @@ class AsyncGitHubRepoSummary:
         self.repo = repo
         self.active_after = active_after
         self.max_owners = max_owners
+        self.half_life_days = half_life_days
+        self.now = datetime.now(timezone.utc)
 
         self.resolved_commit_queue = asyncio.Queue()
         self.to_resolve_commit_queue = asyncio.Queue(
@@ -334,6 +339,7 @@ class AsyncGitHubRepoSummary:
         repo_name: str,
         active_after: datetime,
         max_owners: int,
+        half_life_days: float = 0,
     ):
         """Process a repository to determine code ownership.
 
@@ -352,6 +358,8 @@ class AsyncGitHubRepoSummary:
             repo_name: GitHub repository name.
             active_after: Cutoff date for considering contributors active.
             max_owners: Maximum number of owners per folder.
+            half_life_days: Half-life in days of the recency decay applied
+                to each commit's changes. 0 disables the decay.
         """
         await self._initialize(
             contributors,
@@ -361,6 +369,7 @@ class AsyncGitHubRepoSummary:
             repo_name,
             active_after,
             max_owners,
+            half_life_days,
         )
         cnt = 0
         backlog_workers = [
@@ -408,7 +417,9 @@ class AsyncGitHubRepoSummary:
                 # the cutoff date, add the commit stats to the
                 # repo folders
                 for commit in contributor.commits:
+                    decay = self._recency_factor(commit.ts)
                     for folder, change_count in commit.changes.items():
+                        change_count *= decay
                         folder = os.sep + folder
                         # Apply the changes from the folder up
                         while True:
@@ -461,7 +472,7 @@ class AsyncGitHubRepoSummary:
                     contributor, previous_contributor_changes = next(
                         it_contributors
                     )
-                    folder_settings.owners[contributor.github_login] = (
+                    folder_settings.owners[contributor.github_login] = round(
                         previous_contributor_changes
                     )
                     for contributor, contributor_changes in it_contributors:
@@ -473,9 +484,16 @@ class AsyncGitHubRepoSummary:
                             # if found enough contributors and the new contributor has less changes, stop
                             break
                         folder_settings.owners[contributor.github_login] = (
-                            contributor_changes
+                            round(contributor_changes)
                         )
                         previous_contributor_changes = contributor_changes
+
+    def _recency_factor(self, commit_ts: datetime) -> float:
+        """Weight of a commit: 0.5 ** (age / half_life), or 1 if disabled."""
+        if self.half_life_days <= 0:
+            return 1.0
+        age_days = max(0.0, (self.now - commit_ts).total_seconds() / 86400)
+        return 0.5 ** (age_days / self.half_life_days)
 
     async def resolve_commit(self):
         """Worker task to resolve commit information and update contributors.

@@ -28,7 +28,7 @@ codeowners-cli = "main:main"
 version = {attr = "main.__version__"}
 
 [tool.setuptools]
-py-modules = ["main", "async_github_repo_summary", "contributor", "async_helpers", "folders", "organization"]
+py-modules = ["main", "async_github_repo_summary", "contributor", "async_helpers", "folders", "organization", "reviews"]
 
 [tool.black]
 line-length = 79
