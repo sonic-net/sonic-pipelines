@@ -102,6 +102,21 @@ def parse_params() -> argparse.Namespace:
         help="Write raw (unnormalized) approval weights per folder to this file",
     )
     parser.add_argument(
+        "--min_score",
+        type=float,
+        default=0,
+        help="Drop owners whose final score is below this (default 0: keep all)",
+    )
+    parser.add_argument(
+        "--min_raw_change_weight",
+        type=float,
+        default=0,
+        help=(
+            "Drop owners whose raw (decayed, unnormalized) change weight in "
+            "the folder is below this (default 0: keep all)"
+        ),
+    )
+    parser.add_argument(
         "--full_tree",
         action="store_true",
         help=(
@@ -159,6 +174,31 @@ def normalize_weights(out_folder_dict, normalize: str):
             o: w if w == inf else round(w / base, 4) if base else 0
             for o, w in owners.items()
         }
+
+
+def prune_owners(out_folder_dict, raw_change, min_score, min_raw):
+    """Drop owners below min_score or with raw change weight below min_raw.
+
+    Preset owners with infinite weight are always kept. Folders left without
+    owners are removed.
+    """
+    if not min_score and not min_raw:
+        return
+    inf = float("inf")
+    for folder in list(out_folder_dict):
+        kept = {
+            o: w
+            for o, w in out_folder_dict[folder].items()
+            if w == inf
+            or (
+                w >= min_score
+                and raw_change.get(folder, {}).get(o, 0) >= min_raw
+            )
+        }
+        if kept:
+            out_folder_dict[folder] = kept
+        else:
+            del out_folder_dict[folder]
 
 
 def process_folders_recursively(
@@ -258,6 +298,7 @@ async def async_loop(args: argparse.Namespace):
     process_folders_recursively(
         "/", repo_folders, out_folder_dict, args.full_tree
     )
+    raw_change = {f: dict(o) for f, o in out_folder_dict.items()}
     normalize_weights(out_folder_dict, args.normalize)
     if args.reviews_file:
         review_weights = compute_review_weights(
@@ -276,6 +317,9 @@ async def async_loop(args: argparse.Namespace):
         out_folder_dict = combine_scores(
             out_folder_dict, review_weights, args.change_weight
         )
+    prune_owners(
+        out_folder_dict, raw_change, args.min_score, args.min_raw_change_weight
+    )
     contents = yaml.safe_dump(
         out_folder_dict,
         indent=2,
