@@ -71,6 +71,26 @@ jobs:
               and ($names | any(test("^(Azure|sonic-net)\\.sonic")))
           ' <<< "$1" || echo false
         }
+        # Anyone with write access can push to a Renovate branch, and a pushed commit can name any author.
+        # Prints true only when every commit on the PR was signed by GitHub and authored by renovate[bot],
+        # or by github-actions[bot] for a go.sum fixup, and the last one is the head commit evaluated.
+        renovate_commits_pass() {
+          gh api graphql -f owner="${1%%/*}" -f name="${1#*/}" -F number="$2" -f query='
+            query($owner: String!, $name: String!, $number: Int!) {
+              repository(owner: $owner, name: $name) { pullRequest(number: $number) {
+                commits(last: 100) { totalCount nodes { commit { oid
+                  authors(first: 10) { nodes { user { login } } }
+                  signature { isValid wasSignedByGitHub } } } } } } }' |
+          jq -r --arg head "$3" '
+            .data.repository.pullRequest.commits as $c
+            | ($c.totalCount > 0) and ($c.totalCount == ($c.nodes | length))
+              and ($c.nodes | all(.commit
+                | .signature.isValid == true and .signature.wasSignedByGitHub == true
+                  and (.authors.nodes | length > 0
+                    and all((.user.login // "") | IN("renovate[bot]", "github-actions[bot]")))))
+              and ($c.nodes[-1].commit.oid == $head)
+          ' || echo false
+        }
         repos="${{ parameters.repos }}"
         release_owners=$(cat azure-pipelines/release-owners_github_account.json)
         rm -rf failure_prs.log skip_prs.log
@@ -140,7 +160,8 @@ jobs:
                 renovate=true
                 required=$(gh api "repos/$repo/branches/$(echo $pr | jq -r .baseRefName)" --jq '.protection.required_status_checks.contexts // []' || echo null)
                 pr_success=false
-                [[ $required != null && $(renovate_checks_pass "$checks" "$required") == true ]] && pr_success=true
+                [[ $required != null && $(renovate_checks_pass "$checks" "$required") == true \
+                  && $(renovate_commits_pass "$repo" "${url##*/}" "$(echo $pr | jq -r .headRefOid)") == true ]] && pr_success=true
                 # Merge only the commit whose checks were evaluated
                 merge_head="--match-head-commit $(echo $pr | jq -r .headRefOid)"
               fi
