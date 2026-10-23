@@ -55,8 +55,8 @@
       "enabled": false
     },
     {
-      "description": "Security updates below a major version merge unattended",
-      "matchJsonata": ["isVulnerabilityAlert = true"],
+      "description": "Security updates below a major version merge unattended, unless a repository marks the module vendor-pin",
+      "matchJsonata": ["isVulnerabilityAlert = true and $not('vendor-pin' in addLabels)"],
       "matchUpdateTypes": ["patch", "minor"],
       "addLabels": ["automerge"]
     },
