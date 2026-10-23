@@ -48,15 +48,8 @@
       "enabled": false
     },
     {
-      "description": "A module version a Makefile names moves with go.mod, which a release branch updates only for security",
-      "matchBaseBranches": ["/^(20261[12]|20(2[7-9]|[3-9][0-9])(0[1-9]|1[0-2]))$/"],
-      "matchManagers": ["custom.regex"],
-      "matchDatasources": ["go"],
-      "enabled": false
-    },
-    {
-      "description": "Security updates below a major version merge unattended, unless a repository marks the module vendor-pin",
-      "matchJsonata": ["isVulnerabilityAlert = true and $not('vendor-pin' in addLabels)"],
+      "description": "Security updates below a major version merge unattended, unless a repository marks the module patched-module",
+      "matchJsonata": ["isVulnerabilityAlert = true and $not('patched-module' in addLabels)"],
       "matchUpdateTypes": ["patch", "minor"],
       "addLabels": ["automerge"]
     },
