@@ -53,6 +53,44 @@ jobs:
           local full_body=$(printf "%s\n\n%s" "$comment_body" "$comment_watermark")
           gh pr comment "$pr_url" --body "$full_body"
         }
+        # Renovate PRs merge without a reviewer, so their checks are evaluated strictly. gh pr merge
+        # --admin can bypass the base branch's required checks, so they are evaluated here too.
+        # Prints true only when every check has completed successfully, every required check of the
+        # base branch is present, and a SONiC build check is present. An empty list, a check still
+        # running, timed out or needing action, and a commit status other than success all print
+        # false. Only a check named OPTIONAL is skipped; vulnerability scan is evaluated.
+        renovate_checks_pass() {
+          jq -r --argjson required "$2" '
+            [ (. // [])[] | select((.name // .context // "") | test("OPTIONAL"; "i") | not) ] as $c
+            | [ $c[] | .name // .context ] as $names
+            | ($c | length > 0)
+              and ($c | all(
+                if .__typename == "StatusContext" then .state == "SUCCESS"
+                else .status == "COMPLETED" and (.conclusion | IN("SUCCESS", "NEUTRAL", "SKIPPED")) end))
+              and ($required | all(. as $r | $names | index([$r]) != null))
+              and ($names | any(test("^(Azure|sonic-net)\\.sonic")))
+          ' <<< "$1" || echo false
+        }
+        # Anyone with write access can push to a Renovate branch, and a pushed commit can name any author.
+        # Prints true only when every commit on the PR was signed by GitHub and authored by renovate[bot],
+        # or by github-actions[bot] for a go.sum fixup, and the last one is the head commit evaluated.
+        renovate_commits_pass() {
+          gh api graphql -f owner="${1%%/*}" -f name="${1#*/}" -F number="$2" -f query='
+            query($owner: String!, $name: String!, $number: Int!) {
+              repository(owner: $owner, name: $name) { pullRequest(number: $number) {
+                commits(last: 100) { totalCount nodes { commit { oid
+                  authors(first: 10) { nodes { user { login } } }
+                  signature { isValid wasSignedByGitHub } } } } } } }' |
+          jq -r --arg head "$3" '
+            .data.repository.pullRequest.commits as $c
+            | ($c.totalCount > 0) and ($c.totalCount == ($c.nodes | length))
+              and ($c.nodes | all(.commit
+                | .signature.isValid == true and .signature.wasSignedByGitHub == true
+                  and (.authors.nodes | length > 0
+                    and all((.user.login // "") | IN("renovate[bot]", "github-actions[bot]")))))
+              and ($c.nodes[-1].commit.oid == $head)
+          ' || echo false
+        }
         repos="${{ parameters.repos }}"
         release_owners=$(cat azure-pipelines/release-owners_github_account.json)
         rm -rf failure_prs.log skip_prs.log
@@ -67,7 +105,9 @@ jobs:
             # fi
             automerge_prs=$(gh pr list -A mssonicbld --label automerge -R $repo -L 100 --search "created:>=$date_1m_ago_q" --json body,title,url,labels,statusCheckRollup,createdAt,baseRefName,comments)
             upgrade_versions_prs=$(gh pr list -A mssonicbld -R $repo -L 100 --search "(\"Upgrade SONiC package Versions\" OR \"Upgrade docker-sonic-mgmt package versions\" OR \"Upgrade docker-ptf package versions\") in:title created:>=$date_1m_ago_q" --json body,title,url,labels,statusCheckRollup,createdAt,baseRefName,comments)
-            prs=$(jq -sc 'add | unique_by(.url)' <(echo "$automerge_prs") <(echo "$upgrade_versions_prs"))
+            # Renovate labels a security update automerge only when it is not a major bump
+            renovate_prs=$(gh pr list -A app/renovate --label automerge --label security -R $repo -L 100 --search "created:>=$date_1m_ago_q" --json author,body,title,url,labels,statusCheckRollup,createdAt,baseRefName,comments,headRefOid)
+            prs=$(jq -sc 'add | unique_by(.url)' <(echo "$automerge_prs") <(echo "$upgrade_versions_prs") <(echo "$renovate_prs"))
             c=$(echo $prs | jq length)
             for ((i=0; i<$c; i++)); do
               set +x
@@ -114,10 +154,25 @@ jobs:
                   continue
                 fi
               done
+              renovate=false
+              merge_head=''
+              if [[ $(echo $pr | jq -r '.author.login // ""') == "app/renovate" ]]; then
+                renovate=true
+                required=$(gh api "repos/$repo/branches/$(echo $pr | jq -r .baseRefName)" --jq '.protection.required_status_checks.contexts // []' || echo null)
+                pr_success=false
+                [[ $required != null && $(renovate_checks_pass "$checks" "$required") == true \
+                  && $(renovate_commits_pass "$repo" "${url##*/}" "$(echo $pr | jq -r .headRefOid)") == true ]] && pr_success=true
+                # Merge only the commit whose checks were evaluated
+                merge_head="--match-head-commit $(echo $pr | jq -r .headRefOid)"
+              fi
               # If auto cherry pick PRs failed
               if ! $pr_success; then
                 echo "    $url" >> skip_prs.log
                 echo $pr | jq '.statusCheckRollup[] | "        "+.status+" "+.conclusion+"  "+.name' -r >> skip_prs.log
+                # A Renovate PR that fails waits for its reviewers; the cherry pick retry and escalation below do not apply
+                if $renovate; then
+                  continue
+                fi
                 comments_in_prs=$(echo $pr | jq .comments)
                 retried=false
                 if echo "$comments_in_prs" | jq -e '.[]? | select(((.author.login // "") == "mssonicbld") and ((.body // "") | test("^/azpw retry(\\s|$)"; "i")))' > /dev/null; then
@@ -156,7 +211,7 @@ jobs:
                 opt="--merge"
               fi
               echo "    $url"  >> failure_prs.log
-              if output=$(gh pr merge $opt --admin -R $repo $url -b "$body" 2>&1); then
+              if output=$(gh pr merge $opt --admin $merge_head -R $repo $url -b "$body" 2>&1); then
                 [ -n "$origin_pr_url" ] && gh pr edit $origin_pr_url -R $repo --add-label "Included in $base_ref Branch" --remove-label "Created PR to $base_ref Branch,Cherry Pick Conflict_$base_ref"
               else
                 (( ++rc ))

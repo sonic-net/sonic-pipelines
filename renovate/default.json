@@ -1,0 +1,63 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "description": "Shared Renovate preset for sonic-net repositories. See doc/security/dependency-hygiene.md in sonic-net/SONiC.",
+  "extends": ["config:recommended"],
+  "baseBranchPatterns": ["master", "/^(20261[12]|20(2[7-9]|[3-9][0-9])(0[1-9]|1[0-2]))$/"],
+  "reviewers": ["team:sonic-security-wg"],
+  "dependencyDashboard": true,
+  "osvVulnerabilityAlerts": true,
+  "separateMajorMinor": true,
+  "separateMinorPatch": true,
+  "commitBody": "Signed-off-by: {{{gitAuthor}}}",
+  "enabledManagers": ["gomod", "cargo", "github-actions", "dockerfile", "custom.regex"],
+  "postUpdateOptions": ["gomodTidy", "gomodUpdateImportPaths"],
+  "vulnerabilityAlerts": {
+    "enabled": true,
+    "labels": ["security"],
+    "groupName": "{{{datasource}}} security updates{{#if isMajor}} for {{{depName}}}{{/if}}"
+  },
+  "packageRules": [
+    {
+      "description": "Wait 7 days after a release before proposing it. Security updates are not delayed",
+      "matchPackageNames": ["*"],
+      "minimumReleaseAge": "7 days"
+    },
+    {
+      "description": "Group patch and minor updates per ecosystem on master",
+      "matchBaseBranches": ["master"],
+      "matchUpdateTypes": ["patch", "minor"],
+      "groupName": "{{{datasource}}} {{{updateType}}} updates"
+    },
+    {
+      "description": "Major updates get their own pull request",
+      "matchBaseBranches": ["master"],
+      "matchUpdateTypes": ["major"],
+      "groupName": null
+    },
+    {
+      "description": "Release branches take security updates, and hand-pinned versions, only",
+      "matchBaseBranches": ["/^(20261[12]|20(2[7-9]|[3-9][0-9])(0[1-9]|1[0-2]))$/"],
+      "matchManagers": ["!custom.regex"],
+      "enabled": false
+    },
+    {
+      "description": "A hand-pinned major update is not opened on a release branch",
+      "matchBaseBranches": ["/^(20261[12]|20(2[7-9]|[3-9][0-9])(0[1-9]|1[0-2]))$/"],
+      "matchManagers": ["custom.regex"],
+      "matchUpdateTypes": ["major"],
+      "enabled": false
+    },
+    {
+      "description": "Security updates below a major version merge unattended, unless a repository marks the module patched-module",
+      "matchJsonata": ["isVulnerabilityAlert = true and $not('patched-module' in addLabels)"],
+      "matchUpdateTypes": ["patch", "minor"],
+      "addLabels": ["automerge"]
+    },
+    {
+      "description": "FIPS Go is published by SONiC; open only on dashboard approval",
+      "matchManagers": ["custom.regex"],
+      "matchDatasources": ["golang-version"],
+      "dependencyDashboardApproval": true
+    }
+  ]
+}
