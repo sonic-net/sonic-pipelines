@@ -7,6 +7,19 @@ DEFAULT_ARCH=$(dpkg --print-architecture)
 [ -z "$ARCH" ] && [ -f /etc/docker-arch ] && ARCH=$(cat /etc/docker-arch)
 [ -z "$ARCH" ] && ARCH=$DEFAULT_ARCH  
 
+# Avoid slow Azure Ubuntu mirror downloads on amd64 hosts.
+if [ "$DEFAULT_ARCH" == "amd64" ]; then
+  for source in /etc/apt/sources.list \
+                /etc/apt/sources.list.d/*.list \
+                /etc/apt/sources.list.d/*.sources; do
+    if [ -f "$source" ]; then
+      sed -i \
+        's|://azure\.archive\.ubuntu\.com/ubuntu|://archive.ubuntu.com/ubuntu|g' \
+        "$source"
+    fi
+  done
+fi
+
 dpkg --configure -a
 apt-get update
 DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=a \
