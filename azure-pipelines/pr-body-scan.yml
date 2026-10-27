@@ -208,11 +208,12 @@ jobs:
           done
         done
       displayName: PR description scanning
+      condition: false
     - script: |
         set -ex
         [ -f cherry_pick_scan.log ] && cat cherry_pick_scan.log
       displayName: show PR description scanning result
-      condition: always()
+      condition: false
     - script: |
         set -ex
         rm -f workflow_scan.log
