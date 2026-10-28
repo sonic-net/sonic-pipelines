@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 5
 requires-python = ">=3.8"
 resolution-markers = [
     "python_full_version >= '3.14'",
@@ -15,7 +15,7 @@ resolution-markers = [
     "python_full_version < '3.9'",
 ]
 dependencies = [
-    { name = "pycares", version = "4.4.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.9'" },
+    { name = "pycares", version = "4.4.0", source = { registry = "https://pypi.org/simple" } },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/e7/84/41a6a2765abc124563f5380e76b9b24118977729e25a84112f8dfb2b33dc/aiodns-3.2.0.tar.gz", hash = "sha256:62869b23409349c21b072883ec8998316b234c9a9e36675756e8e317e8768f72", size = 7823, upload-time = "2024-03-31T11:27:30.639Z" }
 wheels = [
@@ -31,7 +31,7 @@ resolution-markers = [
     "python_full_version >= '3.9' and python_full_version < '3.14'",
 ]
 dependencies = [
-    { name = "pycares", version = "4.11.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.9'" },
+    { name = "pycares", version = "4.11.0", source = { registry = "https://pypi.org/simple" } },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/17/0a/163e5260cecc12de6abc259d158d9da3b8ec062ab863107dcdb1166cdcef/aiodns-3.5.0.tar.gz", hash = "sha256:11264edbab51896ecf546c18eb0dd56dff0428c6aa6d2cd87e643e07300eb310", size = 14380, upload-time = "2025-06-13T16:21:53.595Z" }
 wheels = [
@@ -96,13 +96,13 @@ resolution-markers = [
     "python_full_version < '3.9'",
 ]
 dependencies = [
-    { name = "aiohappyeyeballs", version = "2.4.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.9'" },
-    { name = "aiosignal", version = "1.3.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.9'" },
-    { name = "async-timeout", marker = "python_full_version < '3.9'" },
-    { name = "attrs", version = "25.3.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.9'" },
-    { name = "frozenlist", version = "1.5.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.9'" },
-    { name = "multidict", version = "6.1.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.9'" },
-    { name = "yarl", version = "1.15.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.9'" },
+    { name = "aiohappyeyeballs", version = "2.4.4", source = { registry = "https://pypi.org/simple" } },
+    { name = "aiosignal", version = "1.3.1", source = { registry = "https://pypi.org/simple" } },
+    { name = "async-timeout" },
+    { name = "attrs", version = "25.3.0", source = { registry = "https://pypi.org/simple" } },
+    { name = "frozenlist", version = "1.5.0", source = { registry = "https://pypi.org/simple" } },
+    { name = "multidict", version = "6.1.0", source = { registry = "https://pypi.org/simple" } },
+    { name = "yarl", version = "1.15.2", source = { registry = "https://pypi.org/simple" } },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/25/a8/8e2ba36c6e3278d62e0c88aa42bb92ddbef092ac363b390dab4421da5cf5/aiohttp-3.10.11.tar.gz", hash = "sha256:9dc2b8f3dcab2e39e0fa309c8da50c3b55e6f34ab25f1a71d3288f24924d33a7", size = 7551886, upload-time = "2024-11-13T16:40:33.335Z" }
 wheels = [
@@ -207,14 +207,14 @@ resolution-markers = [
     "python_full_version >= '3.9' and python_full_version < '3.14'",
 ]
 dependencies = [
-    { name = "aiohappyeyeballs", version = "2.6.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.9'" },
-    { name = "aiosignal", version = "1.4.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.9'" },
-    { name = "async-timeout", marker = "python_full_version >= '3.9' and python_full_version < '3.11'" },
-    { name = "attrs", version = "25.4.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.9'" },
-    { name = "frozenlist", version = "1.8.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.9'" },
-    { name = "multidict", version = "6.7.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.9'" },
-    { name = "propcache", version = "0.4.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.9'" },
-    { name = "yarl", version = "1.22.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.9'" },
+    { name = "aiohappyeyeballs", version = "2.6.1", source = { registry = "https://pypi.org/simple" } },
+    { name = "aiosignal", version = "1.4.0", source = { registry = "https://pypi.org/simple" } },
+    { name = "async-timeout", marker = "python_full_version < '3.11'" },
+    { name = "attrs", version = "25.4.0", source = { registry = "https://pypi.org/simple" } },
+    { name = "frozenlist", version = "1.8.0", source = { registry = "https://pypi.org/simple" } },
+    { name = "multidict", version = "6.7.0", source = { registry = "https://pypi.org/simple" } },
+    { name = "propcache", version = "0.4.1", source = { registry = "https://pypi.org/simple" } },
+    { name = "yarl", version = "1.22.0", source = { registry = "https://pypi.org/simple" } },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/1c/ce/3b83ebba6b3207a7135e5fcaba49706f8a4b6008153b4e30540c982fae26/aiohttp-3.13.2.tar.gz", hash = "sha256:40176a52c186aefef6eb3cad2cdd30cd06e3afbe88fe8ab2af9c0b90f228daca", size = 7837994, upload-time = "2025-10-28T20:59:39.937Z" }
 wheels = [
@@ -347,7 +347,7 @@ resolution-markers = [
     "python_full_version < '3.9'",
 ]
 dependencies = [
-    { name = "frozenlist", version = "1.5.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.9'" },
+    { name = "frozenlist", version = "1.5.0", source = { registry = "https://pypi.org/simple" } },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/ae/67/0952ed97a9793b4958e5736f6d2b346b414a2cd63e82d05940032f45b32f/aiosignal-1.3.1.tar.gz", hash = "sha256:54cd96e15e1649b75d6c87526a6ff0b6c1b0dd3459f43d9ca11d48c339b68cfc", size = 19422, upload-time = "2022-11-08T16:03:58.806Z" }
 wheels = [
@@ -363,8 +363,8 @@ resolution-markers = [
     "python_full_version >= '3.9' and python_full_version < '3.14'",
 ]
 dependencies = [
-    { name = "frozenlist", version = "1.8.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.9'" },
-    { name = "typing-extensions", version = "4.15.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.9' and python_full_version < '3.13'" },
+    { name = "frozenlist", version = "1.8.0", source = { registry = "https://pypi.org/simple" } },
+    { name = "typing-extensions", version = "4.15.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.13'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/61/62/06741b579156360248d1ec624842ad0edf697050bbaf7c3e46394e106ad1/aiosignal-1.4.0.tar.gz", hash = "sha256:f47eecd9468083c2029cc99945502cb7708b082c232f9aca65da147157b251c7", size = 25007, upload-time = "2025-07-03T22:54:43.528Z" }
 wheels = [
@@ -485,11 +485,11 @@ wheels = [
 
 [[package]]
 name = "certifi"
-version = "2025.11.12"
+version = "2026.10.18"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/a2/8c/58f469717fa48465e4a50c014a0400602d3c437d7c0c468e17ada824da3a/certifi-2025.11.12.tar.gz", hash = "sha256:d8ab5478f2ecd78af242878415affce761ca6bc54a22a27e026d7c25357c3316", size = 160538, upload-time = "2025-11-12T02:54:51.517Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/7e/eb/a2aa1ac3ea30dd3f30ca57f40232138b6b0040719316ecb85daf61167771/certifi-2026.10.18.tar.gz", hash = "sha256:b9995d97b64d0431a5af837d8ca8cd6238104d1f319f04bd93ea43124d6c861e", size = 135227, upload-time = "2026-10-18T16:21:07.655Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/70/7d/9bc192684cea499815ff478dfcdc13835ddf401365057044fb721ec6bddb/certifi-2025.11.12-py3-none-any.whl", hash = "sha256:97de8790030bbd5c2d96b7ec782fc2f7820ef8dba6db909ccf95449f2d062d4b", size = 159438, upload-time = "2025-11-12T02:54:49.735Z" },
+    { url = "https://files.pythonhosted.org/packages/08/ba/95dd616042484f7c83a06974388b37b837732740ee70bc5dc715b5fcd55a/certifi-2026.10.18-py3-none-any.whl", hash = "sha256:73191c47aaa79da394e8fee2dbc2ec827432cab56311122c9e47abf79e390f62", size = 134093, upload-time = "2026-10-18T16:21:06.276Z" },
 ]
 
 [[package]]
@@ -500,7 +500,7 @@ resolution-markers = [
     "python_full_version < '3.9'",
 ]
 dependencies = [
-    { name = "pycparser", marker = "python_full_version < '3.9'" },
+    { name = "pycparser" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/fc/97/c783634659c2920c3fc70419e3af40972dbaf758daa229a7d6ea6135c90d/cffi-1.17.1.tar.gz", hash = "sha256:1c39c6016c32bc48dd54561950ebd6836e1670f2ae46128f67cf49e789c52824", size = 516621, upload-time = "2024-09-04T20:45:21.852Z" }
 wheels = [
@@ -581,7 +581,7 @@ resolution-markers = [
     "python_full_version >= '3.9' and python_full_version < '3.14'",
 ]
 dependencies = [
-    { name = "pycparser", marker = "python_full_version >= '3.9' and implementation_name != 'PyPy'" },
+    { name = "pycparser", marker = "implementation_name != 'PyPy'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/eb/56/b1ba7935a17738ae8453301356628e8147c79dbb825bcbc73dc7401f9846/cffi-2.0.0.tar.gz", hash = "sha256:44d1b5909021139fe36001ae048dbdde8214afa20200eda0f64c068cac5d5529", size = 523588, upload-time = "2025-09-08T23:24:04.541Z" }
 wheels = [
@@ -955,7 +955,7 @@ resolution-markers = [
     "python_full_version < '3.9'",
 ]
 dependencies = [
-    { name = "typing-extensions", version = "4.13.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.9'" },
+    { name = "typing-extensions", version = "4.13.2", source = { registry = "https://pypi.org/simple" } },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/d6/be/504b89a5e9ca731cd47487e91c469064f8ae5af93b7259758dcfc2b9c848/multidict-6.1.0.tar.gz", hash = "sha256:22ae2ebf9b0c69d206c003e2f6a914ea33f0a932d4aa16f236afc049d9958f4a", size = 64002, upload-time = "2024-09-09T23:49:38.163Z" }
 wheels = [
@@ -1061,7 +1061,7 @@ resolution-markers = [
     "python_full_version >= '3.9' and python_full_version < '3.14'",
 ]
 dependencies = [
-    { name = "typing-extensions", version = "4.15.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.9' and python_full_version < '3.11'" },
+    { name = "typing-extensions", version = "4.15.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/80/1e/5492c365f222f907de1039b91f922b93fa4f764c713ee858d235495d8f50/multidict-6.7.0.tar.gz", hash = "sha256:c6e99d9a65ca282e578dfea819cfa9c0a62b2499d8677392e09feaf305e9e6f5", size = 101834, upload-time = "2025-10-06T14:52:30.657Z" }
 wheels = [
@@ -1461,7 +1461,7 @@ resolution-markers = [
     "python_full_version < '3.9'",
 ]
 dependencies = [
-    { name = "cffi", version = "1.17.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.9'" },
+    { name = "cffi", version = "1.17.1", source = { registry = "https://pypi.org/simple" } },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/1b/8f/daf60bbc06f4a3cd1cfb0ab807057151287df6f5c78f2e0d298acc9193ac/pycares-4.4.0.tar.gz", hash = "sha256:f47579d508f2f56eddd16ce72045782ad3b1b3b678098699e2b6a1b30733e1c2", size = 821630, upload-time = "2023-10-06T20:15:55.539Z" }
 wheels = [
@@ -1526,7 +1526,7 @@ resolution-markers = [
     "python_full_version >= '3.9' and python_full_version < '3.14'",
 ]
 dependencies = [
-    { name = "cffi", version = "2.0.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.9'" },
+    { name = "cffi", version = "2.0.0", source = { registry = "https://pypi.org/simple" } },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/8d/ad/9d1e96486d2eb5a2672c4d9a2dd372d015b8d7a332c6ac2722c4c8e6bbbf/pycares-4.11.0.tar.gz", hash = "sha256:c863d9003ca0ce7df26429007859afd2a621d3276ed9fef154a9123db9252557", size = 654473, upload-time = "2025-09-09T15:18:21.849Z" }
 wheels = [
@@ -1744,9 +1744,9 @@ resolution-markers = [
     "python_full_version < '3.9'",
 ]
 dependencies = [
-    { name = "idna", marker = "python_full_version < '3.9'" },
-    { name = "multidict", version = "6.1.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.9'" },
-    { name = "propcache", version = "0.2.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.9'" },
+    { name = "idna" },
+    { name = "multidict", version = "6.1.0", source = { registry = "https://pypi.org/simple" } },
+    { name = "propcache", version = "0.2.0", source = { registry = "https://pypi.org/simple" } },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/06/e1/d5427a061819c9f885f58bb0467d02a523f1aec19f9e5f9c82ce950d90d3/yarl-1.15.2.tar.gz", hash = "sha256:a39c36f4218a5bb668b4f06874d676d35a035ee668e6e7e3538835c703634b84", size = 169318, upload-time = "2024-10-13T18:48:04.311Z" }
 wheels = [
@@ -1858,9 +1858,9 @@ resolution-markers = [
     "python_full_version >= '3.9' and python_full_version < '3.14'",
 ]
 dependencies = [
-    { name = "idna", marker = "python_full_version >= '3.9'" },
-    { name = "multidict", version = "6.7.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.9'" },
-    { name = "propcache", version = "0.4.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.9'" },
+    { name = "idna" },
+    { name = "multidict", version = "6.7.0", source = { registry = "https://pypi.org/simple" } },
+    { name = "propcache", version = "0.4.1", source = { registry = "https://pypi.org/simple" } },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/57/63/0c6ebca57330cd313f6102b16dd57ffaf3ec4c83403dcb45dbd15c6f3ea1/yarl-1.22.0.tar.gz", hash = "sha256:bebf8557577d4401ba8bd9ff33906f1376c877aa78d1fe216ad01b4d6745af71", size = 187169, upload-time = "2025-10-06T14:12:55.963Z" }
 wheels = [
