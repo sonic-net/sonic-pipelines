@@ -8,6 +8,7 @@
   "osvVulnerabilityAlerts": true,
   "separateMajorMinor": true,
   "separateMinorPatch": true,
+  "rebaseWhen": "conflicted",
   "commitBody": "Signed-off-by: {{{gitAuthor}}}",
   "enabledManagers": ["gomod", "cargo", "github-actions", "dockerfile", "custom.regex"],
   "postUpdateOptions": ["gomodTidy", "gomodUpdateImportPaths"],
@@ -48,10 +49,11 @@
       "enabled": false
     },
     {
-      "description": "Security updates below a major version merge unattended, unless a repository marks the module patched-module",
+      "description": "Security updates below a major version merge unattended, unless a repository marks the module patched-module. They are kept up to date with the base branch so the merge robot can merge them; every other update is rebased only on a conflict, or when someone asks for it on the pull request or the dependency dashboard",
       "matchJsonata": ["isVulnerabilityAlert = true and $not('patched-module' in addLabels)"],
       "matchUpdateTypes": ["patch", "minor"],
-      "addLabels": ["automerge"]
+      "addLabels": ["automerge"],
+      "rebaseWhen": "behind-base-branch"
     },
     {
       "description": "FIPS Go is published by SONiC; open only on dashboard approval",
