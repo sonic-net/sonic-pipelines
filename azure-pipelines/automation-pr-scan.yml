@@ -212,8 +212,25 @@ jobs:
                 opt="--merge"
               fi
               echo "    $url"  >> failure_prs.log
-              if output=$(gh pr merge $opt --admin $merge_head -R $repo $url -b "$body" 2>&1); then
-                [ -n "$origin_pr_url" ] && gh pr edit $origin_pr_url -R $repo --add-label "Included in $base_ref Branch" --remove-label "Created PR to $base_ref Branch,Cherry Pick Conflict_$base_ref"
+              if queue_required=$(gh api graphql -f owner="${repo%%/*}" -f name="${repo#*/}" -F number="${url##*/}" -f query='
+                query($owner: String!, $name: String!, $number: Int!) {
+                  repository(owner: $owner, name: $name) {
+                    pullRequest(number: $number) { isMergeQueueEnabled }
+                  }
+                }' --jq '.data.repository.pullRequest.isMergeQueueEnabled' 2>&1) && [[ "$queue_required" == true || "$queue_required" == false ]]; then
+                merge_flags=(--admin)
+                if [[ "$queue_required" == true ]]; then
+                  merge_flags=()
+                fi
+              else
+                echo "        Failed to determine merge queue requirement: $queue_required" >> failure_prs.log
+                (( ++rc ))
+                continue
+              fi
+              if output=$(gh pr merge $opt "${merge_flags[@]}" $merge_head -R $repo $url -b "$body" 2>&1); then
+                if [[ "$queue_required" == false && -n "$origin_pr_url" ]]; then
+                  gh pr edit $origin_pr_url -R $repo --add-label "Included in $base_ref Branch" --remove-label "Created PR to $base_ref Branch,Cherry Pick Conflict_$base_ref"
+                fi
               else
                 (( ++rc ))
               fi
