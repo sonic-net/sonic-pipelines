@@ -27,6 +27,38 @@ DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=a \
   -o Dpkg::Options::="--force-confdef" \
   -o Dpkg::Options::="--force-confold"
 apt-get install -y ca-certificates curl gnupg lsb-release
+
+# Install the Bazel builder profile
+apt-get install -y apparmor
+if [ "$(cat /sys/module/apparmor/parameters/enabled)" != Y ]; then
+  echo "ERROR: AppArmor must be enabled to install the Bazel builder profile." >&2
+  exit 1
+fi
+if [ ! -f /proc/sys/kernel/apparmor_restrict_unprivileged_userns ]; then
+  echo "ERROR: Agent kernel does not expose AppArmor user namespace mediation." >&2
+  exit 1
+fi
+mkdir -p /etc/apparmor.d
+cat > /etc/apparmor.d/sonic-bazel-builder <<'EOF'
+abi <abi/4.0>,
+include <tunables/global>
+
+# Explicitly selected by Docker, not attached to arbitrary executable paths.
+# Preserve the builder's existing unconfined access, with userns permission.
+profile sonic-bazel-builder flags=(default_allow) {
+    userns,
+}
+EOF
+if ! apparmor_parser -r -T /etc/apparmor.d/sonic-bazel-builder; then
+  echo "ERROR: Cannot load the sonic-bazel-builder AppArmor profile." >&2
+  exit 1
+fi
+if ! grep -q '^sonic-bazel-builder ' /sys/kernel/security/apparmor/profiles; then
+  echo "ERROR: sonic-bazel-builder is missing from the loaded AppArmor profiles." >&2
+  exit 1
+fi
+echo "Installed sonic-bazel-builder; select it with --security-opt apparmor=sonic-bazel-builder."
+
 # install git lfs
 curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash
 apt-get install -y git-lfs acl
