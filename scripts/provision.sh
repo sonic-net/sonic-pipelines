@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -ex
+set -exo pipefail
 
 ARCH=$1
 DEFAULT_ARCH=$(dpkg --print-architecture)
@@ -146,3 +146,20 @@ fi
 curl -LsSf https://astral.sh/uv/0.13.0/install.sh | env UV_UNMANAGED_INSTALL=/usr/local/bin sh
 UV_TOOL_DIR=/opt/uv/tools UV_TOOL_BIN_DIR=/usr/local/bin uv tool install jinjanator
 mkdir -p /nfs
+
+# Validate dependencies using the agent account and its sudo environment.
+if ! sudo -u azureuser -- bash -e <<'EOF'
+for tool in docker git-lfs make python3 pwsh jinjanate; do
+  if ! command -v "$tool" >/dev/null; then
+    echo "ERROR: Missing agent dependency: $tool" >&2
+    exit 1
+  fi
+done
+
+sudo -n uv --version
+jinjanate --version
+EOF
+then
+  echo "ERROR: Agent dependency validation failed" >&2
+  exit 1
+fi
