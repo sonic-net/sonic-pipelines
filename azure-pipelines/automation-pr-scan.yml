@@ -71,6 +71,23 @@ jobs:
               and ($names | any(test("^(Azure|sonic-net)\\.sonic")))
           ' <<< "$1" || echo false
         }
+        # The checks of a Renovate PR's head commit, in the shape of statusCheckRollup. The rollup
+        # leaves out runs that no pull request event started, such as the CodeQL and Semgrep runs the
+        # go.sum workflow dispatches on its fixup commit, so a required check would never be found.
+        # Branch protection matches required checks by name on the commit, and so does this: the
+        # newest check run of each name, and each commit status. Prints null when either call fails.
+        renovate_head_checks() {
+          local runs statuses
+          runs=$(gh api --paginate "repos/$1/commits/$2/check-runs?per_page=100" --jq '.check_runs[]') &&
+          statuses=$(gh api --paginate "repos/$1/commits/$2/statuses?per_page=100" --jq '.[]') &&
+          jq -sc --argjson runs "$(jq -sc . <<< "$runs")" '
+            ($runs | group_by(.name) | map(max_by(.id)
+              | { __typename: "CheckRun", name, status: (.status | ascii_upcase),
+                  conclusion: (.conclusion // "" | ascii_upcase) }))
+            + (group_by(.context) | map(max_by(.id)
+              | { __typename: "StatusContext", context, state: (.state | ascii_upcase) }))
+          ' <<< "$statuses" || echo null
+        }
         # Anyone with write access can push to a Renovate branch, and a pushed commit can name any author.
         # Prints true only when every commit on the PR was signed by GitHub and authored by renovate[bot],
         # or by github-actions[bot] for a go.sum fixup, and the last one is the head commit evaluated.
@@ -160,6 +177,7 @@ jobs:
               merge_head=''
               if [[ $(echo $pr | jq -r '.author.login // ""') == "app/renovate" ]]; then
                 renovate=true
+                checks=$(renovate_head_checks "$repo" "$(echo $pr | jq -r .headRefOid)")
                 required=$(gh api "repos/$repo/branches/$(echo $pr | jq -r .baseRefName)" --jq '.protection.required_status_checks.contexts // []' || echo null)
                 pr_success=false
                 [[ $required != null && $(renovate_checks_pass "$checks" "$required") == true \
