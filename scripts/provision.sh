@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -ex
+set -exo pipefail
 
 export DEBIAN_FRONTEND=noninteractive
 export NEEDRESTART_MODE=a
@@ -85,6 +85,22 @@ apt-get install -y build-essential nfs-common python3-setuptools python-is-pytho
 # Install uv (system-wide) and use it to install Python packages without pip
 curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR=/usr/local/bin sh
 uv pip install --system jinja2 j2cli markupsafe
+
+# Validate dependencies using the agent account and its sudo environment.
+if ! sudo -u azureuser -- bash -e <<'EOF'
+for tool in docker git-lfs make python3; do
+  if ! command -v "$tool" >/dev/null; then
+    echo "ERROR: Missing agent dependency: $tool" >&2
+    exit 1
+  fi
+done
+
+sudo -n uv --version
+EOF
+then
+  echo "ERROR: Agent dependency validation failed" >&2
+  exit 1
+fi
 
 if [ -f /var/run/reboot-required ]; then
    echo "Kernel/libs upgraded — rebooting"
