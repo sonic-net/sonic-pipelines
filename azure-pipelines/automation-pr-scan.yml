@@ -41,6 +41,7 @@ jobs:
         # more than 3 days, retry the failed jobs
         # failed after retry, comment release branch owner and original PR author to check
         date_3d_ago=$(date --date "3 day ago" -u +"%FT%TZ")
+        date_3h_ago=$(date --date "3 hours ago" -u +"%FT%TZ")
         date_15d_ago=$(date --date "15 day ago" -u +"%FT%TZ")
         date_1m_ago_q=$(date --date "1 month ago" -u +"%Y-%m-%d")
         date_now=$(date -u +"%T")
@@ -95,10 +96,12 @@ jobs:
         release_owners=$(cat azure-pipelines/release-owners_github_account.json)
         rm -rf failure_prs.log skip_prs.log
         rc=0
+        qualified_errors=false
           for repo in $repos $(EXTRA_REPOS); do
             echo ======== working for $repo ========
             echo $repo >> failure_prs.log
             merge_op=true
+            qualified_members_state=unloaded
             # if [[ $repo == "sonic-net/sonic-mgmt" ]]; then
             #   # For sonic-mgmt repo, it has its own github workflow to merge the cherry pick PR
             #   merge_op=false
@@ -118,6 +121,117 @@ jobs:
               url=$(echo $pr | jq .url -r)
               body=$(echo $pr | jq .body -r)
               title=$(echo $pr | jq .title -r)
+              qualified_approval=false
+              if echo "$qualified_approval_prs" | jq -e --arg url "$url" 'any(.url == $url)' > /dev/null; then
+                qualified_approval=true
+                qualified_head=$(echo "$qualified_approval_prs" | jq -r --arg url "$url" '.[] | select(.url == $url) | .headRefOid')
+                risk=$(echo "$pr" | jq -r '
+                  [.labels[].name | ascii_downcase] as $labels
+                  | ["high", "medium", "low"]
+                  | map(select(. + " merge risk" | IN($labels[])))
+                  | .[0] // "missing"')
+                notification=''
+                case "$risk" in
+                  high)
+                    notification="@${repo}-maintainer, this Qualified-approval PR has high merge risk and will not be automatically merged. Please review and merge manually."
+                    ;;
+                  medium)
+                    if [[ "$qualified_members_state" == unloaded ]]; then
+                      qualified_members_state=failed
+                      if ! maintainers=$(gh api --paginate --slurp "orgs/${repo%%/*}/teams/${repo#*/}-maintainer/members?per_page=100"); then
+                        echo "Failed to fetch maintainer team members for $url" >> failure_prs.log
+                        qualified_errors=true
+                        continue
+                      fi
+                      if ! admins=$(gh api --paginate --slurp "repos/$repo/collaborators?permission=admin&per_page=100"); then
+                        echo "Failed to fetch repository admins for $url" >> failure_prs.log
+                        qualified_errors=true
+                        continue
+                      fi
+                      if ! admin_users=$(echo "$admins" | jq -c '
+                        add // [] | map(select(.permissions.admin == true) | .login | ascii_downcase) | unique
+                      '); then
+                        echo "Failed to evaluate repository admins for $url" >> failure_prs.log
+                        qualified_errors=true
+                        continue
+                      fi
+                      if ! qualified_members=$(echo "$maintainers" | jq -c --argjson admins "$admin_users" '
+                        (add // [] | map(.login | ascii_downcase)) + $admins | unique
+                      '); then
+                        echo "Failed to evaluate maintainer team members for $url" >> failure_prs.log
+                        qualified_errors=true
+                        continue
+                      fi
+                      if ! admin_mentions=$(echo "$admin_users" | jq -r 'map("@" + .) | join(", ")'); then
+                        echo "Failed to format repository admin mentions for $url" >> failure_prs.log
+                        qualified_errors=true
+                        continue
+                      fi
+                      qualified_members_state=ready
+                    fi
+                    if [[ "$qualified_members_state" == failed ]]; then
+                      echo "Skipping $url: maintainer or admin lookup failed for $repo in this scan" >> failure_prs.log
+                      qualified_errors=true
+                      continue
+                    fi
+                    if ! reviews=$(gh api --paginate --slurp "repos/$repo/pulls/${url##*/}/reviews?per_page=100"); then
+                      echo "Failed to fetch reviews for $url" >> failure_prs.log
+                      qualified_errors=true
+                      continue
+                    fi
+                    if ! approved=$(echo "$reviews" | jq -r --argjson members "$qualified_members" --arg head "$qualified_head" '
+                      add // [] | map(select(.state != "COMMENTED" and .state != "PENDING"))
+                      | group_by(.user.login | ascii_downcase)
+                      | map(max_by(.id))
+                      | any(.state == "APPROVED" and .commit_id == $head
+                        and (.user.login | ascii_downcase | IN($members[])))
+                    '); then
+                      echo "Failed to evaluate maintainer and admin reviews for $url" >> failure_prs.log
+                      qualified_errors=true
+                      continue
+                    fi
+                    if [[ "$approved" != true ]]; then
+                      notification="@${repo}-maintainer${admin_mentions:+, $admin_mentions}, this Qualified-approval PR has medium merge risk. Please help approve the current head commit to allow automatic merging."
+                    fi
+                    ;;
+                  low) ;;
+                  *)
+                    if ! label_events=$(gh api --paginate --slurp "repos/$repo/issues/${url##*/}/events?per_page=100"); then
+                      echo "Failed to fetch label events for $url" >> failure_prs.log
+                      qualified_errors=true
+                      continue
+                    fi
+                    if ! qualified_labeled_at=$(echo "$label_events" | jq -r '
+                      add | [.[] | select(.event == "labeled" and .label.name == "Qualified-approval") | .created_at]
+                      | max // empty
+                    '); then
+                      echo "Failed to evaluate Qualified-approval label events for $url" >> failure_prs.log
+                      qualified_errors=true
+                      continue
+                    fi
+                    if [[ -z "$qualified_labeled_at" ]]; then
+                      echo "Cannot determine when Qualified-approval was added for $url" >> failure_prs.log
+                      qualified_errors=true
+                      continue
+                    fi
+                    if [[ "$qualified_labeled_at" > "$date_3h_ago" ]]; then
+                      echo "Skipping $url: no merge risk label; Qualified-approval was added less than 3 hours ago." >> skip_prs.log
+                      continue
+                    fi
+                    notification="@yijingyan2, this Qualified-approval PR has no merge risk label. Please help check."
+                    ;;
+                esac
+                if [[ -n "$notification" ]]; then
+                  if ! echo "$pr" | jq -e --arg message "$notification" '
+                    .comments[]? | select(.author.login == "mssonicbld"
+                      and ((.body // "") | startswith($message)))
+                  ' > /dev/null; then
+                    comment_pr "$url" "$notification"
+                  fi
+                  echo "Skipping $url: $notification" >> skip_prs.log
+                  continue
+                fi
+              fi
               if { echo "$title" | grep -Fqi -e "Upgrade SONiC package Versions" -e "Upgrade docker-sonic-mgmt package versions" -e "Upgrade docker-ptf package versions" || echo "$pr" | jq -e '.labels[]? | select(.name == "Qualified-approval")' > /dev/null; } && ! echo "$pr" | jq -e '.labels[]? | select(.name == "automerge")' > /dev/null; then
                 gh pr edit $url -R $repo --add-label automerge
               fi
@@ -158,6 +272,9 @@ jobs:
               done
               renovate=false
               merge_head=''
+              if $qualified_approval; then
+                merge_head="--match-head-commit $qualified_head"
+              fi
               if [[ $(echo $pr | jq -r '.author.login // ""') == "app/renovate" ]]; then
                 renovate=true
                 required=$(gh api "repos/$repo/branches/$(echo $pr | jq -r .baseRefName)" --jq '.protection.required_status_checks.contexts // []' || echo null)
@@ -239,6 +356,7 @@ jobs:
               echo ========Finished PR========
             done
           done
+        if $qualified_errors; then exit 1; fi
         if (( rc >= 10 )); then exit $rc; fi
         exit 0
       displayName: cherry pick scanning
