@@ -71,55 +71,148 @@ jobs:
               and ($names | any(test("^(Azure|sonic-net)\\.sonic")))
           ' <<< "$1" || echo false
         }
-        # A Renovate PR's checks: its statusCheckRollup, plus each required check of the base branch
-        # that the rollup lacks, read from the head commit. The rollup leaves out runs that no pull
-        # request event started, such as the CodeQL and Semgrep runs the go.sum workflow dispatches on
-        # its fixup commit, so a required check would never be found. Branch protection matches a
-        # required check by name on the commit and requires every check run and commit status of that
-        # name to pass, and so does this: the newest check run of that name and the newest commit
-        # status of that context are both added, each one only when the rollup lacks that kind. Every
-        # check in the rollup is kept and evaluated as before. Prints null when a call fails. The runs
-        # and statuses go through files, not arguments: a commit's check runs can be larger than one
-        # argument may be.
-        renovate_checks() {
-          local runs statuses
-          runs=$(gh api --paginate "repos/$1/commits/$2/check-runs?per_page=100" \
-            --jq '.check_runs[] | {id, name, status, conclusion}') &&
-          statuses=$(gh api --paginate "repos/$1/commits/$2/statuses?per_page=100" --jq '.[] | {id, context, state}') &&
-          jq -c --argjson required "$4" --slurpfile runs <(printf '%s\n' "$runs") \
-              --slurpfile statuses <(printf '%s\n' "$statuses") '
-            (. // []) as $rollup
-            | [ $rollup[] | select(.__typename != "StatusContext") | .name ] as $run_names
-            | [ $rollup[] | select(.__typename == "StatusContext") | .context ] as $status_names
-            | $rollup + [ $required[] as $r
-                | (select($run_names | index([$r]) == null)
-                   | [ $runs[] | select(.name == $r) ] | max_by(.id) // empty
-                   | { __typename: "CheckRun", name: $r, status: (.status | ascii_upcase),
-                       conclusion: (.conclusion // "" | ascii_upcase) }),
-                  (select($status_names | index([$r]) == null)
-                   | [ $statuses[] | select(.context == $r) ] | max_by(.id) // empty
-                   | { __typename: "StatusContext", context: $r, state: (.state | ascii_upcase) }) ]
-          ' <<< "$3" || echo null
+        # A fixup workflow commits as github-actions[bot], whose pull_request runs wait
+        # for approval: the repository requires it for an outside contributor, and an app cannot be
+        # made a collaborator. Branch protection counts only runs a pull request event started, so
+        # those runs have to run. Approves each one waiting on the head commit of this PR's own
+        # branch, or reruns it when GitHub refuses the approval, which starts it as mssonicbld.
+        # Called only once every commit on the PR has passed renovate_commits_pass, so no code a
+        # person pushed is run. Each action is logged with its result. Prints true when it approved
+        # or reran any run: the checks were read before, so the PR merges on a later scan.
+        renovate_approve_runs() {
+          local id out acted=false
+          for id in $(gh api "repos/$1/actions/runs?head_sha=$2&status=action_required&per_page=100" |
+              jq -r --arg repo "$1" --arg branch "$3" --argjson number "${4##*/}" '.workflow_runs[]
+                | select(.event == "pull_request" and .head_branch == $branch
+                    and .head_repository.full_name == $repo and any(.pull_requests[]; .number == $number))
+                | .id'); do
+            acted=true
+            if out=$(gh api -X POST "repos/$1/actions/runs/$id/approve" 2>&1); then
+              echo "    $4: approved workflow run $id" >> skip_prs.log
+            elif out=$(gh api -X POST "repos/$1/actions/runs/$id/rerun" 2>&1); then
+              echo "    $4: reran workflow run $id" >> skip_prs.log
+            else
+              echo "    $4: failed to approve or rerun workflow run $id: $out" >> failure_prs.log
+            fi
+          done
+          echo $acted
         }
         # Anyone with write access can push to a Renovate branch, and a pushed commit can name any author.
         # Prints true only when every commit on the PR was signed by GitHub and authored by renovate[bot],
-        # or by github-actions[bot] for a go.sum fixup, and the last one is the head commit evaluated.
+        # or by github-actions[bot] for a fixup a repository's workflow makes to Renovate's commit (go.sum
+        # where Renovate cannot update it), and the last one is the head commit evaluated.
+        # A signature stays valid whoever pushes the commit, so a renovate[bot] commit from another PR, or
+        # from Renovate running on another repository, could be pushed here. Each renovate[bot] commit
+        # must therefore have a pull_request run that Renovate's own push of it started for this PR
+        # (renovate_pushed_runs): a push by anyone else starts its runs as them.
+        # Any workflow with a contents: write token can make a GitHub-signed commit authored by
+        # github-actions[bot], so each such commit must also be a recorded fixup: its only parent is the
+        # renovate[bot] commit before it on the PR, renovate_fixup_recorded finds the run that made it,
+        # and renovate_fixup_content finds it changes only what a go.sum fixup may.
+        # A pull_request run executes the workflows of its PR's base branch, and anyone with write access
+        # can open another PR from a Renovate branch into a branch of their own, or retarget this one, so
+        # that Renovate's next push runs their workflow. A run's pull_requests field is read when it is
+        # queried, not recorded when the run starts, so it does not show which PR started the run. A PR
+        # therefore passes only when no PR but Renovate's has ever used its branch, and its base has never
+        # changed: PRs cannot be deleted, and the base change stays on the timeline. headRefName also
+        # matches PRs from a fork's branch of the same name, whose runs Renovate's push does not start, so
+        # only PRs from this repository count.
         renovate_commits_pass() {
-          gh api graphql -f owner="${1%%/*}" -f name="${1#*/}" -F number="$2" -f query='
-            query($owner: String!, $name: String!, $number: Int!) {
-              repository(owner: $owner, name: $name) { pullRequest(number: $number) {
+          local commits created commit fixup parent
+          commits=$(gh api graphql -f owner="${1%%/*}" -f name="${1#*/}" -F number="$2" -f branch="$4" -f query='
+            query($owner: String!, $name: String!, $number: Int!, $branch: String!) {
+              repository(owner: $owner, name: $name) {
+                pullRequests(headRefName: $branch, first: 100) { totalCount nodes { author { __typename login } headRepository { nameWithOwner } } }
+                pullRequest(number: $number) { createdAt
+                timelineItems(itemTypes: [BASE_REF_CHANGED_EVENT]) { filteredCount }
                 commits(last: 100) { totalCount nodes { commit { oid
+                  parents(first: 2) { totalCount nodes { oid } }
                   authors(first: 10) { nodes { user { login } } }
-                  signature { isValid wasSignedByGitHub } } } } } } }' |
-          jq -r --arg head "$3" '
+                  signature { isValid wasSignedByGitHub } } } } } } }') || { echo false; return; }
+          [[ $(jq -r --arg head "$3" --arg repo "$1" '
             .data.repository.pullRequest.commits as $c
             | ($c.totalCount > 0) and ($c.totalCount == ($c.nodes | length))
               and ($c.nodes | all(.commit
                 | .signature.isValid == true and .signature.wasSignedByGitHub == true
                   and (.authors.nodes | length > 0
                     and all((.user.login // "") | IN("renovate[bot]", "github-actions[bot]")))))
+              and ([ range($c.nodes | length) ] | all(. as $i | $c.nodes[$i].commit
+                | if any(.authors.nodes[]; .user.login == "github-actions[bot]") then
+                    $i > 0 and .parents.totalCount == 1
+                    and .parents.nodes[0].oid == $c.nodes[$i - 1].commit.oid
+                    and ($c.nodes[$i - 1].commit.authors.nodes | all(.user.login == "renovate[bot]"))
+                  else true end))
               and ($c.nodes[-1].commit.oid == $head)
-          ' || echo false
+              and .data.repository.pullRequest.timelineItems.filteredCount == 0
+              and (.data.repository.pullRequests as $p | $p.totalCount == ($p.nodes | length)
+                and ($p.nodes | map(select((.headRepository.nameWithOwner // "" | ascii_downcase) == ($repo | ascii_downcase)))
+                  | all(.author.__typename == "Bot" and .author.login == "renovate")))
+          ' <<< "$commits" 2>/dev/null) == true ]] || { echo false; return; }
+          created=$(jq -r .data.repository.pullRequest.createdAt <<< "$commits")
+          while read -r commit; do
+            [[ -n $(renovate_pushed_runs "$1" "$2" "$4" "$5" "$created" "$commit") ]] || { echo false; return; }
+          done < <(jq -r '.data.repository.pullRequest.commits.nodes[].commit
+            | select(all(.authors.nodes[]; .user.login == "renovate[bot]")) | .oid' <<< "$commits")
+          while read -r fixup parent; do
+            [[ $(renovate_fixup_recorded "$1" "$2" "$4" "$5" "$created" "$fixup" "$parent") == true \
+              && $(renovate_fixup_content "$1" "$fixup" "$parent") == true ]] || { echo false; return; }
+          done < <(jq -r '.data.repository.pullRequest.commits.nodes[].commit
+            | select(any(.authors.nodes[]; .user.login == "github-actions[bot]"))
+            | "\(.oid) \(.parents.nodes[0].oid)"' <<< "$commits")
+          echo true
+        }
+        # Prints the pull_request runs that Renovate's own push of commit $6 started, from branch $3 of this
+        # repository into $4, for PR $2, created at $5: first attempts that renovate[bot] both started and
+        # triggered, since the PR was created. Renovate reuses a branch for the next PR once one merges, so
+        # a run from before the PR was Renovate's push for an earlier one. A commit from one of this PR's
+        # own earlier rebases still passes: it is Renovate's update for this PR. With the checks in
+        # renovate_commits_pass, those runs executed the workflows of base branch $4 merged with
+        # Renovate's commit, which are reviewed code.
+        renovate_pushed_runs() {
+          gh api "repos/$1/actions/runs?head_sha=$6&event=pull_request&per_page=100" |
+            jq -r --arg repo "$1" --arg branch "$3" --arg base "$4" --argjson number "$2" --arg created "$5" '
+              .workflow_runs[]
+              | select(.actor.login == "renovate[bot]" and .triggering_actor.login == "renovate[bot]"
+                  and .created_at >= $created
+                  and .run_attempt == 1 and .head_branch == $branch and .head_repository.full_name == $repo
+                  and (.pull_requests | length) == 1 and .pull_requests[0].number == $number
+                  and .pull_requests[0].base.ref == $base)
+              | .id'
+        }
+        # Prints true only when the fixup $6, made on $7, is recorded by one of renovate_pushed_runs for $7.
+        # The contract for a fixup workflow: after committing, upload an artifact named
+        # renovate-fixup-<commit oid>. Only the run itself can upload an artifact to it. A fixup without
+        # that record is recovered by ticking the rebase box on the PR, which has Renovate push a new
+        # commit; rerunning the workflow does not, as a rerun is not the first attempt and Renovate did
+        # not start it.
+        renovate_fixup_recorded() {
+          local id n
+          for id in $(renovate_pushed_runs "$1" "$2" "$3" "$4" "$5" "$7"); do
+            n=$(gh api "repos/$1/actions/runs/$id/artifacts?name=renovate-fixup-$6" \
+              --jq '[.artifacts[] | select(.expired | not)] | length') || n=0
+            (( n > 0 )) && { echo true; return; }
+          done
+          echo false
+        }
+        # Prints true only when the fixup $2 changes nothing but go.mod and go.sum, and keeps every go.mod
+        # directive of its parent $3 but require and go, the ones go mod tidy changes. A fixup cannot add
+        # a replace, exclude, retract, toolchain or godebug directive, or change the module path.
+        renovate_fixup_content() {
+          local files before after
+          files=$(gh api "repos/$1/commits/$2" --jq '[.files[].filename] | sort | join(" ")') || { echo false; return; }
+          [[ $files == "go.mod" || $files == "go.sum" || $files == "go.mod go.sum" ]] || { echo false; return; }
+          before=$(go_mod_directives "$1" "$3") && after=$(go_mod_directives "$1" "$2") \
+            && [[ $before == "$after" ]] && echo true || echo false
+        }
+        # A go.mod's directives at commit $2, one per line, all but require and go, comments dropped
+        go_mod_directives() {
+          local mod
+          mod=$(gh api -H "Accept: application/vnd.github.raw" "repos/$1/contents/go.mod?ref=$2") && [[ -n $mod ]] || return 1
+          sed 's|//.*||' <<< "$mod" | awk '
+            /^[[:space:]]*$/ { next }
+            /^[[:space:]]*\)/ { block = ""; next }
+            /^[a-z]+[[:space:]]*\([[:space:]]*$/ { block = $1; next }
+            { if (block != "") $0 = block " " $0; $1 = $1; if ($1 != "require" && $1 != "go") print }' | sort
         }
         repos="${{ parameters.repos }}"
         branch_owners=$(cat azure-pipelines/release-branch-owners.json)
@@ -137,8 +230,8 @@ jobs:
             upgrade_versions_prs=$(gh pr list -A mssonicbld -R $repo -L 100 --search "(\"Upgrade SONiC package Versions\" OR \"Upgrade docker-sonic-mgmt package versions\" OR \"Upgrade docker-ptf package versions\") in:title created:>=$date_1m_ago_q" --json body,title,url,labels,statusCheckRollup,createdAt,baseRefName,comments)
             # Renovate labels a security update automerge only when it is not a major bump. Listed at any age:
             # a security update can stay open past a month while a blocker is fixed, and still has to merge
-            renovate_prs=$(gh pr list -A app/renovate --label automerge --label security -R $repo -L 100 --json author,body,title,url,labels,statusCheckRollup,createdAt,baseRefName,comments,headRefOid)
-            qualified_approval_prs=$(gh pr list --label Qualified-approval -R $repo -L 100 --search "updated:>=$date_1m_ago_q" --json author,body,title,url,labels,statusCheckRollup,createdAt,baseRefName,comments,headRefOid)
+            renovate_prs=$(gh pr list -A app/renovate --label automerge --label security -R $repo -L 100 --json author,body,title,url,labels,statusCheckRollup,createdAt,baseRefName,comments,headRefOid,headRefName)
+            qualified_approval_prs=$(gh pr list --label Qualified-approval -R $repo -L 100 --search "updated:>=$date_1m_ago_q" --json author,body,title,url,labels,statusCheckRollup,createdAt,baseRefName,comments,headRefOid,headRefName)
             prs=$(jq -sc 'add | unique_by(.url)' <(echo "$automerge_prs") <(echo "$upgrade_versions_prs") <(echo "$renovate_prs") <(echo "$qualified_approval_prs"))
             c=$(echo $prs | jq length)
             for ((i=0; i<$c; i++)); do
@@ -191,10 +284,14 @@ jobs:
               if [[ $(echo $pr | jq -r '.author.login // ""') == "app/renovate" ]]; then
                 renovate=true
                 required=$(gh api "repos/$repo/branches/$(echo $pr | jq -r .baseRefName)" --jq '.protection.required_status_checks.contexts // []' || echo null)
-                [[ $required != null ]] && checks=$(renovate_checks "$repo" "$(echo $pr | jq -r .headRefOid)" "$checks" "$required")
+                commits_pass=$(renovate_commits_pass "$repo" "${url##*/}" "$(echo $pr | jq -r .headRefOid)" \
+                  "$(echo $pr | jq -r .headRefName)" "$(echo $pr | jq -r .baseRefName)")
+                approved=false
+                [[ $commits_pass == true ]] && approved=$(renovate_approve_runs "$repo" "$(echo $pr | jq -r .headRefOid)" \
+                  "$(echo $pr | jq -r .headRefName)" "$url")
                 pr_success=false
                 [[ $required != null && $(renovate_checks_pass "$checks" "$required") == true \
-                  && $(renovate_commits_pass "$repo" "${url##*/}" "$(echo $pr | jq -r .headRefOid)") == true ]] && pr_success=true
+                  && $commits_pass == true && $approved == false ]] && pr_success=true
                 # Merge only the commit whose checks were evaluated
                 merge_head="--match-head-commit $(echo $pr | jq -r .headRefOid)"
               fi
