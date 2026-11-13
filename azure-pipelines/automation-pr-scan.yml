@@ -54,6 +54,17 @@ jobs:
           local full_body=$(printf "%s\n\n%s" "$comment_body" "$comment_watermark")
           gh pr comment "$pr_url" --body "$full_body"
         }
+        comment_pr_if_new() {
+          local pr_json=$1
+          local pr_url=$2
+          local message=$3
+          if ! echo "$pr_json" | jq -e --arg message "$message" '
+            .comments[]? | select(.author.login == "mssonicbld"
+              and ((.body // "") | startswith($message)))
+          ' > /dev/null; then
+            comment_pr "$pr_url" "$message"
+          fi
+        }
         # Renovate PRs merge without a reviewer, so their checks are evaluated strictly. gh pr merge
         # --admin can bypass the base branch's required checks, so they are evaluated here too.
         # Prints true only when every check has completed successfully, every required check of the
@@ -106,12 +117,12 @@ jobs:
             #   # For sonic-mgmt repo, it has its own github workflow to merge the cherry pick PR
             #   merge_op=false
             # fi
-            automerge_prs=$(gh pr list -A mssonicbld --label automerge -R $repo -L 100 --search "created:>=$date_1m_ago_q" --json body,title,url,labels,statusCheckRollup,createdAt,baseRefName,comments)
-            upgrade_versions_prs=$(gh pr list -A mssonicbld -R $repo -L 100 --search "(\"Upgrade SONiC package Versions\" OR \"Upgrade docker-sonic-mgmt package versions\" OR \"Upgrade docker-ptf package versions\") in:title created:>=$date_1m_ago_q" --json body,title,url,labels,statusCheckRollup,createdAt,baseRefName,comments)
+            automerge_prs=$(gh pr list -A mssonicbld --label automerge -R $repo -L 100 --search "created:>=$date_1m_ago_q" --json body,title,url,labels,statusCheckRollup,createdAt,baseRefName,comments,autoMergeRequest,reviewDecision)
+            upgrade_versions_prs=$(gh pr list -A mssonicbld -R $repo -L 100 --search "(\"Upgrade SONiC package Versions\" OR \"Upgrade docker-sonic-mgmt package versions\" OR \"Upgrade docker-ptf package versions\") in:title created:>=$date_1m_ago_q" --json body,title,url,labels,statusCheckRollup,createdAt,baseRefName,comments,autoMergeRequest,reviewDecision)
             # Renovate labels a security update automerge only when it is not a major bump. Listed at any age:
             # a security update can stay open past a month while a blocker is fixed, and still has to merge
-            renovate_prs=$(gh pr list -A app/renovate --label automerge --label security -R $repo -L 100 --json author,body,title,url,labels,statusCheckRollup,createdAt,baseRefName,comments,headRefOid)
-            qualified_approval_prs=$(gh pr list --label Qualified-approval -R $repo -L 100 --search "updated:>=$date_1m_ago_q" --json author,body,title,url,labels,statusCheckRollup,createdAt,baseRefName,comments,headRefOid)
+            renovate_prs=$(gh pr list -A app/renovate --label automerge --label security -R $repo -L 100 --json author,body,title,url,labels,statusCheckRollup,createdAt,baseRefName,comments,headRefOid,autoMergeRequest,reviewDecision)
+            qualified_approval_prs=$(gh pr list --label Qualified-approval -R $repo -L 100 --search "updated:>=$date_1m_ago_q" --json author,body,title,url,labels,statusCheckRollup,createdAt,baseRefName,comments,headRefOid,autoMergeRequest,reviewDecision)
             prs=$(jq -sc 'add | unique_by(.url)' <(echo "$automerge_prs") <(echo "$upgrade_versions_prs") <(echo "$renovate_prs") <(echo "$qualified_approval_prs"))
             c=$(echo $prs | jq length)
             for ((i=0; i<$c; i++)); do
@@ -121,6 +132,10 @@ jobs:
               url=$(echo $pr | jq .url -r)
               body=$(echo $pr | jq .body -r)
               title=$(echo $pr | jq .title -r)
+              if echo "$pr" | jq -e '.autoMergeRequest != null and .reviewDecision == "REVIEW_REQUIRED"' > /dev/null; then
+                approval_reminder="@${repo}-maintainer, auto-merge is enabled for this PR, but GitHub still requires an approval from an account with write permission. Please help review and provide the required approval."
+                comment_pr_if_new "$pr" "$url" "$approval_reminder"
+              fi
               qualified_approval=false
               if echo "$qualified_approval_prs" | jq -e --arg url "$url" 'any(.url == $url)' > /dev/null; then
                 qualified_approval=true
@@ -222,12 +237,7 @@ jobs:
                     ;;
                 esac
                 if [[ -n "$notification" ]]; then
-                  if ! echo "$pr" | jq -e --arg message "$notification" '
-                    .comments[]? | select(.author.login == "mssonicbld"
-                      and ((.body // "") | startswith($message)))
-                  ' > /dev/null; then
-                    comment_pr "$url" "$notification"
-                  fi
+                  comment_pr_if_new "$pr" "$url" "$notification"
                   echo "Skipping $url: $notification" >> skip_prs.log
                   continue
                 fi
