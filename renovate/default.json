@@ -25,6 +25,12 @@
       "minimumReleaseAge": "7 days"
     },
     {
+      "description": "Pin GitHub Actions and reusable workflows to a commit digest. Semgrep's blocking github-actions-mutable-action-tag rule fails every changed uses: line that names a tag",
+      "matchManagers": ["github-actions"],
+      "matchDepTypes": ["action", "workflow"],
+      "pinDigests": true
+    },
+    {
       "description": "Group patch and minor updates per ecosystem on master",
       "matchBaseBranches": ["master"],
       "matchUpdateTypes": ["patch", "minor"],
