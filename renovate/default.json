@@ -12,6 +12,7 @@
   "commitBody": "Signed-off-by: {{{gitAuthor}}}",
   "enabledManagers": ["gomod", "cargo", "github-actions", "dockerfile", "custom.regex"],
   "postUpdateOptions": ["gomodTidy", "gomodUpdateImportPaths"],
+  "lockFileMaintenance": { "enabled": true },
   "vulnerabilityAlerts": {
     "enabled": true,
     "labels": ["security"],
@@ -22,6 +23,12 @@
       "description": "Wait 7 days after a release before proposing it. Security updates are not delayed",
       "matchPackageNames": ["*"],
       "minimumReleaseAge": "7 days"
+    },
+    {
+      "description": "Pin GitHub Actions and reusable workflows to a commit digest. Semgrep's blocking github-actions-mutable-action-tag rule fails every changed uses: line that names a tag",
+      "matchManagers": ["github-actions"],
+      "matchDepTypes": ["action", "workflow"],
+      "pinDigests": true
     },
     {
       "description": "Group patch and minor updates per ecosystem on master",
