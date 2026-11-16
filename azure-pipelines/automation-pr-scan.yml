@@ -226,7 +226,7 @@ jobs:
             /^[a-z]+[[:space:]]*\([[:space:]]*$/ { block = $1; next }
             { if (block != "") $0 = block " " $0; $1 = $1; if ($1 != "require" && $1 != "go") print }' | sort
         }
-        repos="${{ parameters.repos }}"
+        repos="$SCAN_REPOS"
         branch_owners=$(cat azure-pipelines/release-branch-owners.json)
         rm -rf failure_prs.log skip_prs.log
         rc=0
@@ -498,6 +498,8 @@ jobs:
         if (( rc >= 10 )); then exit $rc; fi
         exit 0
       displayName: cherry pick scanning
+      env:
+        SCAN_REPOS: ${{ parameters.repos }}
     - script: |
         set -ex
         [ -f skip_prs.log ] && cat skip_prs.log
@@ -516,7 +518,7 @@ jobs:
           local full_body=$(printf "%s\n\n%s" "$comment_body" "$comment_watermark")
           gh pr comment "$pr_url" --body "$full_body"
         }
-        repos="${{ parameters.repos }}"
+        repos="$SCAN_REPOS"
         branch_owners=$(cat azure-pipelines/release-branch-owners.json)
         for repo in $repos $(EXTRA_REPOS); do
           echo ======== working for $repo ========
@@ -604,6 +606,8 @@ jobs:
           echo "===============" >> label_scan.log
         done
       displayName: label scanning
+      env:
+        SCAN_REPOS: ${{ parameters.repos }}
     - script: |
         set -ex
         [ -f label_scan.log ] && cat label_scan.log
