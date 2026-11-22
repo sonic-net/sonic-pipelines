@@ -27,6 +27,14 @@ from organization import (
 logger = logging.getLogger(__name__)
 
 
+class GitHubAPIError(ValueError):
+    """GitHub request failure with its HTTP status preserved."""
+
+    def __init__(self, status: int, message: str):
+        super().__init__(message)
+        self.status = status
+
+
 class AsyncGitHubRepoSummary:
     """Asynchronous GitHub repository analyzer for code ownership generation.
 
@@ -161,7 +169,8 @@ class AsyncGitHubRepoSummary:
                         if response.status == 403 or response.status == 429:
                             continue
                         if response.status != 200:
-                            raise ValueError(
+                            raise GitHubAPIError(
+                                response.status,
                                 f"Bad API response: {response} "
                                 f"for {url} {params}"
                             )
@@ -176,7 +185,7 @@ class AsyncGitHubRepoSummary:
 
         Returns:
             Dict[str, Any]: Dictionary containing user information with keys:
-                login, id, name, email, company.
+                login, id, name, email, company, or an empty dict for HTTP 404.
         """
         if github_id == -1:
             return {
@@ -190,10 +199,20 @@ class AsyncGitHubRepoSummary:
             return self.gh_id_lookup_cache[github_id]
         except KeyError:
             pass
-        response = await self.send_github_api_request(
-            f"{AsyncGitHubRepoSummary.GITHUB_API_ENDPOINT}"
-            f"user/{int(github_id)}",
-        )
+        try:
+            response = await self.send_github_api_request(
+                f"{AsyncGitHubRepoSummary.GITHUB_API_ENDPOINT}"
+                f"user/{int(github_id)}",
+            )
+        except GitHubAPIError as error:
+            if error.status != 404:
+                raise
+            logger.warning(
+                "GitHub user ID %s was not found; treating as unresolved",
+                github_id,
+            )
+            self.gh_id_lookup_cache[github_id] = {}
+            return {}
         self.gh_id_lookup_cache[github_id] = result = {
             k: response[k] for k in ["login", "id", "name", "email", "company"]
         }
@@ -207,16 +226,26 @@ class AsyncGitHubRepoSummary:
 
         Returns:
             Dict[str, Any]: Dictionary containing user information with keys:
-                login, id, name, email, company.
+                login, id, name, email, company, or an empty dict for HTTP 404.
         """
         try:
             return self.gh_login_lookup_cache[github_login]
         except KeyError:
             pass
-        response = await self.send_github_api_request(
-            f"{AsyncGitHubRepoSummary.GITHUB_API_ENDPOINT}"
-            f"users/{quote_plus(github_login)}",
-        )
+        try:
+            response = await self.send_github_api_request(
+                f"{AsyncGitHubRepoSummary.GITHUB_API_ENDPOINT}"
+                f"users/{quote_plus(github_login)}",
+            )
+        except GitHubAPIError as error:
+            if error.status != 404:
+                raise
+            logger.warning(
+                "GitHub login %s was not found; treating as unresolved",
+                github_login,
+            )
+            self.gh_login_lookup_cache[github_login] = {}
+            return {}
         self.gh_login_lookup_cache[github_login] = result = {
             k: response[k] for k in ["login", "id", "name", "email", "company"]
         }
@@ -546,7 +575,7 @@ class AsyncGitHubRepoSummary:
                 f"{commit.email}, unable to determine authors' GitHub id. "
                 "Adding to the bundled contributor with GitHub id = -1"
             )
-            github_info = await self.github_id_lookup(author_id)
+            github_info = await self.github_id_lookup(-1)
 
         emails = {commit.email.lower()}
         if github_info["email"]:
@@ -583,15 +612,16 @@ class AsyncGitHubRepoSummary:
             Dict[str, Any]: Dictionary containing GitHub user information, or
             empty dict if not found.
         """
-        local_part, domain = email.split("@")
+        local_part, separator, domain = email.partition("@")
+        if not separator or not local_part or not domain or "@" in domain:
+            logger.warning(
+                "Invalid commit author email %r; unable to resolve GitHub user",
+                email,
+            )
+            return {}
         if domain == "users.noreply.github.com":
-            try:
-                id_str, github_login = local_part.split("+")
+            id_str, separator, github_login = local_part.partition("+")
+            if separator and id_str.isdecimal():
                 return await self.github_id_lookup(int(id_str))
-            except ValueError:
-                # Try using the entire local part as login
-                try:
-                    return await self.github_login_lookup(local_part)
-                except ValueError:
-                    pass
+            return await self.github_login_lookup(local_part)
         return {}

@@ -3,6 +3,15 @@
 The script to run over the local copy of the GitHub repo, validate all contributors against
 the GitHub and list the top contributors per folder in the CODEOWNERS format.
 
+Historical authors whose GitHub user ID or login returns HTTP 404 are logged
+and assigned to the existing non-GitHub contributor bundle (`github_id: -1`).
+Missing-user results are cached during the run. Malformed commit author emails
+are also logged and cannot abort repository analysis. Other API failures still
+propagate rather than being treated as missing users.
+
+Run contributor-resolution regression tests from this directory with
+`python -m unittest test_contributor_resolution` after installing the package.
+
 ## Building the Wheel Package
 
 Alternatively you can do just pip install
