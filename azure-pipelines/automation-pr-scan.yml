@@ -6,6 +6,10 @@ parameters:
   type: string
   default: 'sonic-net/sonic-buildimage sonic-net/sonic-mgmt sonic-net/sonic-utilities sonic-net/sonic-swss sonic-net/sonic-sairedis sonic-net/sonic-swss-common sonic-net/sonic-dbsyncd sonic-net/sonic-gnmi sonic-net/sonic-host-services sonic-net/sonic-linkmgrd sonic-net/sonic-linux-kernel sonic-net/sonic-mgmt-common sonic-net/sonic-mgmt-framework sonic-net/sonic-platform-common sonic-net/sonic-platform-daemons sonic-net/sonic-py-swsssdk sonic-net/sonic-restapi sonic-net/sonic-snmpagent sonic-net/sonic-wpa-supplicant sonic-net/sonic-dhcp-relay sonic-net/sonic-dhcpmon sonic-net/sonic-dash-api sonic-net/sonic-dash-ha sonic-net/sonic-bmp sonic-net/sonic-ztp Azure/sonic-swss.msft Azure/sonic-sairedis.msft Azure/sonic-utilities.msft Azure/sonic-platform-daemons.msft Azure/sonic-platform-common.msft Azure/sonic-linux-kernel.msft Azure/SAI.msft Azure/sonic-buildimage-msft Azure/sonic-mgmt.msft Azure/sonic-swss-common.msft Azure/sonic-host-services.msft Azure/sonic-gnmi.msft Azure/sonic-dash-api.msft Azure/sonic-dash-ha.msft'
 
+variables:
+- name: excludedAdminMentions
+  value: '["kperumalbfn", "lihuay", "thelinuxfoundation", "wangxin", "xumia"]'
+
 schedules:
 - cron: "11 * * * *"
   branches:
@@ -58,9 +62,12 @@ jobs:
           local pr_json=$1
           local pr_url=$2
           local message=$3
-          if ! echo "$pr_json" | jq -e --arg message "$message" '
+          local dedup_message=${4:-$message}
+          if ! echo "$pr_json" | jq -e --arg message "$dedup_message" --arg normalize_mentions "${4:+true}" '
             .comments[]? | select(.author.login == "mssonicbld"
-              and ((.body // "") | startswith($message)))
+              and ((.body // "")
+                | if $normalize_mentions == "true" then gsub(", @[A-Za-z0-9_-]+"; "") else . end
+                | startswith($message)))
           ' > /dev/null; then
             comment_pr "$pr_url" "$message"
           fi
@@ -245,7 +252,7 @@ jobs:
             # Renovate labels a security update automerge only when it is not a major bump. Listed at any age:
             # a security update can stay open past a month while a blocker is fixed, and still has to merge
             renovate_prs=$(gh pr list -A app/renovate --label automerge --label security -R $repo -L 100 --json author,body,title,url,labels,statusCheckRollup,createdAt,baseRefName,comments,headRefOid,headRefName,autoMergeRequest,reviewDecision)
-            qualified_approval_prs=$(gh pr list --label Qualified-approval -R $repo -L 100 --search "updated:>=$date_1m_ago_q" --json author,body,title,url,labels,statusCheckRollup,createdAt,baseRefName,comments,headRefOid,headRefName)
+            qualified_approval_prs=$(gh pr list --label Qualified-approval -R $repo -L 100 --search "updated:>=$date_1m_ago_q" --json author,body,title,url,labels,statusCheckRollup,createdAt,baseRefName,comments,headRefOid,headRefName,isDraft)
             prs=$(jq -sc 'add | unique_by(.url)' <(echo "$automerge_prs") <(echo "$upgrade_versions_prs") <(echo "$renovate_prs") <(echo "$qualified_approval_prs"))
             c=$(echo $prs | jq length)
             for ((i=0; i<$c; i++)); do
@@ -253,6 +260,10 @@ jobs:
               pr=$(echo $prs | jq .[$i])
               echo $pr | jq [.url,.author.login,.labels[].name]
               url=$(echo $pr | jq .url -r)
+              if echo "$qualified_approval_prs" | jq -e --arg url "$url" 'any(.url == $url and .isDraft == true)' > /dev/null; then
+                echo "Skipping $url: Qualified-approval PR is a draft." >> skip_prs.log
+                continue
+              fi
               body=$(echo $pr | jq .body -r)
               title=$(echo $pr | jq .title -r)
               if echo "$pr" | jq -e '.autoMergeRequest != null and .reviewDecision == "REVIEW_REQUIRED"' > /dev/null; then
@@ -269,6 +280,7 @@ jobs:
                   | map(select(. + " merge risk" | IN($labels[])))
                   | .[0] // "missing"')
                 notification=''
+                notification_key=''
                 case "$risk" in
                   high)
                     notification="@${repo}-maintainer, this Qualified-approval PR has high merge risk and will not be automatically merged. Please review and merge manually."
@@ -300,7 +312,11 @@ jobs:
                         qualified_errors=true
                         continue
                       fi
-                      if ! admin_mentions=$(echo "$admin_users" | jq -r 'map("@" + .) | join(", ")'); then
+                      if ! admin_mentions=$(echo "$admin_users" | jq -r --argjson excluded "$EXCLUDED_ADMIN_MENTIONS" '
+                        ($excluded | map(ascii_downcase)) as $excluded_users
+                        | map(select(. as $user | $excluded_users | index($user) == null))
+                        | map("@" + .) | join(", ")
+                      '); then
                         echo "Failed to format repository admin mentions for $url" >> failure_prs.log
                         qualified_errors=true
                         continue
@@ -330,6 +346,7 @@ jobs:
                     fi
                     if [[ "$approved" != true ]]; then
                       notification="@${repo}-maintainer${admin_mentions:+, $admin_mentions}, this Qualified-approval PR has medium merge risk. Please help approve the current head commit to allow automatic merging."
+                      notification_key="@${repo}-maintainer, this Qualified-approval PR has medium merge risk. Please help approve the current head commit to allow automatic merging."
                     fi
                     ;;
                   low) ;;
@@ -360,7 +377,7 @@ jobs:
                     ;;
                 esac
                 if [[ -n "$notification" ]]; then
-                  comment_pr_if_new "$pr" "$url" "$notification"
+                  comment_pr_if_new "$pr" "$url" "$notification" "$notification_key"
                   echo "Skipping $url: $notification" >> skip_prs.log
                   continue
                 fi
@@ -500,6 +517,7 @@ jobs:
       displayName: cherry pick scanning
       env:
         SCAN_REPOS: ${{ parameters.repos }}
+        EXCLUDED_ADMIN_MENTIONS: $(excludedAdminMentions)
     - script: |
         set -ex
         [ -f skip_prs.log ] && cat skip_prs.log
