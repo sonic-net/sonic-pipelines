@@ -2,6 +2,45 @@
 
 set -exo pipefail
 
+function configure_data_disk()
+{
+  local disk=/dev/disk/azure/scsi1/lun0
+  local disk_type disk_devices mounted_target signatures uuid
+  if [ ! -b "$disk" ]; then
+    echo "ERROR: Azure data disk LUN 0 is missing: $disk" >&2
+    exit 1
+  fi
+  disk=$(readlink -f -- "$disk")
+  disk_type=$(lsblk -dnro TYPE "$disk")
+  disk_devices=$(lsblk -nrpo NAME "$disk")
+  mounted_target=$(lsblk -nro MOUNTPOINTS "$disk")
+  signatures=$(wipefs --no-act --noheadings --output TYPE "$disk")
+  if [ "$disk_type" != "disk" ] || [ "$disk_devices" != "$disk" ] ||
+     [ -n "$mounted_target" ] || [ -n "$signatures" ]; then
+    echo "ERROR: Select a blank, unmounted disk without partitions or signatures" >&2
+    exit 1
+  fi
+
+  mkfs.ext4 "$disk"
+  uuid=$(blkid -s UUID -o value "$disk")
+  if [ -z "$uuid" ]; then
+    echo "ERROR: Formatted filesystem has no UUID" >&2
+    exit 1
+  fi
+  mkdir -p /data
+  printf '\nUUID=%s /data ext4 defaults 0 2\n' "$uuid" >> /etc/fstab
+  printf '/data/agent /agent none bind,x-systemd.requires-mounts-for=/data 0 0\n' >> /etc/fstab
+  systemctl daemon-reload
+  mount /data
+  mkdir -p /data/agent /agent
+  mount /agent
+  mkdir -p /etc/systemd/system/docker.service.d
+  printf '[Unit]\nRequiresMountsFor=/data\n' \
+    > /etc/systemd/system/docker.service.d/data-mount.conf
+}
+
+configure_data_disk
+
 export DEBIAN_FRONTEND=noninteractive
 export NEEDRESTART_MODE=a
 export NEEDRESTART_SUSPEND=1
