@@ -43,6 +43,13 @@
       "groupName": null
     },
     {
+      "description": "A new GitHub-hosted runner image, such as ubuntu-24.04 to ubuntu-26.04, opens only on dashboard approval. The new image brings its own compiler and package set, so a workflow usually needs changes before it runs there",
+      "matchManagers": ["github-actions"],
+      "matchDatasources": ["github-runners"],
+      "matchUpdateTypes": ["major"],
+      "dependencyDashboardApproval": true
+    },
+    {
       "description": "Cargo treats a minor update below 1.0, such as 0.12 to 0.14, as breaking, so it gets its own pull request, like a major. In the minor group, several API changes land behind one build that cannot pass until all of them are fixed",
       "matchBaseBranches": ["master"],
       "matchManagers": ["cargo"],
