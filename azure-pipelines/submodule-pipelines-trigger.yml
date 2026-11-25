@@ -117,16 +117,17 @@ stages:
             exit 1
           fi
           rm -rf buildimage
-          git clone https://github.com/sonic-net/sonic-buildimage buildimage
+          git init -q buildimage
           cd buildimage
-          git checkout $(buildimageSha)
+          # Only the submodule pins are read, so fetch just this commit and its trees (about 1 MB) instead of a full clone and checkout (about 400 MB).
+          git fetch --depth 1 --filter=blob:none https://github.com/sonic-net/sonic-buildimage $(buildimageSha)
           while IFS=$'\t' read -r PIPELINE_KEY PIPELINE_ID; do
             case "$PIPELINE_KEY" in
               common_libs|docker_slave_trixie|docker_slave_bookworm|sonic_buildimage_ubuntu22_04|buildimage_vs)
-                SHA=$(git rev-parse HEAD)
+                SHA=$(git rev-parse FETCH_HEAD)
                 ;;
               *)
-                SHA=$(git ls-tree HEAD "$PIPELINE_KEY" | awk '{print $3}')
+                SHA=$(git ls-tree FETCH_HEAD "$PIPELINE_KEY" | awk '{print $3}')
                 ;;
             esac
             if [ -z "$SHA" ]; then
@@ -182,17 +183,18 @@ stages:
               fi
               VALIDATION_BRANCH_REF="refs/heads/$VALIDATION_BRANCH"
               rm -rf buildimage
-              git clone https://github.com/sonic-net/sonic-buildimage buildimage
+              git init -q buildimage
               cd buildimage
-              git checkout $(buildimageSha)
+              # Only the submodule pins are read, so fetch just this commit and its trees (about 1 MB) instead of a full clone and checkout (about 400 MB).
+              git fetch --depth 1 --filter=blob:none https://github.com/sonic-net/sonic-buildimage $(buildimageSha)
               if [ "${{ pipeline.key }}" = "common_libs" ] || \
                 [ "${{ pipeline.key }}" = "docker_slave_trixie" ] || \
                 [ "${{ pipeline.key }}" = "docker_slave_bookworm" ] || \
                 [ "${{ pipeline.key }}" = "sonic_buildimage_ubuntu22_04" ] || \
                 [ "${{ pipeline.key }}" = "buildimage_vs" ]; then
-                SHA=$(git rev-parse HEAD)
+                SHA=$(git rev-parse FETCH_HEAD)
               else
-                SHA=$(git ls-tree HEAD '${{ pipeline.key }}' | awk '{print $3}')
+                SHA=$(git ls-tree FETCH_HEAD '${{ pipeline.key }}' | awk '{print $3}')
               fi
               if [ -z "$SHA" ]; then
                 echo "No pinned commit found for ${{ pipeline.key }} at $(buildimageSha); the path is likely wrong or the submodule was removed"
