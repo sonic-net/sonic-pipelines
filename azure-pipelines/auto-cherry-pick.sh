@@ -142,17 +142,14 @@ labeled(){
         create_pr "$ACTION_LABEL"
         return $?
     fi
-    if echo $ACTION_LABEL | grep -E '^Request for (msft-)?[0-9]{6} Branch$'; then
-        check_conflict "$ACTION_LABEL"
-    fi
-
+    return 0
 }
 
 synchronize(){
     echo [ AUTO CHERRY PICK ] synchronize: $PR_LABELS $PR_URL
     IFS=, read -a labels <<< $PR_LABELS
     for label in "${labels[@]}"; do
-        if echo $label | grep -E '^Request for (msft-)?[0-9]{6} Branch$'; then
+        if echo $label | grep -E '^Approved for (msft-)?[0-9]{6} Branch$'; then
             if [[ $REPO == "sonic-mgmt" ]];then
                 echo $label | grep msft- || continue
             fi
