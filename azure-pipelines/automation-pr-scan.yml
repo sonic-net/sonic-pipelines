@@ -529,6 +529,30 @@ jobs:
         set -ex
         one_week_ago=$(date --date "1 week ago" -u +"%FT%TZ")
 
+        has_included_confirmation() {
+          jq -e --arg base_branch "$1" '
+            def confirms:
+              (.body // "" | gsub("\r\n?"; "\n") | split("\n")
+              | reduce .[] as $line ({fence: null, confirmed: false};
+                  if ($line | test("^[ \t]*>")) then .
+                  elif .fence != null then
+                    .fence as $fence
+                    | if ($line | test("^ {0,3}" + $fence + "[ \t]*$")) then .fence = null else . end
+                  elif ($line | test("^ {0,3}(`{3,}|~{3,})")) then
+                    ($line | capture("^ {0,3}(?<fence>`{3,}|~{3,})").fence) as $fence
+                    | .fence = ($fence[0:1] + "{" + ($fence | length | tostring) + ",}")
+                  elif ($line | test("^( {4}|\t)")) then .
+                  elif (($line | gsub("^[ \t]+|[ \t]+$"; "") | ascii_downcase)
+                        == ("already in " + $base_branch | ascii_downcase)) then
+                    .confirmed = true
+                  else . end)
+              | .confirmed);
+            any(.[]?;
+              (.author.login // "") != "" and
+              (.author.login // "") != "mssonicbld" and confirms)
+          ' <<< "$comments" > /dev/null
+        }
+
         comment_watermark='<div align="right"><sub>---Powered by SONiC BuildBot</sub></div>'
         comment_pr() {
           local pr_url=$1
@@ -568,11 +592,13 @@ jobs:
                 continue
               fi
               if echo "$labels" | grep -E "Cherry Pick Conflict_$base_branch" > /dev/null; then
-                if echo "$comments" | jq -e --arg base_branch "$base_branch" '.[]? | select(((.author.login // "") != "mssonicbld") and ((.body // "") | test("already in " + $base_branch; "i")))' > /dev/null; then
+                if has_included_confirmation "$base_branch"; then
                    comment_pr "$url" "The change is already in $base_branch. Removing cherry pick conflict label and adding included label."
                    gh pr edit "$url" --remove-label "Cherry Pick Conflict_$base_branch"
                    # Use the casing of whatever "Included in" label already exists in this repo
-                   included_label=$(gh label list -R $repo --json name -q '.[]?.name' | grep -iE "^Included in $base_branch [Bb]ranch$" | head -n1 || echo "Included in $base_branch Branch")
+                   repo_labels=$(gh label list -R "$repo" --json name -q '.[]?.name')
+                   included_label=$(printf '%s\n' "$repo_labels" | grep -iE "^Included in $base_branch [Bb]ranch$" | head -n1 || true)
+                   [[ -z "$included_label" ]] && included_label="Included in $base_branch Branch"
                    gh pr edit "$url" --add-label "$included_label"
                    echo "Removed cherry pick conflict label and added included label for $url" >> label_scan.log
                 fi
@@ -611,7 +637,7 @@ jobs:
                 continue
               fi
               if ! echo "$comments" | jq -e '.[]? | select(((.author.login // "") == "mssonicbld") and ((.body // "") | test("please manually create the cherry pick PR"; "i")))' > /dev/null; then
-                if ! echo "$comments" | jq -e --arg base_branch "$base_branch" '.[]? | select(((.author.login // "") != "mssonicbld") and ((.body // "") | test("already in " + $base_branch; "i")))' > /dev/null; then
+                if ! has_included_confirmation "$base_branch"; then
                   release_owner_key=$(echo "$base_branch" | sed -E 's/^msft-//' | grep -Eo '[0-9]{6}' | head -n1 || true)
                   release_owner=$(echo "$branch_owners" | jq -r --arg release_owner_key "$release_owner_key" '.[$release_owner_key].githubAccount // empty')
                   comment_pr "$url" "The change is not in $base_branch yet. @$author, please manually create the cherry pick PR for branch $base_branch.<br>You can ping the release branch owner(github account: $release_owner) to approve your cherry pick PR.<br>If this change is already in $base_branch, please comment \"already in $base_branch\". Thanks!"
