@@ -10,7 +10,7 @@
   "separateMinorPatch": true,
   "rebaseWhen": "conflicted",
   "commitBody": "Signed-off-by: {{{gitAuthor}}}",
-  "enabledManagers": ["gomod", "cargo", "github-actions", "dockerfile", "custom.regex"],
+  "enabledManagers": ["gomod", "cargo", "pip_requirements", "pip_setup", "pep621", "github-actions", "dockerfile", "custom.regex"],
   "postUpdateOptions": ["gomodTidy", "gomodUpdateImportPaths"],
   "lockFileMaintenance": { "enabled": true },
   "vulnerabilityAlerts": {
